@@ -1,0 +1,32 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>itsbillw.xyz{% block title %}{% endblock %}</title>
+    <link rel="icon" href="{% static 'main/images/tukibill-icon.png' %}" />
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{% static 'main/css/style.css' %}" rel="stylesheet">
+    {% block header %}{% endblock %}
+    <style>
+        body, html {
+            background: url('{% static "main/images/background.png" %}') no-repeat center center fixed;
+            background-size: cover;
+        }
+    </style>
+</head>
+<body>
+    {% block content %}
+    <!-- Content goes here -->
+    {% endblock %}
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="{% static 'bootstrap/js/jquery-3.7.1.slim.min.js' %}"></script>
+    <script src="{% static 'bootstrap/js/popper.min.js' %}"></script>
+    <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
+</body>
+</html>
