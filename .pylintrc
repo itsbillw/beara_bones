@@ -1,0 +1,2 @@
+[MASTER]
+init-hook='import sys; sys.path.append("/home/itsbillw/PycharmProjects/beara_bones"); sys.path.append("/home/itsbillw/.local/share/virtualenvs/beara_bones-0if6Q13k/lib/python3.x/site-packages")'

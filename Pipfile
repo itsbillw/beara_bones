@@ -11,6 +11,13 @@ apache-airflow = "*"
 dbt-core = "*"
 python-dotenv = "*"
 gunicorn = "*"
+black = "*"
+isort = "*"
+pre-commit = "*"
+mypy = "*"
+pylint = "*"
+bandit = "*"
+flake8 = "*"
 
 [dev-packages]
 
