@@ -39,7 +39,6 @@ repos:
     rev: v3.0.0a5
     hooks:
       - id: pylint
-        entry: /home/itsbillw/.local/share/virtualenvs/beara_bones-0if6Q13k/bin/pylint
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.9
