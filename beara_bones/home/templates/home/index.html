@@ -6,76 +6,103 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>itsbillw.com - Under Construction</title>
-    <link rel="icon" href="{% static 'home/images/tukibill-icon.png' %}" />
+
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'home/images/tukibill-icon.png' %}" type="image/png">
+
     <style>
-        body {
-            margin: 0;
-            padding: 0;
+        /* Custom styles for the cover page */
+        html, body {
+            height: 100%;
             background-color: #FFBE98; /* Background color */
-            font-family: 'Arial', sans-serif;
-            color: #333; /* Text color */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            text-align: center;
         }
 
-        h1 {
-            font-size: 3rem;
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 0;
             margin: 0;
         }
 
-        p {
-            font-size: 1.5rem;
-            margin: 0.5rem 0;
+        .cover-container {
+            max-width: 42em;
         }
 
-        .countdown {
-            font-size: 2rem;
+        .cover-heading {
+            font-size: 3rem;
             font-weight: bold;
-            color: #d9534f; /* Bootstrap danger color */
-            margin: 1rem 0;
+        }
+
+        .lead {
+            font-size: 1.25rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .masthead {
+            margin-bottom: 2rem;
+        }
+
+        .masthead-brand {
+            font-size: 1.5rem;
+        }
+
+        .nav-link {
+            font-size: 1.1rem;
+            color: #d9534f; /* Link color */
+            font-weight: 500;
         }
 
         .footer {
-            margin-top: 2rem;
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #666;
-        }
-
-        /* Simple hover effect for the button */
-        .button {
-            background-color: #fff;
-            border: 2px solid #d9534f;
-            border-radius: 5px;
-            color: #d9534f;
-            padding: 10px 20px;
-            text-decoration: none;
-            font-size: 1.2rem;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        .button:hover {
-            background-color: #d9534f;
-            color: #fff;
+            margin-top: 2rem;
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to itsbillw.com</h1>
-    <p>This site is currently under construction.</p>
-    <p>We're working hard to bring you something great!</p>
+    <div class="d-flex w-100 h-100 p-3 mx-auto flex-column cover-container">
+        <!-- Header / Navbar -->
+        <header class="masthead mb-auto">
+            <div class="inner">
+                <h3 class="masthead-brand">itsbillw.com</h3>
+                <nav class="nav nav-masthead justify-content-center">
+                    <a class="nav-link" href="https://cloud.itsbillw.com">Cloud Service</a>
+                </nav>
+            </div>
+        </header>
 
-    <div class="countdown" id="countdown"></div>
+        <!-- Main content -->
+        <main role="main" class="inner cover">
+            <h1 class="cover-heading">Welcome to itsbillw.com</h1>
+            <p class="lead">Our site is under construction. Stay tuned for something amazing!</p>
 
-    <a href="#" class="button">Stay Tuned!</a>
+            <!-- Countdown Timer -->
+            <div class="countdown" id="countdown"></div>
 
-    <div class="footer">
-        &copy; 2024 itsbilw. All rights reserved.
+            <p class="lead">
+                <a href="#" class="btn btn-lg btn-outline-danger">Stay Tuned!</a>
+            </p>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            &copy; 2024 itsbilw. All rights reserved.
+        </footer>
     </div>
 
+    <!-- Bootstrap JavaScript and dependencies (for optional components) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Countdown Timer Script -->
     <script>
         // Set the date for when the site will be live
         const launchDate = new Date("2024-12-01T00:00:00").getTime();
