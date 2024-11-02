@@ -1,0 +1,19 @@
+body {
+    background-color: #004225; /* British racing green. Patone colour of the year #FFBE98 */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+}
+.navbar {
+    background-color: transparent !important;
+}
+.cover-container {
+    max-width: 42em;
+    text-align: center;
+    margin: auto; /* Centers the main content vertically */
+}
+.cover-heading {
+    font-size: 2.5rem;
+}

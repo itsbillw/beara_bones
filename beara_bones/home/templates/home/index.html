@@ -1,133 +1,18 @@
+{% extends "home/base.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>itsbillw.com - Under Construction</title>
+{% block header %}
+<title>itsbillw</title>
+{% endblock %}
 
-    <!-- Bootstrap CSS CDN -->
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Favicon -->
-    <link rel="icon" href="{% static 'home/images/tukibill-icon.png' %}" type="image/png">
 
-    <style>
-        /* Custom styles for the cover page */
-        html, body {
-            height: 100%;
-            background-color: #FFBE98; /* Background color */
-        }
-
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #333;
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            padding: 0;
-            margin: 0;
-        }
-
-        .cover-container {
-            max-width: 42em;
-        }
-
-        .cover-heading {
-            font-size: 3rem;
-            font-weight: bold;
-        }
-
-        .lead {
-            font-size: 1.25rem;
-            font-weight: 300;
-            margin-bottom: 2rem;
-        }
-
-        .masthead {
-            margin-bottom: 2rem;
-        }
-
-        .masthead-brand {
-            font-size: 1.5rem;
-        }
-
-        .nav-link {
-            font-size: 1.1rem;
-            color: #d9534f; /* Link color */
-            font-weight: 500;
-        }
-
-        .footer {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 2rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="d-flex w-100 h-100 p-3 mx-auto flex-column cover-container">
-        <!-- Header / Navbar -->
-        <header class="masthead mb-auto">
-            <div class="inner">
-                <h3 class="masthead-brand">itsbillw.com</h3>
-                <nav class="nav nav-masthead justify-content-center">
-                    <a class="nav-link" href="https://cloud.itsbillw.com">Cloud Service</a>
-                </nav>
-            </div>
-        </header>
-
-        <!-- Main content -->
-        <main role="main" class="inner cover">
-            <h1 class="cover-heading">Welcome to itsbillw.com</h1>
-            <p class="lead">Our site is under construction. Stay tuned for something amazing!</p>
-
-            <!-- Countdown Timer -->
-            <div class="countdown" id="countdown"></div>
-
-            <p class="lead">
-                <a href="#" class="btn btn-lg btn-outline-danger">Stay Tuned!</a>
-            </p>
-        </main>
-
-        <!-- Footer -->
-        <footer class="footer">
-            &copy; 2024 itsbilw. All rights reserved.
-        </footer>
-    </div>
-
-    <!-- Bootstrap JavaScript and dependencies (for optional components) -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-    <!-- Countdown Timer Script -->
-    <script>
-        // Set the date for when the site will be live
-        const launchDate = new Date("2024-12-01T00:00:00").getTime();
-
-        // Update the countdown every second
-        const countdownFunction = setInterval(() => {
-            const now = new Date().getTime();
-            const distance = launchDate - now;
-
-            // Time calculations
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-            // Display the result in the countdown element
-            document.getElementById("countdown").innerHTML =
-                days + "d " + hours + "h " + minutes + "m " + seconds + "s ";
-
-            // If the countdown is finished, display a message
-            if (distance < 0) {
-                clearInterval(countdownFunction);
-                document.getElementById("countdown").innerHTML = "Site is live!";
-            }
-        }, 1000);
-    </script>
-</body>
-</html>
+{% block content %}
+<!-- Main Content Container -->
+<main class="cover-container">
+  <h1 class="cover-heading">Welcome to itsbillw</h1>
+  <p class="lead">This is a simple and elegant template to showcase your content.</p>
+  <p class="lead">
+    <a href="#" class="btn btn-outline-light btn-lg">Get Started</a>
+  </p>
+</main>
+{% endblock %}

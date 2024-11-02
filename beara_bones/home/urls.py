@@ -1,7 +1,10 @@
 from django.urls import path
 
-from .views import index
+from .views import index, poetry
 
+app_name = 'home'
 urlpatterns = [
-    path("", index, name="home"),
+    # Home page.
+    path('', index, name='index'),
+    path('if-', poetry, name='if-')
 ]
