@@ -1,3 +1,19 @@
+[project]
+requires-python = ">= 3.12"
+name = "beara_bones"
+version = "0.1.0"
+description = "Django based playground"
+readme = "README.md"
+dependencies = [
+    "certbot-nginx>=2.11.0",
+    "certbot>=2.11.0",
+    "django>=5.1.2",
+    "gunicorn>=23.0.0",
+    "python-dotenv>=1.0.1",
+    "uvicorn>=0.32.0",
+    "whitenoise>=6.8.2",
+]
+
 [tool.black]
 line-length = 120
 

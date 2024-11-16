@@ -8,11 +8,14 @@ body {
 }
 .navbar {
     background-color: transparent !important;
+    max-width: 42em;
+    margin: 0 auto;
+    padding: 0 1rem;
 }
 .cover-container {
-    max-width: 42em;
+    max-width: 42em !important;
     text-align: center;
-    margin: auto; /* Centers the main content vertically */
+    margin: auto;
 }
 .cover-heading {
     font-size: 2.5rem;
