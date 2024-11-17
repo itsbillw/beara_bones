@@ -1,8 +1,8 @@
-from django.shortcuts import render
+from django.template.response import TemplateResponse
 
 
-def index(request):
-    return render(request, "home/index.html")
+async def index(request):
+    return TemplateResponse(request, "home/index.html")
 
-def poetry(request):
-    return render(request, "home/if-.html")
+async def poetry(request):
+    return TemplateResponse(request, "home/if-.html")

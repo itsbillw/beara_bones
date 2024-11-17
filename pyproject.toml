@@ -10,6 +10,7 @@ dependencies = [
     "django>=5.1.2",
     "gunicorn>=23.0.0",
     "python-dotenv>=1.0.1",
+    "uvicorn-worker>=0.2.0",
     "uvicorn>=0.32.0",
     "whitenoise>=6.8.2",
 ]

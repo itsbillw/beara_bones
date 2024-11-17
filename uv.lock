@@ -39,6 +39,7 @@ dependencies = [
     { name = "gunicorn" },
     { name = "python-dotenv" },
     { name = "uvicorn" },
+    { name = "uvicorn-worker" },
     { name = "whitenoise" },
 ]
 
@@ -50,6 +51,7 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "uvicorn", specifier = ">=0.32.0" },
+    { name = "uvicorn-worker", specifier = ">=0.2.0" },
     { name = "whitenoise", specifier = ">=6.8.2" },
 ]
 
@@ -456,6 +458,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/e0/fc/1d785078eefd6945f3e5bab5c076e4230698046231eb0f3747bc5c8fa992/uvicorn-0.32.0.tar.gz", hash = "sha256:f78b36b143c16f54ccdb8190d0a26b5f1901fe5a3c777e1ab29f26391af8551e", size = 77564 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/14/78bd0e95dd2444b6caacbca2b730671d4295ccb628ef58b81bee903629df/uvicorn-0.32.0-py3-none-any.whl", hash = "sha256:60b8f3a5ac027dcd31448f411ced12b5ef452c646f76f02f8cc3f25d8d26fd82", size = 63723 },
+]
+
+[[package]]
+name = "uvicorn-worker"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gunicorn" },
+    { name = "uvicorn" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d9/7a/a4b06ea7ece47f6b020671209912a505f8eef1812e02a68cb25d71ee0e8d/uvicorn_worker-0.2.0.tar.gz", hash = "sha256:f6894544391796be6eeed37d48cae9d7739e5a105f7e37061eccef2eac5a0295", size = 8959 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/9c/5ead3efe80abb7ba5e2764650a050e7c25d8a75228543a1e63ce321186c3/uvicorn_worker-0.2.0-py3-none-any.whl", hash = "sha256:65dcef25ab80a62e0919640f9582216ee05b3bb1dc2f0e58b354ca0511c398fb", size = 5282 },
 ]
 
 [[package]]
