@@ -1,22 +1,78 @@
+/* General Styles */
 body {
-    background-color: #004225; /* British racing green. Patone colour of the year #FFBE98 */
-    color: white;
+    background: linear-gradient(120deg, #002C42, #005E7C);
+    color: ##002c42;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     margin: 0;
+    font-family: 'Roboto', sans-serif;
 }
-.navbar {
-    background-color: transparent !important;
-    max-width: 42em;
-    margin: 0 auto;
-    padding: 0 1rem;
+
+/* Navbar */
+.navbar-container {
+    width: 80%; /* Restrict navbar to 80% width */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-logo {
+    height: 60px; /* Increase size to 50% larger */
+    max-height: 60px;
+    width: auto; /* Maintain aspect ratio */
+}
+
+.navbar-nav {
+    margin-left: auto; /* Push links to the far right */
+}
+
+.nav-link {
+    color: #f8f9fa !important;
+    transition: color 0.3s ease-in-out;
+}
+
+.nav-link:hover {
+    color: #00d1b2 !important;
+}
+
+/* Cover Container */
 .cover-container {
-    max-width: 42em !important;
-    text-align: center;
     margin: auto;
+    max-width: 700px;
+    padding: 2rem;
 }
+
 .cover-heading {
-    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.lead {
+    font-size: 1.25rem;
+    font-weight: 300;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #00d1b2;
+    border: none;
+    transition: background-color 0.3s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+    background-color: #00b89e;
+    transform: scale(1.05);
+}
+
+/* Footer */
+footer {
+    background-color: rgba(0, 44, 66, 0.8);
+    color: #d1d1d1;
+    padding: 1rem 0;
+    font-size: 0.875rem;
 }
