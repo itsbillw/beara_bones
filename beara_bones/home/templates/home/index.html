@@ -1,19 +1,12 @@
-{% extends "home/base.html" %}
-{% load static %}
-
-{% block header %}
+{% extends "home/base.html" %} {% load static %} {% block header %}
 <title>itsbillw - Home</title>
-{% endblock %}
-
-
-{% block content %}
+{% endblock %} {% block content %}
 <!-- Main Content -->
-<main class="cover-container container">
-<section class="text-center py-5">
-    <div class="container">
-        <h2 class="display-5">Welcome to itsbillw.eu</h2>
-        <p class="mb-3">The site is a playground for learning and growing. Small changes to build something big.</p>
-    </div>
-</section>
-</main>
+<div class="container main-container">
+  <!-- Jumbotron -->
+  <div class="jumbotron text-center rounded">
+    <h1>Welcome to itsbillw</h1>
+    <p>Your one-stop hub for projects and insights.</p>
+  </div>
+</div>
 {% endblock %}
