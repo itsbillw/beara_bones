@@ -115,15 +115,6 @@ body {
   color: #ccccff;
 }
 
-/* Logo Styling */
-.img-fluid {
-  max-width: 75%;
-  height: auto;
-  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  margin-bottom: 20px; /* Add spacing below the logo */
-}
-
 /* Footer Styling */
 .footer {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
