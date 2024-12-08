@@ -8,7 +8,7 @@ body {
   min-height: 100vh;
 }
 
-/* Navbar Adjustments */
+/* Navbar Styling */
 .navbar {
   background: #00005c;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -34,7 +34,7 @@ body {
   background-color: transparent;
 }
 
-/* Dropdown */
+/* Dropdown Menu */
 .navbar-nav .dropdown:hover .dropdown-menu {
   display: block;
 }
@@ -53,17 +53,19 @@ body {
   background-color: transparent;
 }
 
-/* Main Content */
+/* Main Content Container */
 .main-container {
   max-width: 80%;
   margin: 20px auto;
   padding: 20px;
 }
 
+/* Jumbotron */
 .jumbotron {
   background: rgba(255, 255, 255, 0.1);
   padding: 40px;
   border-radius: 15px;
+  text-align: left;
 }
 
 .jumbotron h1 {
@@ -76,8 +78,56 @@ body {
   margin-top: 0; /* Remove default margin for consistency */
 }
 
-/* Footer Adjustments */
+/* Sidebar Quick Links */
+.quick-links {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.quick-links h4 {
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+  color: #ffffff;
+  text-align: center;
+}
+
+.quick-links ul {
+  padding: 0;
+  margin: 0;
+  list-style: none; /* Remove default list styling */
+}
+
+.quick-links ul li {
+  margin-bottom: 10px;
+}
+
+.quick-links ul li a {
+  text-decoration: none;
+  color: #ffffff;
+  font-size: 1.2rem;
+  display: block; /* Ensure clickable area spans the entire list item */
+}
+
+.quick-links ul li a:hover {
+  text-decoration: underline;
+  color: #ccccff;
+}
+
+/* Logo Styling */
+.img-fluid {
+  max-width: 75%;
+  height: auto;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  margin-bottom: 20px; /* Add spacing below the logo */
+}
+
+/* Footer Styling */
 .footer {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   background: #00005c;
+  padding: 20px;
+  text-align: center;
 }

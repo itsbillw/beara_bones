@@ -3,10 +3,59 @@
 {% endblock %} {% block content %}
 <!-- Main Content -->
 <div class="container main-container">
-  <!-- Jumbotron -->
-  <div class="jumbotron rounded">
-    <h1>Welcome to itsbillw!</h1>
-    <p>Your one-stop hub for projects and insights.</p>
+  <div class="row">
+    <!-- Main Content (3/4 width) -->
+    <div class="col-md-9">
+      <div class="jumbotron rounded">
+        <h1>Welcome to itsbillw!</h1>
+        <p>Your one-stop hub for projects and insights.</p>
+      </div>
+    </div>
+
+    <!-- Sidebar (1/4 width) -->
+    <div class="col-md-3">
+      <!-- Logo -->
+      <div class="text-center mb-4">
+        <img
+          src="{% static 'home/images/itsbillw-logo.png' %}"
+          alt="itsbillw Logo"
+          class="img-fluid rounded"
+        />
+      </div>
+
+      <!-- Quick Links -->
+      <div class="quick-links rounded p-3">
+        <h4 class="text-center">Quick Links</h4>
+        <ul class="list-unstyled">
+          <li>
+            <a href="https://cloud.itsbillw.eu/" target="_blank"
+              ><i class="bi bi-cloud"></i> NextCloud</a
+            >
+          </li>
+          <li>
+            <a href="https://plex.itsbillw.eu/" target="_blank"
+              ><i class="bi bi-cast"></i> Plex</a
+            >
+          </li>
+          <li>
+            <a href="https://minio.itsbillw.eu/" target="_blank"
+              ><i class="bi bi-arrow-left-right"></i> MinIO</a
+            >
+          </li>
+          <li>
+            <a href="https://status.itsbillw.eu/" target="_blank"
+              ><i class="bi bi-clipboard-pulse"></i> Status (Uptime Robot)</a
+            >
+          </li>
+          <li>
+            <a href="https://monitor.itsbillw.eu/" target="_blank"
+              ><i class="bi bi-activity"></i> Monitoring (NetData)</a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>
+
 {% endblock %}
