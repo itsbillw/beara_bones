@@ -39,17 +39,72 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ms-auto">
+          <!-- Navbar items aligned to the left -->
+          <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link text-light" href="/">Home</a>
+              <a class="nav-link btn btn-outline-light me-2 text-light" href="/"
+                >Home</a
+              >
+            </li>
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link btn btn-outline-light dropdown-toggle me-2 text-light"
+                href="/data"
+                id="dataDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Data
+              </a>
+              <ul
+                class="dropdown-menu dropdown-menu-dark"
+                aria-labelledby="dataDropdown"
+              >
+                <li>
+                  <a
+                    class="dropdown-item text-light"
+                    href="https://cloud.itsbillw.eu/"
+                    >Cloud</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item text-light" href="/data">Data</a>
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item text-light"
+                    href="https://minio.itsbillw.eu/"
+                    >MinIO</a
+                  >
+                </li>
+              </ul>
             </li>
             <li class="nav-item">
-              <a class="nav-link text-light" href="/data">Data</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link text-light" href="/about">About</a>
+              <a
+                class="nav-link btn btn-outline-light me-2 text-light"
+                href="/about"
+                >About</a
+              >
             </li>
           </ul>
+          <!-- Social media links aligned to the right -->
+          <div class="d-flex">
+            <a
+              href="https://www.instagram.com/itsbillw/"
+              class="text-light me-3"
+              ><i class="bi bi-instagram"></i
+            ></a>
+            <a href="https://mastodon.social/@itsbillw" class="text-light me-3"
+              ><i class="bi bi-mastodon"></i
+            ></a>
+            <a href="https://github.com/itsbillw" class="text-light me-3"
+              ><i class="bi bi-github"></i
+            ></a>
+            <a href="mailto:admin@itsbillw.com" class="text-light me-3"
+              ><i class="bi bi-envelope"></i
+            ></a>
+          </div>
         </div>
       </div>
     </nav>
@@ -59,25 +114,6 @@
     <!-- Footer -->
     <footer class="footer text-light text-center py-4 mt-auto">
       <div class="container">
-        <div>
-          <a href="mailto:admin@itsbillw.com" class="text-light me-3"
-            ><i class="bi bi-envelope"></i
-          ></a>
-          <a href="https://github.com/itsbillw" class="text-light me-3"
-            ><i class="bi bi-github"></i
-          ></a>
-          <a href="https://www.instagram.com/itsbillw/" class="text-light me-3"
-            ><i class="bi bi-instagram"></i
-          ></a>
-          <a
-            href="https://www.linkedin.com/in/paulewhittle/"
-            class="text-light me-3"
-            ><i class="bi bi-linkedin"></i
-          ></a>
-          <a href="https://mastodon.social/@itsbillw" class="text-light"
-            ><i class="bi bi-mastodon"></i
-          ></a>
-        </div>
         <p>© 2024 itsbillw</p>
       </div>
     </footer>
