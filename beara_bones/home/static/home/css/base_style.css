@@ -1,0 +1,62 @@
+/* General Styling */
+body {
+  background: #00005c;
+  color: #ffffff;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Navbar Adjustments */
+.navbar {
+  background: #00005c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.navbar-toggler {
+  border-color: transparent;
+  color: #ffffff;
+}
+
+/* Main Content */
+.main-container {
+  max-width: 80%;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+.jumbotron {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 15px;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 15px;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+  text-decoration: none;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
+}
+
+/* Footer Adjustments */
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  background: #00005c;
+}
