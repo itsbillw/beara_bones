@@ -21,7 +21,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg sticky-top">
       <div class="container">
-        <a class="navbar-brand text-light" href="/">
+        <a class="navbar-brand text-light" href="{% url 'home:index' %}">
           <img
             src="{% static 'home/images/itsbillw-logo.png' %}"
             alt="Logo"
@@ -43,14 +43,14 @@
           <!-- Navbar items aligned to the left -->
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
-              <a class="nav-link btn btn-outline-light me-2 text-light" href="/"
+              <a class="nav-link btn btn-outline-light me-2 text-light" href="{% url 'home:index' %}"
                 >Home</a
               >
             </li>
             <li class="nav-item dropdown">
               <a
                 class="nav-link btn btn-outline-light dropdown-toggle me-2 text-light"
-                href="/data"
+                href="{% url 'home:data' %}"
                 id="dataDropdown"
                 role="button"
                 data-bs-toggle="dropdown"
@@ -70,7 +70,7 @@
                   >
                 </li>
                 <li>
-                  <a class="dropdown-item text-light" href="/data">Data</a>
+                  <a class="dropdown-item text-light" href="{% url 'home:data' %}">Data</a>
                 </li>
                 <li>
                   <a
@@ -84,7 +84,7 @@
             <li class="nav-item">
               <a
                 class="nav-link btn btn-outline-light me-2 text-light"
-                href="/about"
+                href="{% url 'home:about' %}"
                 >About</a
               >
             </li>
@@ -115,7 +115,7 @@
     <!-- Footer -->
     <footer class="footer text-light text-center py-4 mt-auto">
       <div class="container">
-        <p>© 2024 itsbillw</p>
+        <p>© {% now 'Y' %} itsbillw</p>
       </div>
     </footer>
 

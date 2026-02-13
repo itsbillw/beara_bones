@@ -25,10 +25,18 @@ start:  ## Start docker services (detached mode)
 stop:  ## Stop docker services
 	docker-compose -f $(DOCKER_COMPOSE_FILE) stop
 
-.PHONY: dbt-limit
-dbt-test:  ## Run dbt with LIMIT 100
+.PHONY: run-dev
+run-dev:  ## Run Django dev server (SQLite, settings_dev)
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py runserver
+
+.PHONY: test
+test:  ## Run Django tests
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py test
+
+.PHONY: dbt-test
+dbt-test:  ## Run dbt with LIMIT 100 (requires data_modelling/)
 	cd data_modelling && dbt build
 
 .PHONY: dbt-full
-dbt-full:  ## Run dbt with full data
+dbt-full:  ## Run dbt with full data (requires data_modelling/)
 	cd data_modelling && dbt build --vars '{"is_dev_run": false}'

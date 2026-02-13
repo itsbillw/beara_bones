@@ -9,10 +9,19 @@ dependencies = [
     "certbot>=2.11.0",
     "django>=5.1.2",
     "gunicorn>=23.0.0",
+    "PyMySQL>=1.1.0",
     "python-dotenv>=1.0.1",
     "uvicorn-worker>=0.2.0",
     "uvicorn>=0.32.0",
     "whitenoise>=6.8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "bandit>=1.7.0",
+    "pre-commit>=4.0.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
 ]
 
 [tool.black]
