@@ -120,25 +120,31 @@ def run_transform(
     season: int = 2025,
     output_dir: Path | None = None,
     write_parquet: bool = True,
+    write_files: bool = True,
 ) -> pd.DataFrame:
+    """
+    Load raw from MinIO, flatten and clean, optionally write CSV/Parquet to disk.
+    When write_files=False (e.g. when loading to MariaDB), only return the DataFrame.
+    """
     resolved_bucket = bucket or os.environ.get("MINIO_BUCKET", "football") or "football"
     resolved_key = object_key or f"raw/league_{league}_season_{season}.json"
     out_dir = output_dir or _data_dir()
     out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if write_files:
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     raw = load_raw_from_minio(resolved_bucket, resolved_key)
     df = flatten_fixtures(raw)
     df = clean(df)
 
-    csv_path = out_dir / "fixtures.csv"
-    df.to_csv(csv_path, index=False)
-    logger.info("Wrote %s (%d rows)", csv_path, len(df))
-
-    if write_parquet:
-        pq_path = out_dir / "fixtures.parquet"
-        df.to_parquet(pq_path, index=False)
-        logger.info("Wrote %s", pq_path)
+    if write_files:
+        csv_path = out_dir / "fixtures.csv"
+        df.to_csv(csv_path, index=False)
+        logger.info("Wrote %s (%d rows)", csv_path, len(df))
+        if write_parquet:
+            pq_path = out_dir / "fixtures.parquet"
+            df.to_parquet(pq_path, index=False)
+            logger.info("Wrote %s", pq_path)
 
     return df
 

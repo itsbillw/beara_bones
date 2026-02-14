@@ -1,9 +1,10 @@
 """
-Orchestrates ingest → transform → load to DuckDB → soda-check → dbt-build.
+Orchestrates ingest → transform → load to DuckDB → soda-check → dbt-build → load to MariaDB → upload processed Parquet.
 Uses a lock file to prevent overlapping runs. Clears dashboard cache on success.
 """
 
 import logging
+import os
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -22,6 +23,30 @@ def _run(cmd: list[str], cwd: Path | None = None) -> int:
     cwd = cwd or REPO_ROOT
     logging.info("Running: %s", " ".join(cmd))
     return subprocess.call(cmd, cwd=cwd)  # nosec B603
+
+
+def _load_to_mariadb_and_minio(df, league: int, season: int) -> None:
+    """Load transformed data to MariaDB and upload processed Parquet to MinIO."""
+    project_root = REPO_ROOT / "beara_bones"
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    os.environ.setdefault(
+        "DJANGO_SETTINGS_MODULE",
+        os.environ.get("DJANGO_SETTINGS_MODULE", "beara_bones.settings_dev"),
+    )
+    import django
+    django.setup()
+    from data.loading import load_fixtures_dataframe
+    from football.processed import upload_processed_parquet
+
+    load_fixtures_dataframe(df, league, season)
+    upload_processed_parquet(df, league, season)
+    logger.info("Loaded to MariaDB and uploaded processed Parquet for league=%s season=%s", league, season)
+    try:
+        from django.core.cache import cache
+        cache.clear()
+    except Exception:
+        pass
 
 
 def load_csv_to_duckdb() -> None:
@@ -68,7 +93,7 @@ def run_pipeline(
             run_ingest(league=league, season=season)
         from football.transform import run_transform
 
-        run_transform(league=league, season=season)
+        df = run_transform(league=league, season=season)
         load_csv_to_duckdb()
         # Build dbt-equivalent views (avoids dbt-duckdb segfault on Python 3.13)
         from football.build_views import run as build_views
@@ -102,6 +127,9 @@ def run_pipeline(
                     "dbt build exited with %s (views were created by build_views)",
                     rc,
                 )
+        # Load to MariaDB and upload processed Parquet (after Soda/dbt pass)
+        if not df.empty:
+            _load_to_mariadb_and_minio(df, league, season)
         return 0
     finally:
         if LOCK_FILE.exists():

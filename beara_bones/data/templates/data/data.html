@@ -2,10 +2,11 @@
 <title>itsbillw - Data</title>
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 {% endblock %} {% block content %}
-<!-- Data page navbar (90% width) -->
+<!-- Data page navbar -->
 <nav class="navbar navbar-expand data-navbar py-2">
   <div class="data-navbar-inner">
     <span class="navbar-brand text-light mb-0 me-4">Football data</span>
+    {% if user.is_staff %}
     <button
       type="button"
       class="btn btn-outline-light btn-sm me-3"
@@ -15,37 +16,22 @@
       Refresh pipeline
     </button>
     <span id="refresh-status" class="me-3 small text-light"></span>
-    <div class="dropdown me-3">
-      <button
-        class="btn btn-outline-light btn-sm dropdown-toggle"
-        type="button"
-        id="leagueDropdown"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
-      >
-        {{ current_league_name }}
-      </button>
-      <ul class="dropdown-menu dropdown-menu-dark">
-        <li>
-          <span class="dropdown-item-text"
-            >League {{ current_league }} (current)</span
-          >
-        </li>
-      </ul>
+    {% endif %}
+    <div class="me-3">
+      <label for="league-select" class="visually-hidden">League</label>
+      <select id="league-select" class="form-select form-select-sm form-select-dark d-inline-block w-auto">
+        {% for league in leagues %}
+        <option value="{{ league.id }}" {% if league.id == current_league %}selected{% endif %}>{{ league.name }}</option>
+        {% endfor %}
+      </select>
     </div>
-    <div class="dropdown">
-      <button
-        class="btn btn-outline-light btn-sm dropdown-toggle"
-        type="button"
-        id="seasonDropdown"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
-      >
-        {{ current_season }}
-      </button>
-      <ul class="dropdown-menu dropdown-menu-dark">
-        <li><span class="dropdown-item-text">Season (current)</span></li>
-      </ul>
+    <div>
+      <label for="season-select" class="visually-hidden">Season</label>
+      <select id="season-select" class="form-select form-select-sm form-select-dark d-inline-block w-auto">
+        {% for season in seasons %}
+        <option value="{{ season.api_year }}" {% if season.api_year == current_season %}selected{% endif %}>{{ season.display }}</option>
+        {% endfor %}
+      </select>
     </div>
   </div>
 </nav>
@@ -62,32 +48,40 @@
     <script>
       (function () {
         var content = document.getElementById("dashboard-content");
-        function runInjectedScripts(container) {
-          container.querySelectorAll("script").forEach(function (oldScript) {
-            var script = document.createElement("script");
-            if (oldScript.src) script.src = oldScript.src;
-            else script.textContent = oldScript.textContent;
-            oldScript.parentNode.replaceChild(script, oldScript);
-          });
+        var leagueSelect = document.getElementById("league-select");
+        var seasonSelect = document.getElementById("season-select");
+        var fragmentUrl = "{% url 'data:data_fragment' %}";
+        function loadFragment(league, season) {
+          var url = fragmentUrl + "?league=" + encodeURIComponent(league) + "&season=" + encodeURIComponent(season);
+          content.innerHTML = '<div class="text-center py-5 text-light"><div class="spinner-border mb-3"></div><p class="mb-0">Loading…</p></div>';
+          fetch(url)
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+              content.innerHTML = html;
+              content.querySelectorAll("script").forEach(function (oldScript) {
+                var script = document.createElement("script");
+                if (oldScript.src) script.src = oldScript.src;
+                else script.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(script, oldScript);
+              });
+            })
+            .catch(function () {
+              content.innerHTML = '<div class="alert alert-warning">Failed to load data.</div>';
+            });
         }
-        fetch('{% url "data:data_fragment" %}')
-          .then(function (r) {
-            return r.text();
-          })
-          .then(function (html) {
-            content.innerHTML = html;
-            runInjectedScripts(content);
-          })
-          .catch(function () {
-            content.innerHTML =
-              '<div class="alert alert-warning">Failed to load data.</div>';
-          });
+        function onLeagueOrSeasonChange() {
+          loadFragment(leagueSelect.value, seasonSelect.value);
+        }
+        leagueSelect.addEventListener("change", onLeagueOrSeasonChange);
+        seasonSelect.addEventListener("change", onLeagueOrSeasonChange);
+        loadFragment("{{ current_league }}", "{{ current_season }}");
       })();
     </script>
     {% endif %}
   </div>
 </div>
 
+{% if user.is_staff %}
 <script>
   (function () {
     var btn = document.getElementById("refresh-btn");
@@ -121,4 +115,5 @@
     });
   })();
 </script>
+{% endif %}
 {% endblock %}

@@ -1,4 +1,4 @@
-# dbt-duckdb – local FOSS. Database created by football pipeline (fixtures table).
+# dbt-duckdb – local FOSS. Database created by legacy pipeline (make pipeline).
 # Run from repo root: uv run dbt build (or make dbt-build from data_modelling).
 
 football:

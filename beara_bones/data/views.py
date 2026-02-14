@@ -1,10 +1,8 @@
 """
-Data app views: football dashboard (shell, fragment, refresh).
-
-All routes are defined in data/urls.py. Use {% url 'data:data' %} etc. in templates.
+Data app views: football dashboard (shell, fragment). Refresh is admin-only.
 """
 
-from pathlib import Path
+import pandas as pd
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,62 +11,45 @@ from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 from django.views.decorators.http import require_http_methods
 
-# Repo root: beara_bones/data/views.py -> parents[2]
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-_FOOTBALL_DATA_DIR = _REPO_ROOT / "data" / "football"
+
+def _load_fixtures_from_db(league_id: int, season: int):
+    """Load fixture data from MariaDB for the given league/season. Returns (df, error)."""
+    from .models import Fixture
+
+    qs = Fixture.objects.filter(league_id=league_id, league_season=season).order_by("date")
+    if not qs.exists():
+        return None, "No fixtures for this league/season. Run the pipeline from Admin."
+    rows = list(
+        qs.values(
+            "fixture_id",
+            "date",
+            "timestamp",
+            "venue_id",
+            "venue_name",
+            "status_short",
+            "status_long",
+            "league_id",
+            "league_name",
+            "league_season",
+            "league_round",
+            "home_team_id",
+            "home_team_name",
+            "away_team_id",
+            "away_team_name",
+            "goals_home",
+            "goals_away",
+        )
+    )
+    df = pd.DataFrame(rows)
+    return df, None
 
 
-def _get_football_data_mtime() -> float | None:
-    """Return mtime of newest data file (parquet or duckdb) for cache key, or None."""
-    if not _FOOTBALL_DATA_DIR.exists():
-        return None
-    mtimes = []
-    for name in ("fixtures.parquet", "football.duckdb"):
-        p = _FOOTBALL_DATA_DIR / name
-        if p.exists():
-            mtimes.append(p.stat().st_mtime)
-    return max(mtimes) if mtimes else None
-
-
-def _load_fixtures_for_dashboard():
-    """Load fixture data from parquet or DuckDB for charts. Returns (df, error)."""
-    if not _FOOTBALL_DATA_DIR.exists():
-        return None, "Data directory not found"
-    parquet_path = _FOOTBALL_DATA_DIR / "fixtures.parquet"
-    if parquet_path.exists():
-        try:
-            import pandas as pd
-
-            df = pd.read_parquet(parquet_path)
-            return df, None
-        except Exception as e:
-            return None, str(e)
-    try:
-        import duckdb
-
-        db_path = _FOOTBALL_DATA_DIR / "football.duckdb"
-        if db_path.exists():
-            con = duckdb.connect(str(db_path), read_only=True)
-            df = con.execute("SELECT * FROM fct_fixtures").fetchdf()
-            con.close()
-            if df is not None and not df.empty:
-                return df, None
-            con = duckdb.connect(str(db_path), read_only=True)
-            df = con.execute("SELECT * FROM fixtures").fetchdf()
-            con.close()
-            return df, None
-    except Exception as e:
-        return None, str(e)
-    return None, "No fixtures data. Run the pipeline: make pipeline"
-
-
-def _build_dashboard_fragment():
-    """Build chart + league table. Returns dict with charts, standings, error. Hover shows real score (home-away)."""
-    df, err = _load_fixtures_for_dashboard()
+def _build_dashboard_fragment(league_id: int, season: int):
+    """Build chart + league table from MariaDB data. Returns dict with charts, standings, error."""
+    df, err = _load_fixtures_from_db(league_id, season)
     if err or df is None or df.empty:
         return {"charts": [], "standings": [], "error": err or "No data"}
     try:
-        import pandas as pd
         import plotly.graph_objects as go
         import plotly.io as pio
     except ImportError:
@@ -210,40 +191,81 @@ def _build_dashboard_fragment():
 
 
 def data_page(request):
-    """Data page shell: loads fast; chart and table are injected by JS from fragment endpoint."""
+    """Data page shell: league/season dropdowns; chart and table loaded via fragment."""
+    from .models import League, Season
+
+    leagues = list(League.objects.all())
+    seasons = list(Season.objects.all())
+    current_league_id = None
+    current_season = None
+    current_league_name = ""
+    current_season_display = ""
+    if leagues:
+        current_league_id = leagues[0].id
+        current_league_name = leagues[0].name
+    if seasons:
+        current_season = seasons[0].api_year
+        current_season_display = seasons[0].display
     return TemplateResponse(
         request,
         "data/data.html",
         context={
             "loading": True,
-            "current_league": 39,
-            "current_league_name": "Premier League",
-            "current_season": 2025,
+            "leagues": leagues,
+            "seasons": seasons,
+            "current_league": current_league_id,
+            "current_season": current_season,
+            "current_league_name": current_league_name,
+            "current_season_display": current_season_display,
         },
     )
 
 
 def data_fragment(request):
-    """Return dashboard HTML fragment (chart + league table). Cached by data file mtime; used for async load."""
-    data_mtime = _get_football_data_mtime()
-    cache_key = f"football_dashboard_{data_mtime}" if data_mtime else None
+    """Return dashboard HTML fragment. GET params: league, season. Cached by league and season."""
+    from .models import League, Season
+
+    league_id = request.GET.get("league")
+    season = request.GET.get("season")
+    leagues = list(League.objects.all())
+    seasons = list(Season.objects.all())
+    if not leagues or not seasons:
+        html = render_to_string(
+            "data/data_fragment.html",
+            {"charts": [], "standings": [], "error": "No leagues or seasons configured. Add them in Admin."},
+        )
+        return HttpResponse(html, content_type="text/html")
+    if league_id is not None:
+        try:
+            league_id = int(league_id)
+        except ValueError:
+            league_id = leagues[0].id
+    else:
+        league_id = leagues[0].id
+    if season is not None:
+        try:
+            season = int(season)
+        except ValueError:
+            season = seasons[0].api_year
+    else:
+        season = seasons[0].api_year
+    cache_key = f"football_dashboard_{league_id}_{season}"
     timeout = getattr(settings, "FOOTBALL_DASHBOARD_CACHE_TIMEOUT", 600)
 
-    if cache_key:
-        cached = cache.get(cache_key)
-        if cached is not None:
-            html = render_to_string(
-                "data/data_fragment.html",
-                {
-                    "charts": cached.get("charts", []),
-                    "standings": cached.get("standings", []),
-                    "error": None,
-                },
-            )
-            return HttpResponse(html, content_type="text/html")
+    cached = cache.get(cache_key)
+    if cached is not None:
+        html = render_to_string(
+            "data/data_fragment.html",
+            {
+                "charts": cached.get("charts", []),
+                "standings": cached.get("standings", []),
+                "error": None,
+            },
+        )
+        return HttpResponse(html, content_type="text/html")
 
-    frag = _build_dashboard_fragment()
-    if cache_key and not frag.get("error"):
+    frag = _build_dashboard_fragment(league_id, season)
+    if not frag.get("error"):
         cache.set(
             cache_key,
             {"charts": frag["charts"], "standings": frag["standings"]},
@@ -263,20 +285,22 @@ def data_fragment(request):
 
 @require_http_methods(["POST"])
 def data_refresh(request):
-    """POST /data/refresh: start pipeline in background, return 202."""
-    if not _FOOTBALL_DATA_DIR.exists():
-        return JsonResponse({"error": "Data dir not found"}, status=500)
-    lock_file = _FOOTBALL_DATA_DIR / ".refresh.lock"
+    """POST /data/refresh: start pipeline (staff only). Returns 403 for non-staff."""
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    from pathlib import Path
+    import subprocess  # nosec B404
+
+    repo_root = Path(settings.BASE_DIR).parent
+    lock_file = repo_root / "data" / "football" / ".refresh.lock"
     if lock_file.exists():
         return JsonResponse(
             {"status": "already_running", "message": "Pipeline already in progress"},
             status=409,
         )
-    import subprocess  # nosec B404
-
     subprocess.Popen(  # nosec B603 B607
-        ["uv", "run", "python", "-m", "football.pipeline"],
-        cwd=str(_REPO_ROOT),
+        ["uv", "run", "python", "beara_bones/manage.py", "run_football_pipeline"],
+        cwd=str(repo_root),
         start_new_session=True,
     )
     return JsonResponse({"status": "started", "message": "Refresh started"}, status=202)

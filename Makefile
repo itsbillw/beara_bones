@@ -67,5 +67,13 @@ dbt-full:  ## Run dbt with full data (requires data_modelling/)
 	cd data_modelling && uv run dbt build --vars '{"is_dev_run": false}'
 
 .PHONY: pipeline
-pipeline:  ## Ingest → transform → load DuckDB → soda-check → dbt-build
+pipeline:  ## Ingest → transform → DuckDB → Soda → dbt → MariaDB → processed Parquet
 	uv run python -m football.pipeline
+
+.PHONY: pipeline-all
+pipeline-all:  ## Same as pipeline but for all League×Season from Admin (uses run_football_pipeline)
+	cd beara_bones && uv run python manage.py run_football_pipeline
+
+.PHONY: rebuild-football
+rebuild-football:  ## Rebuild MariaDB from MinIO (no API; raw or processed)
+	cd beara_bones && uv run python manage.py rebuild_football_from_minio

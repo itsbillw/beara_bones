@@ -9,6 +9,7 @@ dependencies = [
     "certbot-nginx>=2.11.0",
     "certbot>=2.11.0",
     "dbt-duckdb>=1.9.0",
+    # dbt-mysql for MariaDB (optional; install separately if using: uv add dbt-mysql)
     "django>=5.1.2",
     "duckdb>=1.0.0",
     "gunicorn>=23.0.0",
@@ -20,6 +21,7 @@ dependencies = [
     "pyarrow>=18.0.0",
     "requests>=2.32.0",
     "soda-core-duckdb>=3.0.0",
+    # soda-core-mysql for MariaDB (optional; install separately: uv add soda-core-mysql)
     "soda-core>=3.0.0",
     "uvicorn-worker>=0.2.0",
     "uvicorn>=0.32.0",
