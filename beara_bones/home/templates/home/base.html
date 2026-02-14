@@ -47,38 +47,30 @@
                 >Home</a
               >
             </li>
+            <li class="nav-item">
+              <a class="nav-link btn btn-outline-light me-2 text-light" href="{% url 'home:data' %}">Data</a>
+            </li>
             <li class="nav-item dropdown">
               <a
                 class="nav-link btn btn-outline-light dropdown-toggle me-2 text-light"
-                href="{% url 'home:data' %}"
-                id="dataDropdown"
+                href="#"
+                id="servicesDropdown"
                 role="button"
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                Data
+                Services
               </a>
               <ul
                 class="dropdown-menu dropdown-menu-dark"
-                aria-labelledby="dataDropdown"
+                aria-labelledby="servicesDropdown"
               >
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://cloud.itsbillw.eu/"
-                    >Cloud</a
-                  >
-                </li>
-                <li>
-                  <a class="dropdown-item text-light" href="{% url 'home:data' %}">Data</a>
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://minio-console.itsbillw.eu/"
-                    >MinIO</a
-                  >
-                </li>
+                <li><a class="dropdown-item text-light" href="https://cloud.itsbillw.eu/" target="_blank" rel="noopener">Nextcloud</a></li>
+                <li><a class="dropdown-item text-light" href="https://jelly.itsbillw.eu/" target="_blank" rel="noopener">Jellyfin</a></li>
+                <li><a class="dropdown-item text-light" href="https://plex.itsbillw.eu/" target="_blank" rel="noopener">Plex</a></li>
+                <li><a class="dropdown-item text-light" href="https://minio-console.itsbillw.eu/" target="_blank" rel="noopener">MinIO</a></li>
+                <li><a class="dropdown-item text-light" href="https://monitor.itsbillw.eu/" target="_blank" rel="noopener">Netdata</a></li>
+                <li><a class="dropdown-item text-light" href="https://status.itsbillw.eu/" target="_blank" rel="noopener">Status</a></li>
               </ul>
             </li>
             <li class="nav-item">

@@ -8,6 +8,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
+from django.template.loader import render_to_string
 from django.template.response import TemplateResponse
 
 
@@ -68,45 +69,17 @@ def _load_fixtures_for_dashboard():
     return None, "No fixtures data. Run the pipeline: make pipeline"
 
 
-def beara_bones_data(request):
-    """Data page: Plotly dashboard from fixtures (sync for I/O). Cached by data file mtime."""
-    data_mtime = _get_football_data_mtime()
-    cache_key = f"football_dashboard_{data_mtime}" if data_mtime else None
-    timeout = getattr(settings, "FOOTBALL_DASHBOARD_CACHE_TIMEOUT", 600)
-
-    if cache_key:
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return TemplateResponse(
-                request,
-                "home/data.html",
-                context={
-                    "charts": cached.get("charts", []),
-                    "standings": cached.get("standings", []),
-                    "current_league": 39,
-                    "current_league_name": "Premier League",
-                    "current_season": 2025,
-                    "error": None,
-                },
-            )
-
+def _build_dashboard_fragment():
+    """Build chart + league table (one chart only). Returns dict with charts, standings, error. Hover shows real score (home-away)."""
     df, err = _load_fixtures_for_dashboard()
     if err or df is None or df.empty:
-        return TemplateResponse(
-            request,
-            "home/data.html",
-            context={"charts": [], "standings": [], "current_league": 39, "current_league_name": "Premier League", "current_season": 2025, "error": err or "No data"},
-        )
+        return {"charts": [], "standings": [], "error": err or "No data"}
     try:
         import pandas as pd
-        import plotly.express as px
+        import plotly.graph_objects as go
         import plotly.io as pio
     except ImportError:
-        return TemplateResponse(
-            request,
-            "home/data.html",
-            context={"charts": [], "standings": [], "current_league": 39, "current_league_name": "Premier League", "current_season": 2025, "error": "Plotly/pandas not installed. Install: uv pip install -e '.[data]'"},
-        )
+        return {"charts": [], "standings": [], "error": "Plotly/pandas not installed."}
     if "fixture_date" not in df.columns and "date" in df.columns:
         df["fixture_date"] = df["date"]
     if "fixture_date" in df.columns:
@@ -119,8 +92,6 @@ def beara_bones_data(request):
 
     charts = []
     standings = []
-
-    # Main chart: cumulative points per team; hover only on point (closest), content: date, home, away, result
     need = ["fixture_date", "home_team_name", "away_team_name", "goals_home", "goals_away", "result"]
     if all(c in df.columns for c in need):
         df_complete = df.dropna(subset=["result", "goals_home", "goals_away"]).sort_values("fixture_date")
@@ -131,19 +102,20 @@ def beara_bones_data(request):
             pts_a = 3 if res == "A" else (1 if res == "D" else 0)
             res_h = "W" if res == "H" else ("D" if res == "D" else "L")
             res_a = "W" if res == "A" else ("D" if res == "D" else "L")
-            rows.append({"team": h, "date": date, "opponent": a, "venue": "Home", "result_letter": res_h, "gf": int(gh), "ga": int(ga), "pts": pts_h})
-            rows.append({"team": a, "date": date, "opponent": h, "venue": "Away", "result_letter": res_a, "gf": int(ga), "ga": int(gh), "pts": pts_a})
+            # Actual match score (home-away) for display; store in both rows
+            score_str = f"{int(gh)}-{int(ga)}"
+            rows.append({"team": h, "date": date, "opponent": a, "venue": "Home", "result_letter": res_h, "score_display": score_str, "gf": int(gh), "ga": int(ga), "pts": pts_h})
+            rows.append({"team": a, "date": date, "opponent": h, "venue": "Away", "result_letter": res_a, "score_display": score_str, "gf": int(ga), "ga": int(gh), "pts": pts_a})
         team_games = pd.DataFrame(rows)
         team_games["cumulative_pts"] = team_games.groupby("team")["pts"].cumsum()
         team_games["hover"] = (
             "<b>" + team_games["team"] + "</b><br>"
             + team_games["date"].dt.strftime("%d %b %Y") + "<br>"
             + team_games["venue"] + " vs " + team_games["opponent"] + ": "
-            + team_games["gf"].astype(str) + "-" + team_games["ga"].astype(str) + " (" + team_games["result_letter"] + ")<br>"
+            + team_games["score_display"] + " (" + team_games["result_letter"] + ")<br>"
             + "Points: " + team_games["cumulative_pts"].astype(str)
         )
 
-        # League table order (by Pts, then GD) so we can use it for legend order
         agg = team_games.groupby("team").agg(
             P=("pts", "count"),
             W=("pts", lambda s: (s == 3).sum()),
@@ -159,7 +131,6 @@ def beara_bones_data(request):
         agg["GD"] = agg["GD"].apply(lambda x: f"+{x}" if x > 0 else str(x))
         standings = agg.to_dict("records")
 
-        import plotly.graph_objects as go
         fig_main = go.Figure()
         for team in team_order:
             t = team_games[team_games["team"] == team]
@@ -184,39 +155,47 @@ def beara_bones_data(request):
             legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top"),
         )
         charts.append(pio.to_html(fig_main, full_html=False))
+    return {"charts": charts, "standings": standings, "error": None}
 
-    # Secondary charts below
-    if "fixture_date" in df.columns:
-        daily = df.groupby(df["fixture_date"].dt.date).size().reset_index(name="count")
-        fig1 = px.bar(daily, x="fixture_date", y="count", title="Fixtures per day")
-        fig1.update_layout(template="plotly_white", height=300)
-        charts.append(pio.to_html(fig1, full_html=False))
-    if "goals_home" in df.columns and "goals_away" in df.columns:
-        df["total_goals"] = df["goals_home"].fillna(0) + df["goals_away"].fillna(0)
-        fig2 = px.histogram(df, x="total_goals", nbins=8, title="Total goals per match")
-        fig2.update_layout(template="plotly_white", height=300)
-        charts.append(pio.to_html(fig2, full_html=False))
-    if "result" in df.columns:
-        res = df["result"].value_counts()
-        fig3 = px.pie(values=res.values, names=res.index, title="Result distribution (H/D/A)")
-        fig3.update_layout(template="plotly_white", height=300)
-        charts.append(pio.to_html(fig3, full_html=False))
 
-    if cache_key:
-        cache.set(cache_key, {"charts": charts, "standings": standings}, timeout=timeout)
-
+def beara_bones_data(request):
+    """Data page shell: loads fast; chart and table are injected by JS from /data/fragment/."""
     return TemplateResponse(
         request,
         "home/data.html",
         context={
-            "charts": charts,
-            "standings": standings,
+            "loading": True,
             "current_league": 39,
             "current_league_name": "Premier League",
             "current_season": 2025,
-            "error": None,
         },
     )
+
+
+def data_fragment(request):
+    """Return dashboard HTML fragment (chart + league table). Cached by data file mtime; used for async load."""
+    data_mtime = _get_football_data_mtime()
+    cache_key = f"football_dashboard_{data_mtime}" if data_mtime else None
+    timeout = getattr(settings, "FOOTBALL_DASHBOARD_CACHE_TIMEOUT", 600)
+
+    if cache_key:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            html = render_to_string(
+                "home/data_fragment.html",
+                {"charts": cached.get("charts", []), "standings": cached.get("standings", []), "error": None},
+            )
+            return HttpResponse(html, content_type="text/html")
+
+    frag = _build_dashboard_fragment()
+    if cache_key and not frag.get("error"):
+        cache.set(cache_key, {"charts": frag["charts"], "standings": frag["standings"]}, timeout=timeout)
+
+    html = render_to_string(
+        "home/data_fragment.html",
+        {"charts": frag.get("charts", []), "standings": frag.get("standings", []), "error": frag.get("error")},
+    )
+    return HttpResponse(html, content_type="text/html")
 
 
 async def about_me(request):
