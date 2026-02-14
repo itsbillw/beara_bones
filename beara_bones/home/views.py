@@ -5,6 +5,8 @@ All routes are defined in home/urls.py. Names are used in templates via {% url '
 """
 from pathlib import Path
 
+from django.conf import settings
+from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.template.response import TemplateResponse
 
@@ -18,6 +20,19 @@ def _get_football_data_dir() -> Path | None:
     """Return data/football dir. views.py is at repo_root/beara_bones/home/views.py -> parents[2] = repo_root."""
     repo_root = Path(__file__).resolve().parents[2]
     return repo_root / "data" / "football"
+
+
+def _get_football_data_mtime() -> float | None:
+    """Return mtime of newest data file (parquet or duckdb) for cache key, or None."""
+    data_dir = _get_football_data_dir()
+    if not data_dir or not data_dir.exists():
+        return None
+    mtimes = []
+    for name in ("fixtures.parquet", "football.duckdb"):
+        p = data_dir / name
+        if p.exists():
+            mtimes.append(p.stat().st_mtime)
+    return max(mtimes) if mtimes else None
 
 
 def _load_fixtures_for_dashboard():
@@ -54,7 +69,27 @@ def _load_fixtures_for_dashboard():
 
 
 def beara_bones_data(request):
-    """Data page: Plotly dashboard from fixtures (sync for I/O)."""
+    """Data page: Plotly dashboard from fixtures (sync for I/O). Cached by data file mtime."""
+    data_mtime = _get_football_data_mtime()
+    cache_key = f"football_dashboard_{data_mtime}" if data_mtime else None
+    timeout = getattr(settings, "FOOTBALL_DASHBOARD_CACHE_TIMEOUT", 600)
+
+    if cache_key:
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return TemplateResponse(
+                request,
+                "home/data.html",
+                context={
+                    "charts": cached.get("charts", []),
+                    "standings": cached.get("standings", []),
+                    "current_league": 39,
+                    "current_league_name": "Premier League",
+                    "current_season": 2025,
+                    "error": None,
+                },
+            )
+
     df, err = _load_fixtures_for_dashboard()
     if err or df is None or df.empty:
         return TemplateResponse(
@@ -166,6 +201,10 @@ def beara_bones_data(request):
         fig3 = px.pie(values=res.values, names=res.index, title="Result distribution (H/D/A)")
         fig3.update_layout(template="plotly_white", height=300)
         charts.append(pio.to_html(fig3, full_html=False))
+
+    if cache_key:
+        cache.set(cache_key, {"charts": charts, "standings": standings}, timeout=timeout)
+
     return TemplateResponse(
         request,
         "home/data.html",

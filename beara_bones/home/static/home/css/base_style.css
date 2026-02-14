@@ -227,6 +227,30 @@ body {
   opacity: 0.8;
 }
 
+/* Mobile: ensure grid and tiles work on small viewports; prevent horizontal scroll */
+@media (max-width: 480px) {
+  .main-container {
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .service-tile {
+    min-height: 120px;
+    padding: 1.25rem 1rem;
+  }
+
+  .services-hero h1 {
+    font-size: 1.5rem;
+  }
+}
+
 /* Footer Styling */
 .footer {
   border-top: 1px solid rgba(255, 255, 255, 0.2);

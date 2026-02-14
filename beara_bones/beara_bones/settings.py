@@ -129,3 +129,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Hashed filenames for cache busting; use collectstatic --clear if static files don’t update.
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Cache for football dashboard (avoids recomputing Plotly charts on every request)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": BASE_DIR / "cache",
+        "OPTIONS": {"MAX_ENTRIES": 100},
+        "TIMEOUT": 600,
+    }
+}
+FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600  # seconds

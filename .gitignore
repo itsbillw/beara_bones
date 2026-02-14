@@ -166,3 +166,6 @@ beara_bones/static
 data/
 *.duckdb
 data/.refresh.lock
+
+# Django file cache (football dashboard)
+beara_bones/cache/
