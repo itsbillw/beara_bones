@@ -1,6 +1,6 @@
 # beara_bones
 
-Django-based personal site and playground. Production runs on a **Raspberry Pi 4** with **DietPi OS**, behind NGINX, using **MariaDB**. The site includes a **football data** section: dashboard (points chart + league table) and a pipeline that ingests fixtures from RapidAPI into MinIO, transforms to Parquet/DuckDB, runs Soda Core checks, and builds dbt-style views.
+Django-based personal site and playground. Production runs on a **Raspberry Pi 4** with **DietPi OS**, behind NGINX, using **MariaDB**. The site includes a **football data** section: dashboard (points chart + league table) and a pipeline that ingests fixtures from RapidAPI into MinIO, transforms to Parquet/DuckDB, runs Soda 4 contract verification, and builds dbt-style views.
 
 ## Local development
 
@@ -16,11 +16,7 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
    uv sync
    ```
 
-   For linting, type checking, and tests you can also install dev dependencies:
-
-   ```bash
-   uv sync --extra dev
-   ```
+   This installs all dependencies including dev tools (pytest, ruff, mypy, bandit, etc.).
 
 3. **Configure environment**
 
@@ -42,7 +38,7 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 
    Open http://127.0.0.1:8000/
 
-5. **Optional: install pre-commit hooks** (run once per clone so lint/type checks run on every `git commit`)
+5. **Optional: install pre-commit hooks** (run once per clone so lint, type checks, and tests run on every `git commit`)
 
    ```bash
    make install-hooks
@@ -50,22 +46,22 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 
 ## Commands
 
-| Command              | Description                                                              |
-| -------------------- | ------------------------------------------------------------------------ |
-| `make help`          | List all make targets                                                    |
-| `make run-dev`       | Run dev server (SQLite, settings_dev)                                    |
-| `make test`          | Run Django tests (home + data apps)                                      |
-| `make test-football` | Run football package unit tests (pytest)                                 |
-| `make test-all`      | Run Django and football tests                                            |
-| `make coverage`      | Run Django tests with coverage report                                    |
-| `make install-hooks` | Install pre-commit git hooks (run once)                                  |
-| `make lint`          | Run all pre-commit checks (ruff, mypy, bandit, prettier, etc.)           |
-| `make check`         | Run lint + all tests (use before push)                                   |
-| `make ingest`        | Pipeline phase 1: fetch fixtures from RapidAPI → MinIO                   |
-| `make transform`     | Pipeline phase 2: MinIO raw JSON → CSV/Parquet                           |
-| `make soda-check`    | Pipeline phase 3: Soda Core quality checks                               |
-| `make dbt-build`     | Pipeline phase 4: dbt-duckdb build (in data_modelling/)                  |
-| `make pipeline`      | Full pipeline: ingest → transform → load DuckDB → soda-check → dbt-build |
+| Command              | Description                                                               |
+| -------------------- | ------------------------------------------------------------------------- |
+| `make help`          | List all make targets                                                     |
+| `make run-dev`       | Run dev server (SQLite, settings_dev)                                     |
+| `make test`          | Run Django tests (home + data apps)                                       |
+| `make test-football` | Run football package unit tests (pytest)                                  |
+| `make test-all`      | Run Django and football tests                                             |
+| `make coverage`      | Run all tests with combined coverage report (Django + football)           |
+| `make install-hooks` | Install pre-commit git hooks (run once)                                   |
+| `make lint`          | Run all pre-commit checks (ruff, mypy, bandit, prettier, etc.)            |
+| `make check`         | Run lint + all tests (use before push)                                    |
+| `make ingest`        | Pipeline phase 1: fetch fixtures from RapidAPI → MinIO                    |
+| `make transform`     | Pipeline phase 2: MinIO raw JSON → CSV/Parquet                            |
+| `make soda-check`    | Pipeline phase 3: Soda 4 contract verification                            |
+| `make dbt-build`     | Pipeline phase 4: dbt-duckdb build (in data_modelling/)                   |
+| `make pipeline`      | Full pipeline: ingest → transform → DuckDB → Soda → dbt → MariaDB + MinIO |
 
 ## Project layout
 
@@ -73,16 +69,16 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
   - **`beara_bones/`** – Django config (settings, urls, wsgi, asgi)
   - **`home/`** – main app: landing page, about, static poem, base template and navbar
   - **`data/`** – data app: football dashboard (data page, fragment endpoint, refresh trigger), and `ingest_football` management command
-- **`football/`** – pipeline package (ingest, transform, build_views, soda config); not a Django app
+- **`football/`** – pipeline package (ingest, transform, build_views, Soda 4 contracts); not a Django app
 - **`data_modelling/`** – dbt-duckdb project (marts, staging, sources)
-- **`tests/`** – pytest tests for the `football` package (e.g. `flatten_fixtures`, `clean`)
+- **`tests/`** – pytest tests for the `football` package; Django tests live in app `tests.py` modules
 - **`/data/`** (repo root) – pipeline output: `data/football/` holds fixtures (CSV, Parquet, DuckDB). Ignored by git via `/data/` in `.gitignore`.
 
 ## Data page and pipeline
 
 - **Data page** (`/data`): loads quickly with a shell; the points chart and league table are loaded asynchronously from `/data/fragment`. The fragment is cached (by data file mtime) to avoid recomputing on every request.
-- **Refresh**: POST to `/data/refresh` starts the pipeline in the background (ingest → transform → load DuckDB → Soda → dbt). A lock file prevents overlapping runs.
-- **Pipeline**: `make pipeline` (or the refresh button) runs ingest (RapidAPI → MinIO), transform (MinIO → CSV/Parquet in `data/football/`), loads into `football.duckdb`, runs Soda checks, and builds views (or dbt if available). The dashboard reads from `data/football/fixtures.parquet` or `data/football/football.duckdb`.
+- **Refresh**: POST to `/data/refresh` starts the pipeline in the background (ingest → transform → DuckDB → Soda → dbt → MariaDB + MinIO). A lock file prevents overlapping runs.
+- **Pipeline**: `make pipeline` (or the refresh button) runs ingest (RapidAPI → MinIO), transform (MinIO → CSV/Parquet), loads into DuckDB, runs Soda 4 contract verification, runs dbt, then loads to MariaDB and uploads processed Parquet to MinIO. The dashboard reads from MariaDB.
 
 ## Production (Raspberry Pi 4 / DietPi / MariaDB)
 
@@ -90,4 +86,4 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 - Set in `.env`: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS` (comma-separated), and MariaDB vars: `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`.
 - The app uses **PyMySQL** to talk to MariaDB (no native MySQL client build required on the Pi).
 - SSL is handled by NGINX and Certbot; Django is configured for HTTPS (secure cookies, HSTS, etc.).
-- Run `uv sync` (no `--extra dev` needed) and restart your ASGI/WSGI server after pulling.
+- Run `uv sync` and restart your ASGI/WSGI server after pulling.
