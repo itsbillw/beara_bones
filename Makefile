@@ -15,8 +15,19 @@ run-dev:  ## Run Django dev server (SQLite, settings_dev)
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py runserver
 
 .PHONY: test
-test:  ## Run Django tests
+test:  ## Run Django tests (home + data apps)
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py test
+
+.PHONY: test-football
+test-football:  ## Run football package unit tests (from repo root)
+	uv run pytest tests/test_football.py -v
+
+.PHONY: test-all
+test-all: test test-football  ## Run Django and football tests
+
+.PHONY: coverage
+coverage:  ## Run Django tests with coverage report
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data && uv run coverage report
 
 # Football pipeline (run from repo root; requires uv and optional deps: uv pip install -e ".[data]")
 .PHONY: ingest

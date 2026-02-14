@@ -6,14 +6,11 @@ Use {% url 'home:index' %}, etc., in templates.
 """
 from django.urls import path
 
-from .views import index, beara_bones_data, about_me, poetry, data_refresh, data_fragment
+from .views import index, about_me, poetry
 
 app_name = "home"
 urlpatterns = [
     path("", index, name="index"),
-    path("data", beara_bones_data, name="data"),
-    path("data/fragment", data_fragment, name="data_fragment"),
-    path("data/refresh", data_refresh, name="data_refresh"),
     path("about", about_me, name="about"),
     path("if-", poetry, name="if-"),  # Poem page; name has hyphen to match title.
 ]

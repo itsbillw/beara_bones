@@ -4,14 +4,10 @@ from django.urls import reverse
 
 
 class HomeViewTests(TestCase):
-    """Home, Data, About, and If— poem pages load successfully."""
+    """Home, About, and If— poem pages load successfully."""
 
     def test_index_returns_200(self) -> None:
         response = self.client.get(reverse("home:index"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_data_returns_200(self) -> None:
-        response = self.client.get(reverse("home:data"))
         self.assertEqual(response.status_code, 200)
 
     def test_about_returns_200(self) -> None:

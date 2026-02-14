@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "home",
+    "data",
 ]
 
 MIDDLEWARE = [
@@ -100,6 +101,7 @@ USE_TZ = True
 # --- Static & media ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
+STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

@@ -29,13 +29,23 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "bandit>=1.7.0",
+    "coverage[toml]>=7.0.0",
     "pre-commit>=4.0.0",
+    "pytest>=8.0.0",
     "ruff>=0.8.0",
     "mypy>=1.13.0",
 ]
 
 [tool.setuptools.packages.find]
 include = ["beara_bones*", "football*"]
+
+[tool.coverage.run]
+source = ["beara_bones"]
+omit = ["*/migrations/*", "*/tests.py", "*/test_*.py", "manage.py"]
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
+fail_under = 0
 
 [tool.black]
 line-length = 120
