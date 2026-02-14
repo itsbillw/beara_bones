@@ -162,10 +162,10 @@ cython_debug/
 
 beara_bones/static
 
-# Football pipeline
-data/
+# Football pipeline (repo root only; do not ignore beara_bones/data/ Django app)
+/data/
 *.duckdb
-data/.refresh.lock
+/data/.refresh.lock
 
 # Django file cache (football dashboard)
 beara_bones/cache/
