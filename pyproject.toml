@@ -1,3 +1,4 @@
+# beara_bones: Django site (itsbillw). Production: DietPi + MariaDB; dev: SQLite.
 [project]
 requires-python = ">= 3.12"
 name = "beara_bones"
@@ -9,7 +10,7 @@ dependencies = [
     "certbot>=2.11.0",
     "django>=5.1.2",
     "gunicorn>=23.0.0",
-    "PyMySQL>=1.1.0",
+    "PyMySQL>=1.1.0",  # MariaDB driver (no native build on Pi); see beara_bones/__init__.py
     "python-dotenv>=1.0.1",
     "uvicorn-worker>=0.2.0",
     "uvicorn>=0.32.0",

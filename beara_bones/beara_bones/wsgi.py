@@ -1,12 +1,8 @@
 """
-WSGI config for beara_bones project.
+WSGI entry point for production (e.g. gunicorn).
 
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/wsgi/
+Exposes `application` for the WSGI server. Uses production settings by default.
 """
-
 import os
 
 from django.core.wsgi import get_wsgi_application

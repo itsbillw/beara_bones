@@ -1,12 +1,17 @@
+"""
+URL routing for the home app.
+
+Included from project urls.py at '' so these paths are at the site root.
+Use {% url 'home:index' %}, etc., in templates.
+"""
 from django.urls import path
 
 from .views import index, beara_bones_data, about_me, poetry
 
-app_name = 'home'
+app_name = "home"
 urlpatterns = [
-    # Home page.
-    path('', index, name='index'),
-    path('data', beara_bones_data, name='data'),
-    path('about', about_me, name='about'),
-    path('if-', poetry, name='if-')
+    path("", index, name="index"),
+    path("data", beara_bones_data, name="data"),
+    path("about", about_me, name="about"),
+    path("if-", poetry, name="if-"),  # Poem page; name has hyphen to match title.
 ]

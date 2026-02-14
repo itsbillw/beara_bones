@@ -1,9 +1,10 @@
+"""Smoke tests for home app: each view returns 200."""
 from django.test import TestCase
 from django.urls import reverse
 
 
 class HomeViewTests(TestCase):
-    """Smoke tests for home app views."""
+    """Home, Data, About, and If— poem pages load successfully."""
 
     def test_index_returns_200(self) -> None:
         response = self.client.get(reverse("home:index"))

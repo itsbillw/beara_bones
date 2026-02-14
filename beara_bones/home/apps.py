@@ -1,3 +1,4 @@
+"""Home app: main pages (index, data, about, poem)."""
 from django.apps import AppConfig
 
 

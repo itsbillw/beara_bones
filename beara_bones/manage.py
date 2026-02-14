@@ -1,5 +1,11 @@
 #!/usr/bin/env python
-"""Django's command-line utility for administrative tasks."""
+"""
+Django management script. Run from this directory (beara_bones/).
+
+Defaults to production settings. For local dev use:
+  DJANGO_SETTINGS_MODULE=beara_bones.settings_dev python manage.py runserver
+  or: make run-dev (from repo root)
+"""
 import os
 import sys
 

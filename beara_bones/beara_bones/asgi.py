@@ -1,12 +1,8 @@
 """
-ASGI config for beara_bones project.
+ASGI entry point for async servers (e.g. uvicorn).
 
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
+Exposes `application` for the ASGI server. Required for async views.
 """
-
 import os
 
 from django.core.asgi import get_asgi_application

@@ -1,6 +1,10 @@
+/*
+ * Base styles for beara_bones / itsbillw site.
+ * Theme: teal (#008080) for body, navbar, dropdown, footer.
+ */
 /* General Styling */
 body {
-  background: #00005c;
+  background: #008080;
   color: #ffffff;
   margin-top: 10px;
   display: flex;
@@ -10,7 +14,7 @@ body {
 
 /* Navbar Styling */
 .navbar {
-  background: #00005c;
+  background: #008080;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -40,7 +44,7 @@ body {
 }
 
 .dropdown-menu-dark {
-  background-color: #00005c;
+  background-color: #008080;
   border: none;
 }
 
@@ -118,7 +122,7 @@ body {
 /* Footer Styling */
 .footer {
   border-top: 1px solid rgba(255, 255, 255, 0.2);
-  background: #00005c;
+  background: #008080;
   padding: 20px;
   text-align: center;
 }

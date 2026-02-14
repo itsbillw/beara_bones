@@ -1,7 +1,6 @@
-# Define variables
+# beara_bones Makefile. Run from repo root. Use `make help` for targets.
 DOCKER_COMPOSE_FILE=docker-compose.yml
 
-# Default target when `make` is run without arguments
 .DEFAULT_GOAL := help
 
 .PHONY: help
