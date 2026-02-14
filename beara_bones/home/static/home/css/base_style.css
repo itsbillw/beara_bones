@@ -119,6 +119,85 @@ body {
   color: #ccccff;
 }
 
+/* Home Page – Service Tiles */
+.services-hero {
+  text-align: center;
+  padding: 2.5rem 1rem 3rem;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+}
+
+.services-hero h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.services-hero p {
+  opacity: 0.9;
+  font-size: 1.05rem;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.25rem;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.service-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 1.75rem 1.25rem;
+  transition: all 0.25s ease;
+  min-height: 160px;
+}
+
+.service-tile:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  color: #fff;
+}
+
+.service-tile .icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  font-size: 1.75rem;
+}
+
+.service-tile:hover .icon-wrap {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.service-tile .name {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.service-tile .tagline {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
 /* Footer Styling */
 .footer {
   border-top: 1px solid rgba(255, 255, 255, 0.2);

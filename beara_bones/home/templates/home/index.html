@@ -1,52 +1,47 @@
-{% extends "home/base.html" %} {% load static %} {% block header %}
+{% extends "home/base.html" %}
+{% load static %}
+{% block header %}
 <title>itsbillw - Home</title>
-{% endblock %} {% block content %}
-<!-- Main Content -->
-<div class="container main-container">
-  <div class="row">
-    <!-- Main Content (3/4 width) -->
-    <div class="col-md-9">
-      <div class="jumbotron rounded">
-        <h1>Welcome to itsbillw!</h1>
-        <p>Your one-stop hub for projects and insights.</p>
-      </div>
-    </div>
+{% endblock %}
 
-    <!-- Sidebar (1/4 width) -->
-    <div class="col-md-3">
-      <!-- Quick Links -->
-      <div class="quick-links rounded p-3">
-        <h4 class="text-center">Quick Links</h4>
-        <ul class="list-unstyled">
-          <li>
-            <a href="https://cloud.itsbillw.eu/" target="_blank"
-              ><i class="bi bi-cloud"></i> NextCloud</a
-            >
-          </li>
-          <li>
-            <a href="https://plex.itsbillw.eu/" target="_blank"
-              ><i class="bi bi-cast"></i> Plex</a
-            >
-          </li>
-          <li>
-            <a href="https://minio.itsbillw.eu/" target="_blank"
-              ><i class="bi bi-arrow-left-right"></i> MinIO</a
-            >
-          </li>
-          <li>
-            <a href="https://status.itsbillw.eu/" target="_blank"
-              ><i class="bi bi-clipboard-pulse"></i> Status (Uptime Robot)</a
-            >
-          </li>
-          <li>
-            <a href="https://monitor.itsbillw.eu/" target="_blank"
-              ><i class="bi bi-activity"></i> Monitoring (NetData)</a
-            >
-          </li>
-        </ul>
-      </div>
-    </div>
+{% block content %}
+<div class="container main-container">
+  <div class="services-hero">
+    <h1>Welcome to itsbillw</h1>
+    <p>Your one-stop hub for projects and self-hosted services.</p>
+  </div>
+
+  <div class="services-grid">
+    <a href="https://cloud.itsbillw.eu/" target="_blank" rel="noopener" class="service-tile">
+      <span class="icon-wrap"><i class="bi bi-cloud-arrow-up-fill"></i></span>
+      <span class="name">Nextcloud</span>
+      <span class="tagline">Files & sync</span>
+    </a>
+    <a href="https://plex.itsbillw.eu/" target="_blank" rel="noopener" class="service-tile">
+      <span class="icon-wrap"><i class="bi bi-cast"></i></span>
+      <span class="name">Plex</span>
+      <span class="tagline">Media server</span>
+    </a>
+    <a href="https://jelly.itsbillw.eu/" target="_blank" rel="noopener" class="service-tile">
+      <span class="icon-wrap"><i class="bi bi-collection-play-fill"></i></span>
+      <span class="name">Jellyfin</span>
+      <span class="tagline">Streaming</span>
+    </a>
+    <a href="https://minio-console.itsbillw.eu/" target="_blank" rel="noopener" class="service-tile">
+      <span class="icon-wrap"><i class="bi bi-hdd-stack-fill"></i></span>
+      <span class="name">MinIO</span>
+      <span class="tagline">Object storage</span>
+    </a>
+    <a href="https://status.itsbillw.eu/" target="_blank" rel="noopener" class="service-tile">
+      <span class="icon-wrap"><i class="bi bi-clipboard2-pulse-fill"></i></span>
+      <span class="name">Status</span>
+      <span class="tagline">Uptime Kuma</span>
+    </a>
+    <a href="https://monitor.itsbillw.eu/" target="_blank" rel="noopener" class="service-tile">
+      <span class="icon-wrap"><i class="bi bi-speedometer2"></i></span>
+      <span class="name">Netdata</span>
+      <span class="tagline">Monitoring</span>
+    </a>
   </div>
 </div>
-
 {% endblock %}
