@@ -1,0 +1,4 @@
+version: 2
+models:
+  - name: fct_fixtures
+    description: Completed fixtures with result (H/A/D) and goal difference

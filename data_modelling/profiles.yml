@@ -1,0 +1,10 @@
+# dbt-duckdb – local FOSS. Database created by football pipeline (fixtures table).
+# Run from repo root: uv run dbt build (or make dbt-build from data_modelling).
+
+football:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../data/football/football.duckdb"
+      schema: main

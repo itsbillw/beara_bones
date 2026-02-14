@@ -1,0 +1,4 @@
+version: 2
+models:
+  - name: stg_fixtures
+    description: Staged fixtures with consistent types

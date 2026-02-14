@@ -1,0 +1,13 @@
+# Raw fixtures table loaded by pipeline from CSV into football.duckdb.
+
+version: 2
+
+# database is the DuckDB catalog = basename of the .duckdb file (football), not "main"
+sources:
+  - name: raw
+    description: Pipeline-loaded raw data in DuckDB
+    database: football
+    schema: main
+    tables:
+      - name: fixtures
+        description: Fixtures from API-Football v3 (flattened, cleaned)

@@ -1,0 +1,8 @@
+# Soda Core – local only (no Soda Cloud). FOSS.
+# Run from repo root: soda scan -d football -c football/soda/configuration.yml football/soda/checks/fixtures.yml
+# Data source: DuckDB file populated by pipeline (fixtures table from CSV).
+
+data_source football:
+  type: duckdb
+  connection:
+    path: "data/football/football.duckdb"

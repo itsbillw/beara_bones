@@ -161,3 +161,8 @@ cython_debug/
 .idea/
 
 beara_bones/static
+
+# Football pipeline
+data/
+*.duckdb
+data/.refresh.lock

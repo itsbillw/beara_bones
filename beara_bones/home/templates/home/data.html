@@ -1,15 +1,114 @@
-{% extends "home/base.html" %} {% load static %} {% block header %}
+{% extends "home/base.html" %}
+{% load static %}
+{% block header %}
 <title>itsbillw - Data</title>
-{% endblock %} {% block content %}
-<!-- Main Content -->
-<div class="container main-container">
-  <!-- Jumbotron -->
-  <div class="jumbotron text-center rounded">
-    <h1>Welcome to itsbillw - Data</h1>
-    <p>
-      This page will be a showcase of open source python data processing and
-      visualisation tools
-    </p>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Data page navbar (90% width) -->
+<nav class="navbar navbar-expand data-navbar py-2">
+  <div class="data-navbar-inner">
+    <span class="navbar-brand text-light mb-0 me-4">Football data</span>
+    <button type="button" class="btn btn-outline-light btn-sm me-3" id="refresh-btn" data-url="{% url 'home:data_refresh' %}">
+      Refresh pipeline
+    </button>
+    <span id="refresh-status" class="me-3 small text-light"></span>
+    <div class="dropdown me-3">
+      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="leagueDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        {{ current_league_name }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark">
+        <li><span class="dropdown-item-text">League {{ current_league }} (current)</span></li>
+      </ul>
+    </div>
+    <div class="dropdown">
+      <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="seasonDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        {{ current_season }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark">
+        <li><span class="dropdown-item-text">Season (current)</span></li>
+      </ul>
+    </div>
   </div>
+</nav>
+
+<div class="container main-container data-page-content">
+  {% if error %}
+  <div class="alert alert-warning" role="alert">
+    {{ error }}
+  </div>
+  <p class="text-muted">Run from repo root: <code>make pipeline</code> (or <code>uv run python -m football.pipeline</code>).</p>
+  {% endif %}
+
+  {% if charts %}
+  <div class="row g-3 mb-4">
+    <div class="col-12">{{ charts.0|safe }}</div>
+    {% if standings %}
+    <div class="col-12">
+      <h2 class="h5 mb-2">League table</h2>
+      <div class="table-responsive">
+        <table class="table table-dark table-striped table-hover">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team</th>
+              <th>P</th>
+              <th>W</th>
+              <th>D</th>
+              <th>L</th>
+              <th>GF</th>
+              <th>GA</th>
+              <th>GD</th>
+              <th>Pts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in standings %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ row.team }}</td>
+              <td>{{ row.P }}</td>
+              <td>{{ row.W }}</td>
+              <td>{{ row.D }}</td>
+              <td>{{ row.L }}</td>
+              <td>{{ row.GF }}</td>
+              <td>{{ row.GA }}</td>
+              <td>{{ row.GD }}</td>
+              <td>{{ row.Pts }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+    {% for chart in charts %}
+    {% if not forloop.first %}
+    <div class="col-12">{{ chart|safe }}</div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
+
+<script>
+(function() {
+  var btn = document.getElementById('refresh-btn');
+  var status = document.getElementById('refresh-status');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    btn.disabled = true;
+    status.textContent = 'Starting…';
+    fetch(btn.dataset.url, { method: 'POST', headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' } })
+      .then(function(r) {
+        if (r.status === 202) { status.textContent = 'Refresh started.'; }
+        else if (r.status === 409) { status.textContent = 'Already running.'; }
+        else { status.textContent = 'Error ' + r.status; }
+      })
+      .catch(function() { status.textContent = 'Request failed.'; })
+      .finally(function() { btn.disabled = false; });
+  });
+})();
+</script>
 {% endblock %}

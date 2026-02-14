@@ -64,6 +64,35 @@ body {
   padding: 20px;
 }
 
+/* Data page: second navbar and 90% width content */
+.data-navbar {
+  background: #008080;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  justify-content: center;
+  padding-left: 5%;
+  padding-right: 5%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.data-navbar-inner {
+  width: 90%;
+  max-width: 90%;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 auto;
+}
+
+.data-page-content.main-container {
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 5%;
+  padding-right: 5%;
+}
+
 /* Jumbotron */
 .jumbotron {
   background: rgba(255, 255, 255, 0.1);

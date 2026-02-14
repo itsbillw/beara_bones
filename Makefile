@@ -18,10 +18,31 @@ run-dev:  ## Run Django dev server (SQLite, settings_dev)
 test:  ## Run Django tests
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py test
 
+# Football pipeline (run from repo root; requires uv and optional deps: uv pip install -e ".[data]")
+.PHONY: ingest
+ingest:  ## Phase 1: Fetch fixtures from RapidAPI → MinIO
+	uv run python -m football.ingest
+
+.PHONY: transform
+transform:  ## Phase 2: Raw JSON → CSV/Parquet
+	uv run python -m football.transform
+
+.PHONY: soda-check
+soda-check:  ## Phase 3: Soda Core quality checks (local, no cloud)
+	uv run soda scan -d football -c football/soda/configuration.yml football/soda/checks/fixtures.yml
+
+.PHONY: dbt-build
+dbt-build:  ## Phase 4: dbt-duckdb build
+	cd data_modelling && uv run dbt build
+
 .PHONY: dbt-test
-dbt-test:  ## Run dbt with LIMIT 100 (requires data_modelling/)
-	cd data_modelling && dbt build
+dbt-test:  ## Alias for dbt-build
+	$(MAKE) dbt-build
 
 .PHONY: dbt-full
 dbt-full:  ## Run dbt with full data (requires data_modelling/)
-	cd data_modelling && dbt build --vars '{"is_dev_run": false}'
+	cd data_modelling && uv run dbt build --vars '{"is_dev_run": false}'
+
+.PHONY: pipeline
+pipeline:  ## Ingest → transform → load DuckDB → soda-check → dbt-build
+	uv run python -m football.pipeline
