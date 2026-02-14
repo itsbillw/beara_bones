@@ -26,8 +26,11 @@ test-football:  ## Run football package unit tests (from repo root)
 test-all: test test-football  ## Run Django and football tests
 
 .PHONY: coverage
-coverage:  ## Run Django tests with coverage report
-	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data && uv run coverage report
+coverage:  ## Run all tests with combined coverage report
+	uv run coverage erase
+	(cd beara_bones && COVERAGE_FILE=$(CURDIR)/.coverage DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data)
+	COVERAGE_FILE=$(CURDIR)/.coverage uv run coverage run -a -m pytest tests/ -q
+	uv run coverage report --omit='*/migrations/*,*/tests.py,*/test_*.py,manage.py'
 
 # --- Linting & pre-commit ---
 .PHONY: install-hooks
@@ -51,8 +54,8 @@ transform:  ## Phase 2: Raw JSON → CSV/Parquet
 	uv run python -m football.transform
 
 .PHONY: soda-check
-soda-check:  ## Phase 3: Soda Core quality checks (local, no cloud)
-	uv run soda scan -d football -c football/soda/configuration.yml football/soda/checks/fixtures.yml
+soda-check:  ## Phase 3: Soda 4 contract verification (local, no cloud)
+	uv run soda contract verify --data-source football/soda/ds_config.yml --contract football/soda/contracts/fixtures.yaml
 
 .PHONY: dbt-build
 dbt-build:  ## Phase 4: dbt-duckdb build

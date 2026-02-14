@@ -19,17 +19,45 @@
     {% endif %}
     <div class="me-3">
       <label for="league-select" class="visually-hidden">League</label>
-      <select id="league-select" class="form-select form-select-sm form-select-dark d-inline-block w-auto">
+      <select
+        id="league-select"
+        class="form-select form-select-sm form-select-dark d-inline-block w-auto"
+      >
         {% for league in leagues %}
-        <option value="{{ league.id }}" {% if league.id == current_league %}selected{% endif %}>{{ league.name }}</option>
+        <option
+          value="{{ league.id }}"
+          {%
+          if
+          league.id=""
+          ="current_league"
+          %}selected{%
+          endif
+          %}
+        >
+          {{ league.name }}
+        </option>
         {% endfor %}
       </select>
     </div>
     <div>
       <label for="season-select" class="visually-hidden">Season</label>
-      <select id="season-select" class="form-select form-select-sm form-select-dark d-inline-block w-auto">
+      <select
+        id="season-select"
+        class="form-select form-select-sm form-select-dark d-inline-block w-auto"
+      >
         {% for season in seasons %}
-        <option value="{{ season.api_year }}" {% if season.api_year == current_season %}selected{% endif %}>{{ season.display }}</option>
+        <option
+          value="{{ season.api_year }}"
+          {%
+          if
+          season.api_year=""
+          ="current_season"
+          %}selected{%
+          endif
+          %}
+        >
+          {{ season.display }}
+        </option>
         {% endfor %}
       </select>
     </div>
@@ -52,10 +80,18 @@
         var seasonSelect = document.getElementById("season-select");
         var fragmentUrl = "{% url 'data:data_fragment' %}";
         function loadFragment(league, season) {
-          var url = fragmentUrl + "?league=" + encodeURIComponent(league) + "&season=" + encodeURIComponent(season);
-          content.innerHTML = '<div class="text-center py-5 text-light"><div class="spinner-border mb-3"></div><p class="mb-0">Loading…</p></div>';
+          var url =
+            fragmentUrl +
+            "?league=" +
+            encodeURIComponent(league) +
+            "&season=" +
+            encodeURIComponent(season);
+          content.innerHTML =
+            '<div class="text-center py-5 text-light"><div class="spinner-border mb-3"></div><p class="mb-0">Loading…</p></div>';
           fetch(url)
-            .then(function (r) { return r.text(); })
+            .then(function (r) {
+              return r.text();
+            })
             .then(function (html) {
               content.innerHTML = html;
               content.querySelectorAll("script").forEach(function (oldScript) {
@@ -66,7 +102,8 @@
               });
             })
             .catch(function () {
-              content.innerHTML = '<div class="alert alert-warning">Failed to load data.</div>';
+              content.innerHTML =
+                '<div class="alert alert-warning">Failed to load data.</div>';
             });
         }
         function onLeagueOrSeasonChange() {
@@ -115,5 +152,4 @@
     });
   })();
 </script>
-{% endif %}
-{% endblock %}
+{% endif %} {% endblock %}

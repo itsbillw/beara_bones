@@ -35,17 +35,23 @@ def _load_to_mariadb_and_minio(df, league: int, season: int) -> None:
         os.environ.get("DJANGO_SETTINGS_MODULE", "beara_bones.settings_dev"),
     )
     import django
+
     django.setup()
     from data.loading import load_fixtures_dataframe
     from football.processed import upload_processed_parquet
 
     load_fixtures_dataframe(df, league, season)
     upload_processed_parquet(df, league, season)
-    logger.info("Loaded to MariaDB and uploaded processed Parquet for league=%s season=%s", league, season)
+    logger.info(
+        "Loaded to MariaDB and uploaded processed Parquet for league=%s season=%s",
+        league,
+        season,
+    )
     try:
         from django.core.cache import cache
+
         cache.clear()
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
 
@@ -99,25 +105,25 @@ def run_pipeline(
         from football.build_views import run as build_views
 
         build_views()
-        # Soda scan (local; run from repo root)
-        soda_cfg = REPO_ROOT / "football" / "soda" / "configuration.yml"
-        soda_checks = REPO_ROOT / "football" / "soda" / "checks" / "fixtures.yml"
-        if soda_cfg.exists() and soda_checks.exists():
+        # Soda 4 contract verify (local; run from repo root)
+        soda_ds = REPO_ROOT / "football" / "soda" / "ds_config.yml"
+        soda_contract = REPO_ROOT / "football" / "soda" / "contracts" / "fixtures.yaml"
+        if soda_ds.exists() and soda_contract.exists():
             rc = _run(
                 [
                     "uv",
                     "run",
                     "soda",
-                    "scan",
-                    "-d",
-                    "football",
-                    "-c",
-                    str(soda_cfg),
-                    str(soda_checks),
+                    "contract",
+                    "verify",
+                    "--data-source",
+                    str(soda_ds),
+                    "--contract",
+                    str(soda_contract),
                 ],
             )
             if rc != 0:
-                logger.warning("Soda scan had failures (rc=%s)", rc)
+                logger.warning("Soda contract verify had failures (rc=%s)", rc)
         # dbt (optional; often segfaults with dbt-duckdb + Python 3.13 – views already built above)
         dbt_dir = REPO_ROOT / "data_modelling"
         if (dbt_dir / "dbt_project.yml").exists():

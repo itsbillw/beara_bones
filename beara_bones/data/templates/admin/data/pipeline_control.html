@@ -1,14 +1,21 @@
-{% extends "admin/base_site.html" %}
-{% load i18n %}
-
-{% block content %}
+{% extends "admin/base_site.html" %} {% load i18n %} {% block content %}
 <h1>Football pipeline</h1>
-<p class="help">Trigger pipeline actions. Only one run at a time (lock file in <code>data/football/.refresh.lock</code>).</p>
+<p class="help">
+  Trigger pipeline actions. Only one run at a time (lock file in
+  <code>data/football/.refresh.lock</code>).
+</p>
 
 <div class="module">
   <h2>Refresh pipeline</h2>
-  <p>Fetch from API → MinIO → transform → load to MariaDB → upload processed Parquet (for all League×Season).</p>
-  <form method="post" action="{% url 'data:admin_pipeline_refresh' %}" style="display:inline;">
+  <p>
+    Fetch from API → MinIO → transform → load to MariaDB → upload processed
+    Parquet (for all League×Season).
+  </p>
+  <form
+    method="post"
+    action="{% url 'data:admin_pipeline_refresh' %}"
+    style="display: inline"
+  >
     {% csrf_token %}
     <button type="submit" class="button">Refresh pipeline</button>
   </form>
@@ -16,8 +23,15 @@
 
 <div class="module">
   <h2>Rebuild from MinIO</h2>
-  <p>No API calls. For each League×Season: load from processed Parquet if present, else transform from raw JSON and load.</p>
-  <form method="post" action="{% url 'data:admin_pipeline_rebuild' %}" style="display:inline;">
+  <p>
+    No API calls. For each League×Season: load from processed Parquet if
+    present, else transform from raw JSON and load.
+  </p>
+  <form
+    method="post"
+    action="{% url 'data:admin_pipeline_rebuild' %}"
+    style="display: inline"
+  >
     {% csrf_token %}
     <button type="submit" class="button">Rebuild from MinIO</button>
   </form>

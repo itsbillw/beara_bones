@@ -4,62 +4,93 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies: list[tuple[str, str]] = []
 
     operations = [
         migrations.CreateModel(
-            name='League',
+            name="League",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=255)),
-                ('order', models.PositiveSmallIntegerField(default=0, help_text='Dropdown order')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("name", models.CharField(max_length=255)),
+                (
+                    "order",
+                    models.PositiveSmallIntegerField(
+                        default=0,
+                        help_text="Dropdown order",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['order', 'id'],
+                "ordering": ["order", "id"],
             },
         ),
         migrations.CreateModel(
-            name='Season',
+            name="Season",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('api_year', models.IntegerField(unique=True)),
-                ('display', models.CharField(max_length=20)),
-                ('order', models.PositiveSmallIntegerField(default=0, help_text='Dropdown order, higher = more recent')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("api_year", models.IntegerField(unique=True)),
+                ("display", models.CharField(max_length=20)),
+                (
+                    "order",
+                    models.PositiveSmallIntegerField(
+                        default=0,
+                        help_text="Dropdown order, higher = more recent",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-api_year'],
+                "ordering": ["-api_year"],
             },
         ),
         migrations.CreateModel(
-            name='Fixture',
+            name="Fixture",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('fixture_id', models.BigIntegerField(db_index=True)),
-                ('date', models.DateTimeField(blank=True, null=True)),
-                ('timestamp', models.BigIntegerField(blank=True, null=True)),
-                ('venue_id', models.IntegerField(blank=True, null=True)),
-                ('venue_name', models.CharField(blank=True, max_length=255)),
-                ('status_short', models.CharField(blank=True, max_length=20)),
-                ('status_long', models.CharField(blank=True, max_length=100)),
-                ('league_id', models.IntegerField(db_index=True)),
-                ('league_name', models.CharField(blank=True, max_length=255)),
-                ('league_season', models.IntegerField(db_index=True)),
-                ('league_round', models.CharField(blank=True, max_length=100)),
-                ('home_team_id', models.IntegerField(blank=True, null=True)),
-                ('home_team_name', models.CharField(blank=True, max_length=255)),
-                ('away_team_id', models.IntegerField(blank=True, null=True)),
-                ('away_team_name', models.CharField(blank=True, max_length=255)),
-                ('goals_home', models.IntegerField(blank=True, null=True)),
-                ('goals_away', models.IntegerField(blank=True, null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("fixture_id", models.BigIntegerField(db_index=True)),
+                ("date", models.DateTimeField(blank=True, null=True)),
+                ("timestamp", models.BigIntegerField(blank=True, null=True)),
+                ("venue_id", models.IntegerField(blank=True, null=True)),
+                ("venue_name", models.CharField(blank=True, max_length=255)),
+                ("status_short", models.CharField(blank=True, max_length=20)),
+                ("status_long", models.CharField(blank=True, max_length=100)),
+                ("league_id", models.IntegerField(db_index=True)),
+                ("league_name", models.CharField(blank=True, max_length=255)),
+                ("league_season", models.IntegerField(db_index=True)),
+                ("league_round", models.CharField(blank=True, max_length=100)),
+                ("home_team_id", models.IntegerField(blank=True, null=True)),
+                ("home_team_name", models.CharField(blank=True, max_length=255)),
+                ("away_team_id", models.IntegerField(blank=True, null=True)),
+                ("away_team_name", models.CharField(blank=True, max_length=255)),
+                ("goals_home", models.IntegerField(blank=True, null=True)),
+                ("goals_away", models.IntegerField(blank=True, null=True)),
             ],
             options={
-                'db_table': 'data_fixture',
-                'ordering': ['league_id', 'league_season', 'date'],
-                'indexes': [models.Index(fields=['league_id', 'league_season'], name='data_fixtur_league__d42d05_idx')],
+                "db_table": "data_fixture",
+                "ordering": ["league_id", "league_season", "date"],
+                "indexes": [
+                    models.Index(
+                        fields=["league_id", "league_season"],
+                        name="data_fixtur_league__d42d05_idx",
+                    ),
+                ],
             },
         ),
     ]

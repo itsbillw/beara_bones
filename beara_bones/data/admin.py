@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.utils.html import format_html
 
 from .models import Fixture, League, Season
 
@@ -18,7 +17,14 @@ class SeasonAdmin(admin.ModelAdmin):
 
 @admin.register(Fixture)
 class FixtureAdmin(admin.ModelAdmin):
-    list_display = ("fixture_id", "league_id", "league_season", "home_team_name", "away_team_name", "goals_display")
+    list_display = (
+        "fixture_id",
+        "league_id",
+        "league_season",
+        "home_team_name",
+        "away_team_name",
+        "goals_display",
+    )
     list_filter = ("league_id", "league_season")
     search_fields = ("home_team_name", "away_team_name", "league_name")
     readonly_fields = (
@@ -46,4 +52,4 @@ class FixtureAdmin(admin.ModelAdmin):
             return f"{obj.goals_home}-{obj.goals_away}"
         return "-"
 
-    goals_display.short_description = "Score"
+    goals_display.short_description = "Score"  # type: ignore[attr-defined]

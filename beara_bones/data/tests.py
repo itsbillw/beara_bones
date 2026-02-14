@@ -1,4 +1,4 @@
-"""Tests for data app: views (page, fragment, refresh), dashboard logic, and fragment content."""
+"""Tests for data app: views, loading, admin, dashboard logic."""
 
 import unittest
 from unittest.mock import patch
@@ -8,6 +8,8 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
+from data.loading import load_fixtures_dataframe
+from data.models import Fixture, League, Season
 from data.views import _build_dashboard_fragment
 
 
@@ -46,9 +48,15 @@ class DataViewTests(TestCase):
         self.assertIn("current_season_display", response.context)
         # With seed migration, first league is Premier League (39), first season 2025
         if response.context["leagues"]:
-            self.assertEqual(response.context["current_league_name"], response.context["leagues"][0].name)
+            self.assertEqual(
+                response.context["current_league_name"],
+                response.context["leagues"][0].name,
+            )
         if response.context["seasons"]:
-            self.assertEqual(response.context["current_season"], response.context["seasons"][0].api_year)
+            self.assertEqual(
+                response.context["current_season"],
+                response.context["seasons"][0].api_year,
+            )
 
     def test_data_fragment_returns_200(self) -> None:
         response = self.client.get(reverse("data:data_fragment"))
@@ -59,7 +67,9 @@ class DataViewTests(TestCase):
         response = self.client.get(reverse("data:data_fragment"))
         html = response.content.decode()
         has_table = "League table" in html
-        has_error_help = "Admin" in html or "alert" in html or "pipeline" in html.lower()
+        has_error_help = (
+            "Admin" in html or "alert" in html or "pipeline" in html.lower()
+        )
         self.assertTrue(
             has_table or has_error_help,
             msg="Fragment should show table or error/help",
@@ -74,7 +84,7 @@ class DataViewTests(TestCase):
         cache.clear()
         mock_load.return_value = (_minimal_fixtures_df(), None)
         response = self.client.get(
-            reverse("data:data_fragment") + "?league=39&season=2025"
+            reverse("data:data_fragment") + "?league=39&season=2025",
         )
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
@@ -93,9 +103,13 @@ class DataViewTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     @patch("subprocess.Popen")
-    def test_data_refresh_post_staff_returns_202_or_409(self, mock_popen: unittest.mock.Mock) -> None:
+    def test_data_refresh_post_staff_returns_202_or_409(
+        self,
+        mock_popen: unittest.mock.Mock,
+    ) -> None:
         """POST to refresh as staff returns 202 or 409."""
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         user = User.objects.create_superuser("admin", "a@b.com", "pass")
         self.client.force_login(user)
@@ -151,3 +165,85 @@ class DashboardFragmentUnitTests(TestCase):
         team_b = next(r for r in out["standings"] if r["team"] == "TeamB")
         self.assertEqual(team_b["Pts"], 0)
         self.assertEqual(team_b["L"], 1)
+
+
+class LoadingTests(TestCase):
+    """load_fixtures_dataframe loads DataFrame into Fixture model."""
+
+    def setUp(self) -> None:
+        League.objects.get_or_create(
+            id=39,
+            defaults={"name": "Premier League", "order": 0},
+        )
+        Season.objects.get_or_create(
+            api_year=2025,
+            defaults={"display": "2025/26", "order": 0},
+        )
+
+    def test_load_empty_dataframe_returns_zero(self) -> None:
+        count = load_fixtures_dataframe(pd.DataFrame(), league_id=39, season=2025)
+        self.assertEqual(count, 0)
+
+    def test_load_fixtures_replaces_existing(self) -> None:
+        from django.utils import timezone
+
+        df = pd.DataFrame(
+            [
+                {
+                    "fixture_id": 1,
+                    "date": timezone.now(),
+                    "timestamp": 1736953200,
+                    "league_id": 39,
+                    "league_season": 2025,
+                    "home_team_name": "TeamA",
+                    "away_team_name": "TeamB",
+                    "goals_home": 2,
+                    "goals_away": 1,
+                },
+            ],
+        )
+        count = load_fixtures_dataframe(df, league_id=39, season=2025)
+        self.assertEqual(count, 1)
+        fixture = Fixture.objects.get(fixture_id=1, league_id=39, league_season=2025)
+        self.assertEqual(fixture.home_team_name, "TeamA")
+        self.assertEqual(fixture.goals_home, 2)
+
+    def test_load_replaces_same_league_season(self) -> None:
+        df1 = pd.DataFrame([{"fixture_id": 1, "league_id": 39, "league_season": 2025}])
+        load_fixtures_dataframe(df1, league_id=39, season=2025)
+        df2 = pd.DataFrame([{"fixture_id": 2, "league_id": 39, "league_season": 2025}])
+        load_fixtures_dataframe(df2, league_id=39, season=2025)
+        self.assertEqual(
+            Fixture.objects.filter(league_id=39, league_season=2025).count(),
+            1,
+        )
+        self.assertEqual(
+            Fixture.objects.get(league_id=39, league_season=2025).fixture_id,
+            2,
+        )
+
+
+class AdminViewsTests(TestCase):
+    """Admin pipeline control views: pipeline_control, pipeline_refresh, pipeline_rebuild."""
+
+    def test_pipeline_control_requires_staff(self) -> None:
+        response = self.client.get(reverse("data:admin_pipeline"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_pipeline_control_staff_sees_page(self) -> None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        User.objects.create_superuser("admin", "a@b.com", "pass")
+        self.client.force_login(User.objects.get(username="admin"))
+        response = self.client.get(reverse("data:admin_pipeline"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"pipeline", response.content.lower() or b"")
+
+    def test_pipeline_refresh_post_requires_staff(self) -> None:
+        response = self.client.post(reverse("data:admin_pipeline_refresh"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_pipeline_rebuild_post_requires_staff(self) -> None:
+        response = self.client.post(reverse("data:admin_pipeline_rebuild"))
+        self.assertEqual(response.status_code, 302)

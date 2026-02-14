@@ -6,7 +6,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
+    path("", include("data.urls")),  # data, data/fragment, admin/data/pipeline, etc.
     path("admin/", admin.site.urls),
-    path("", include("data.urls")),  # data, data/fragment, data/refresh
     path("", include("home.urls")),
 ]

@@ -27,7 +27,10 @@ def pipeline_refresh(request):
     repo_root = Path(settings.BASE_DIR).parent
     lock_file = repo_root / "data" / "football" / ".refresh.lock"
     if lock_file.exists():
-        messages.warning(request, "Pipeline already in progress. Wait or remove the lock file.")
+        messages.warning(
+            request,
+            "Pipeline already in progress. Wait or remove the lock file.",
+        )
         return HttpResponseRedirect(reverse("data:admin_pipeline"))
     subprocess.Popen(  # nosec B603 B607
         ["uv", "run", "python", "beara_bones/manage.py", "run_football_pipeline"],
@@ -48,7 +51,10 @@ def pipeline_rebuild(request):
     repo_root = Path(settings.BASE_DIR).parent
     lock_file = repo_root / "data" / "football" / ".refresh.lock"
     if lock_file.exists():
-        messages.warning(request, "Pipeline already in progress. Wait or remove the lock file.")
+        messages.warning(
+            request,
+            "Pipeline already in progress. Wait or remove the lock file.",
+        )
         return HttpResponseRedirect(reverse("data:admin_pipeline"))
     try:
         call_command("rebuild_football_from_minio")

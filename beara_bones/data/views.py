@@ -16,7 +16,9 @@ def _load_fixtures_from_db(league_id: int, season: int):
     """Load fixture data from MariaDB for the given league/season. Returns (df, error)."""
     from .models import Fixture
 
-    qs = Fixture.objects.filter(league_id=league_id, league_season=season).order_by("date")
+    qs = Fixture.objects.filter(league_id=league_id, league_season=season).order_by(
+        "date",
+    )
     if not qs.exists():
         return None, "No fixtures for this league/season. Run the pipeline from Admin."
     rows = list(
@@ -38,7 +40,7 @@ def _load_fixtures_from_db(league_id: int, season: int):
             "away_team_name",
             "goals_home",
             "goals_away",
-        )
+        ),
     )
     df = pd.DataFrame(rows)
     return df, None
@@ -232,7 +234,11 @@ def data_fragment(request):
     if not leagues or not seasons:
         html = render_to_string(
             "data/data_fragment.html",
-            {"charts": [], "standings": [], "error": "No leagues or seasons configured. Add them in Admin."},
+            {
+                "charts": [],
+                "standings": [],
+                "error": "No leagues or seasons configured. Add them in Admin.",
+            },
         )
         return HttpResponse(html, content_type="text/html")
     if league_id is not None:

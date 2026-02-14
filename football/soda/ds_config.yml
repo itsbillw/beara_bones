@@ -1,0 +1,6 @@
+# Soda 4 data source (DuckDB). Used by: soda contract verify --data-source football/soda/ds_config.yml
+# Run from repo root; path is relative to cwd.
+type: duckdb
+name: football
+connection:
+  database: "data/football/football.duckdb"

@@ -20,16 +20,15 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "pyarrow>=18.0.0",
     "requests>=2.32.0",
-    "soda-core-duckdb>=3.0.0",
-    # soda-core-mysql for MariaDB (optional; install separately: uv add soda-core-mysql)
-    "soda-core>=3.0.0",
+    "soda-core>=4.0.7",
+    "soda-duckdb>=4.0.7",
     "uvicorn-worker>=0.2.0",
     "uvicorn>=0.32.0",
     "whitenoise>=6.8.2",
 ]
 
-[project.optional-dependencies]
-dev = [
+[tool.uv]
+dev-dependencies = [
     "bandit>=1.7.0",
     "coverage[toml]>=7.0.0",
     "pre-commit>=4.0.0",
@@ -44,7 +43,7 @@ dev = [
 include = ["beara_bones*", "football*"]
 
 [tool.coverage.run]
-source = ["beara_bones"]
+source = ["beara_bones", "football"]
 omit = ["*/migrations/*", "*/tests.py", "*/test_*.py", "manage.py"]
 
 [tool.coverage.report]

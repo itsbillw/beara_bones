@@ -4,7 +4,9 @@ from django.db import models
 class League(models.Model):
     """API league id and display name. Used for pipeline and dashboard dropdowns."""
 
-    id = models.IntegerField(primary_key=True)  # API league id (e.g. 39 = Premier League)
+    id = models.IntegerField(
+        primary_key=True,
+    )  # API league id (e.g. 39 = Premier League)
     name = models.CharField(max_length=255)
     order = models.PositiveSmallIntegerField(default=0, help_text="Dropdown order")
 
@@ -20,7 +22,10 @@ class Season(models.Model):
 
     api_year = models.IntegerField(unique=True)  # What the API uses (e.g. 2025)
     display = models.CharField(max_length=20)  # e.g. "2025/26"
-    order = models.PositiveSmallIntegerField(default=0, help_text="Dropdown order, higher = more recent")
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Dropdown order, higher = more recent",
+    )
 
     class Meta:
         ordering = ["-api_year"]

@@ -21,7 +21,9 @@ def load_processed_parquet_from_minio(
     """
     Read processed Parquet from MinIO for (league, season). Returns None if object does not exist.
     """
-    resolved_bucket = bucket or os.environ.get("MINIO_BUCKET_PROCESSED", "football-processed")
+    resolved_bucket: str = (
+        bucket or os.environ.get("MINIO_BUCKET_PROCESSED") or "football-processed"
+    )
     key = f"processed/league_{league}_season_{season}.parquet"
     try:
         client = get_client()
@@ -46,7 +48,9 @@ def upload_processed_parquet(
     Key: processed/league_{league}_season_{season}.parquet
     Returns the object key.
     """
-    resolved_bucket = bucket or os.environ.get("MINIO_BUCKET_PROCESSED", "football-processed")
+    resolved_bucket: str = (
+        bucket or os.environ.get("MINIO_BUCKET_PROCESSED") or "football-processed"
+    )
     key = f"processed/league_{league}_season_{season}.parquet"
     buf = io.BytesIO()
     df.to_parquet(buf, index=False)

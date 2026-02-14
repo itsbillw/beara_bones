@@ -57,3 +57,12 @@ repos:
     rev: v3.1.0
     hooks:
       - id: add-trailing-comma
+
+  # Run tests before commit
+  - repo: local
+    hooks:
+      - id: test-all
+        name: test-all
+        entry: make test-all
+        language: system
+        pass_filenames: false

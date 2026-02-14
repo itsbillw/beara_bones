@@ -16,6 +16,14 @@ urlpatterns = [
     path("data/fragment", data_fragment, name="data_fragment"),
     path("data/refresh", data_refresh, name="data_refresh"),
     path("admin/data/pipeline/", admin_views.pipeline_control, name="admin_pipeline"),
-    path("admin/data/pipeline/refresh/", admin_views.pipeline_refresh, name="admin_pipeline_refresh"),
-    path("admin/data/pipeline/rebuild/", admin_views.pipeline_rebuild, name="admin_pipeline_rebuild"),
+    path(
+        "admin/data/pipeline/refresh/",
+        admin_views.pipeline_refresh,
+        name="admin_pipeline_refresh",
+    ),
+    path(
+        "admin/data/pipeline/rebuild/",
+        admin_views.pipeline_rebuild,
+        name="admin_pipeline_rebuild",
+    ),
 ]
