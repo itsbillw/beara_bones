@@ -1,4 +1,5 @@
 """Smoke tests for home app: each view returns 200."""
+
 from django.test import TestCase
 from django.urls import reverse
 

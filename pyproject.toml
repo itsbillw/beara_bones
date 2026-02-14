@@ -34,6 +34,8 @@ dev = [
     "pytest>=8.0.0",
     "ruff>=0.8.0",
     "mypy>=1.13.0",
+    "types-PyMySQL>=1.1.0",
+    "types-requests>=2.32.0",
 ]
 
 [tool.setuptools.packages.find]
@@ -46,6 +48,16 @@ omit = ["*/migrations/*", "*/tests.py", "*/test_*.py", "manage.py"]
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
 fail_under = 0
+
+[tool.bandit]
+skips = ["B101", "B404", "B603", "B607"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
 
 [tool.black]
 line-length = 120

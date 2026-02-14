@@ -76,14 +76,14 @@ WSGI_APPLICATION = "beara_bones.wsgi.application"
 
 # --- Database (MariaDB; credentials from .env) ---
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-    }
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT"),
+    },
 }
 
 # --- Password validation ---
@@ -138,6 +138,6 @@ CACHES = {
         "LOCATION": BASE_DIR / "cache",
         "OPTIONS": {"MAX_ENTRIES": 100},
         "TIMEOUT": 600,
-    }
+    },
 }
 FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600  # seconds

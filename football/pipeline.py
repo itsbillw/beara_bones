@@ -2,9 +2,9 @@
 Orchestrates ingest → transform → load to DuckDB → soda-check → dbt-build.
 Uses a lock file to prevent overlapping runs. Clears dashboard cache on success.
 """
+
 import logging
-import os
-import subprocess
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def _run(cmd: list[str], cwd: Path | None = None) -> int:
     cwd = cwd or REPO_ROOT
     logging.info("Running: %s", " ".join(cmd))
-    return subprocess.call(cmd, cwd=cwd)
+    return subprocess.call(cmd, cwd=cwd)  # nosec B603
 
 
 def load_csv_to_duckdb() -> None:
@@ -29,7 +29,9 @@ def load_csv_to_duckdb() -> None:
     try:
         import duckdb
     except ImportError:
-        logger.warning("duckdb not installed; skipping load. Install with: uv pip install duckdb")
+        logger.warning(
+            "duckdb not installed; skipping load. Install with: uv pip install duckdb",
+        )
         return
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     db_path = DATA_DIR / "football.duckdb"
@@ -38,37 +40,57 @@ def load_csv_to_duckdb() -> None:
         logger.warning("No fixtures.csv; run transform first.")
         return
     con = duckdb.connect(str(db_path))
-    con.execute("CREATE OR REPLACE TABLE fixtures AS SELECT * FROM read_csv_auto(?)", [str(csv_path)])
+    con.execute(
+        "CREATE OR REPLACE TABLE fixtures AS SELECT * FROM read_csv_auto(?)",
+        [str(csv_path)],
+    )
     con.close()
     logger.info("Loaded fixtures into %s", db_path)
 
 
-def run_pipeline(league: int = 39, season: int = 2025, skip_ingest: bool = False) -> int:
+def run_pipeline(
+    league: int = 39,
+    season: int = 2025,
+    skip_ingest: bool = False,
+) -> int:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     if LOCK_FILE.exists():
-        logger.error("Lock file exists; another pipeline run may be in progress. Remove %s to force.", LOCK_FILE)
+        logger.error(
+            "Lock file exists; another pipeline run may be in progress. Remove %s to force.",
+            LOCK_FILE,
+        )
         return 1
     try:
         LOCK_FILE.touch()
         if not skip_ingest:
             from football.ingest import run_ingest
+
             run_ingest(league=league, season=season)
         from football.transform import run_transform
+
         run_transform(league=league, season=season)
         load_csv_to_duckdb()
         # Build dbt-equivalent views (avoids dbt-duckdb segfault on Python 3.13)
         from football.build_views import run as build_views
+
         build_views()
         # Soda scan (local; run from repo root)
         soda_cfg = REPO_ROOT / "football" / "soda" / "configuration.yml"
         soda_checks = REPO_ROOT / "football" / "soda" / "checks" / "fixtures.yml"
         if soda_cfg.exists() and soda_checks.exists():
-            rc = _run([
-                "uv", "run", "soda", "scan",
-                "-d", "football",
-                "-c", str(soda_cfg),
-                str(soda_checks),
-            ])
+            rc = _run(
+                [
+                    "uv",
+                    "run",
+                    "soda",
+                    "scan",
+                    "-d",
+                    "football",
+                    "-c",
+                    str(soda_cfg),
+                    str(soda_checks),
+                ],
+            )
             if rc != 0:
                 logger.warning("Soda scan had failures (rc=%s)", rc)
         # dbt (optional; often segfaults with dbt-duckdb + Python 3.13 – views already built above)
@@ -76,7 +98,10 @@ def run_pipeline(league: int = 39, season: int = 2025, skip_ingest: bool = False
         if (dbt_dir / "dbt_project.yml").exists():
             rc = _run(["uv", "run", "dbt", "build"], cwd=dbt_dir)
             if rc != 0:
-                logger.warning("dbt build exited with %s (views were created by build_views)", rc)
+                logger.warning(
+                    "dbt build exited with %s (views were created by build_views)",
+                    rc,
+                )
         return 0
     finally:
         if LOCK_FILE.exists():

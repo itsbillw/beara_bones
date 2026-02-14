@@ -1,10 +1,11 @@
 """
 Phase 1: Fetch fixtures from RapidAPI (API-Football v3) and store raw JSON in MinIO.
 """
+
 import json
 import logging
 import os
-from pathlib import Path
+from typing import Any
 
 import requests
 from dotenv import load_dotenv
@@ -20,7 +21,9 @@ DEFAULT_SEASON = 2025
 
 
 def get_client() -> Minio:
-    endpoint = os.environ["MINIO_ENDPOINT"].replace("https://", "").replace("http://", "")
+    endpoint = (
+        os.environ["MINIO_ENDPOINT"].replace("https://", "").replace("http://", "")
+    )
     return Minio(
         endpoint,
         access_key=os.environ["MINIO_ACCESS_KEY"],
@@ -42,14 +45,17 @@ def fetch_fixtures(league: int = DEFAULT_LEAGUE, season: int = DEFAULT_SEASON) -
     }
     resp = requests.get(url, params=params, headers=headers, timeout=30)
     resp.raise_for_status()
-    data = resp.json()
+    data: dict[str, Any] = resp.json()
     # Handle pagination if API returns it (paging may vary by plan)
     if "paging" in data and data.get("response"):
         total_pages = data["paging"].get("total", 1)
         all_response = list(data.get("response", []))
         for page in range(2, total_pages + 1):
             resp2 = requests.get(
-                url, params={**params, "page": page}, headers=headers, timeout=30
+                url,
+                params={**params, "page": page},
+                headers=headers,
+                timeout=30,
             )
             resp2.raise_for_status()
             data2 = resp2.json()
@@ -67,7 +73,12 @@ def ensure_bucket(client: Minio, bucket: str) -> None:
 def upload_raw(client: Minio, bucket: str, data: dict, league: int, season: int) -> str:
     key = f"raw/league_{league}_season_{season}.json"
     body = json.dumps(data).encode("utf-8")
-    client.put_object(bucket, key, data=__import__("io").BytesIO(body), length=len(body))
+    client.put_object(
+        bucket,
+        key,
+        data=__import__("io").BytesIO(body),
+        length=len(body),
+    )
     logger.info("Uploaded %s to %s/%s", key, bucket, key)
     return key
 
@@ -77,11 +88,11 @@ def run_ingest(
     season: int = DEFAULT_SEASON,
     bucket: str | None = None,
 ) -> str:
-    bucket = bucket or os.environ.get("MINIO_BUCKET", "football")
+    resolved_bucket = bucket or os.environ.get("MINIO_BUCKET", "football") or "football"
     data = fetch_fixtures(league=league, season=season)
     client = get_client()
-    ensure_bucket(client, bucket)
-    return upload_raw(client, bucket, data, league, season)
+    ensure_bucket(client, resolved_bucket)
+    return upload_raw(client, resolved_bucket, data, league, season)
 
 
 if __name__ == "__main__":

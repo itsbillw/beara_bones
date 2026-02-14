@@ -5,8 +5,7 @@
 <div class="row g-3 mb-4">
   {% if charts %}
   <div class="col-12">{{ charts.0|safe }}</div>
-  {% endif %}
-  {% if standings %}
+  {% endif %} {% if standings %}
   <div class="col-12">
     <h2 class="h5 mb-2">League table</h2>
     <div class="table-responsive">

@@ -2,6 +2,7 @@
 Phase 2: Load raw JSON from MinIO, flatten to DataFrame, clean, write CSV/Parquet.
 Output: data/football/fixtures.csv (and optionally fixtures.parquet).
 """
+
 import logging
 import os
 from pathlib import Path
@@ -24,7 +25,9 @@ def _data_dir() -> Path:
 
 
 def get_client() -> Minio:
-    endpoint = os.environ["MINIO_ENDPOINT"].replace("https://", "").replace("http://", "")
+    endpoint = (
+        os.environ["MINIO_ENDPOINT"].replace("https://", "").replace("http://", "")
+    )
     return Minio(
         endpoint,
         access_key=os.environ["MINIO_ACCESS_KEY"],
@@ -37,7 +40,11 @@ def load_raw_from_minio(bucket: str, object_key: str) -> dict:
     client = get_client()
     resp = client.get_object(bucket, object_key)
     try:
-        return __import__("json").loads(resp.read().decode("utf-8"))
+        import json
+        from typing import Any
+
+        out: dict[str, Any] = json.loads(resp.read().decode("utf-8"))
+        return out
     finally:
         resp.close()
 
@@ -78,8 +85,15 @@ def flatten_fixtures(raw: dict) -> pd.DataFrame:
     df = pd.DataFrame(records)
     # Coerce types
     if not df.empty:
-        for col in ("fixture_id", "timestamp", "venue_id", "league_id", "league_season",
-                    "home_team_id", "away_team_id"):
+        for col in (
+            "fixture_id",
+            "timestamp",
+            "venue_id",
+            "league_id",
+            "league_season",
+            "home_team_id",
+            "away_team_id",
+        ):
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
         for col in ("goals_home", "goals_away"):
@@ -107,13 +121,13 @@ def run_transform(
     output_dir: Path | None = None,
     write_parquet: bool = True,
 ) -> pd.DataFrame:
-    bucket = bucket or os.environ.get("MINIO_BUCKET", "football")
-    object_key = object_key or f"raw/league_{league}_season_{season}.json"
+    resolved_bucket = bucket or os.environ.get("MINIO_BUCKET", "football") or "football"
+    resolved_key = object_key or f"raw/league_{league}_season_{season}.json"
     out_dir = output_dir or _data_dir()
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    raw = load_raw_from_minio(bucket, object_key)
+    raw = load_raw_from_minio(resolved_bucket, resolved_key)
     df = flatten_fixtures(raw)
     df = clean(df)
 

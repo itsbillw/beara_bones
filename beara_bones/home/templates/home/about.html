@@ -1,46 +1,30 @@
 {% extends "home/base.html" %} {% load static %} {% block header %}
-<title xmlns="http://www.w3.org/1999/html">itsbillw - About</title>
+<title>itsbillw - About</title>
 {% endblock %} {% block content %}
-<!-- Main Content -->
 <div class="container main-container">
-  <!-- Jumbotron -->
   <div class="jumbotron rounded">
     <h1 class="display-5 fw-bold text-center">About itsbillw</h1>
+
     <p>
-      <strong>What is itsbillw.eu?</strong><br />itsbillw.eu is my personal
-      website, built and hosted on a Raspberry Pi running DietPi OS. It serves
-      as a hub for my projects, experiments with FOSS (Free and Open Source
-      Software), and a playground for learning and sharing ideas.
+      <strong>What is itsbillw.eu?</strong><br />
+      itsbillw.eu is my personal website, built and hosted on a Raspberry Pi
+      running DietPi OS. It serves as a hub for my projects, experiments with
+      FOSS (Free and Open Source Software), and a playground for learning and
+      sharing ideas.
     </p>
+
     <p>
-      <strong>What’s the project about?</strong><br />The website stems from
-      discovering Django while learning Python some years ago. After many
-      iterations, I eventually began to publish my sites using PythonAnywhere.
-      Primarily, I experimented with Django and Flask and played with various
-      frontends and databases.<br />This project is a culmination of several
-      interests - FOSS, Raspberry Pis (and other SBCs), and a desire to help
-      demystify data. This current incarnation is a Django website with MariaDB
-      database and Bootstrap helping out in the frontend all being controlled
-      through NGINX. It's running on a Raspberry Pi 4 (8GB RAM) with an Aegon
-      One M.2 SSD case providing 500GB storage and DietPi OS. Alongside the
-      website, I have NextCloud, MinIO, Plex and some other tools running.
-      Monitoring is with Netdata and some basic checks on Uptime Robot. I had
-      gathered all the equipment required for this project over the years and
-      estimate a maximum spend of around €250. Based on readings from a Tapo
-      smartplug, the whole home server setup has energy costs under €10 per year
-      (~€0.75/month).
+      <strong>What’s the project about?</strong><br />
+      This project brings together several interests: FOSS, Raspberry Pis (and
+      other SBCs), and a desire to demystify data. The site is a Django app with
+      a MariaDB database and Bootstrap on the frontend, behind NGINX. It runs on
+      a Raspberry Pi 4 (8GB RAM) with an Aegon One M.2 SSD case (500GB) and
+      DietPi OS. Alongside the website I run Nextcloud, Jellyfin, Plex, MinIO
+      and other self‑hosted tools. Monitoring is with Netdata and status checks
+      on Uptime Kuma. I gathered the equipment over the years and estimate a
+      maximum spend of around €250. From readings on a Tapo smart plug, the
+      whole home server uses under €10 of electricity per year (~€0.75/month).
     </p>
-    <p>
-      <strong>What’s the significance of the name ‘itsbillw’?</strong><br />Bill
-      is a nickname I&#39;ve had since my teenage years - an evolution of my
-      surname in a Dublin accent - and a long time ago I thought I was being
-      clever choosing <strong><em>itsbillw</em></strong> as my email address so
-      when people asked for my email, it might cause a bit of confusion. I can
-      safely safe it causes more frustration than confusion (&quot;no - it&#39;s
-      itsbillw&quot;, not just billw) but it has persisted and now most of my
-      social media handles also use itsbillw in some way.
-    </p>
-    <br />
   </div>
 </div>
 {% endblock %}

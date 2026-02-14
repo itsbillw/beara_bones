@@ -3,6 +3,7 @@ Data app views: football dashboard (shell, fragment, refresh).
 
 All routes are defined in data/urls.py. Use {% url 'data:data' %} etc. in templates.
 """
+
 from pathlib import Path
 
 from django.conf import settings
@@ -37,12 +38,14 @@ def _load_fixtures_for_dashboard():
     if parquet_path.exists():
         try:
             import pandas as pd
+
             df = pd.read_parquet(parquet_path)
             return df, None
         except Exception as e:
             return None, str(e)
     try:
         import duckdb
+
         db_path = _FOOTBALL_DATA_DIR / "football.duckdb"
         if db_path.exists():
             con = duckdb.connect(str(db_path), read_only=True)
@@ -74,7 +77,11 @@ def _build_dashboard_fragment():
         df["fixture_date"] = df["date"]
     if "fixture_date" in df.columns:
         df["fixture_date"] = pd.to_datetime(df["fixture_date"], errors="coerce")
-    if "result" not in df.columns and "goals_home" in df.columns and "goals_away" in df.columns:
+    if (
+        "result" not in df.columns
+        and "goals_home" in df.columns
+        and "goals_away" in df.columns
+    ):
         h, a = df["goals_home"], df["goals_away"]
         df["result"] = "D"
         df.loc[h > a, "result"] = "H"
@@ -82,11 +89,20 @@ def _build_dashboard_fragment():
 
     charts = []
     standings = []
-    need = ["fixture_date", "home_team_name", "away_team_name", "goals_home", "goals_away", "result"]
+    need = [
+        "fixture_date",
+        "home_team_name",
+        "away_team_name",
+        "goals_home",
+        "goals_away",
+        "result",
+    ]
     if not all(c in df.columns for c in need):
         return {"charts": [], "standings": [], "error": None}
 
-    df_complete = df.dropna(subset=["result", "goals_home", "goals_away"]).sort_values("fixture_date")
+    df_complete = df.dropna(subset=["result", "goals_home", "goals_away"]).sort_values(
+        "fixture_date",
+    )
     rows = []
     for _, r in df_complete.iterrows():
         date = r["fixture_date"]
@@ -98,30 +114,70 @@ def _build_dashboard_fragment():
         res_h = "W" if res == "H" else ("D" if res == "D" else "L")
         res_a = "W" if res == "A" else ("D" if res == "D" else "L")
         score_str = f"{int(gh)}-{int(ga)}"
-        rows.append({"team": h, "date": date, "opponent": a, "venue": "Home", "result_letter": res_h, "score_display": score_str, "gf": int(gh), "ga": int(ga), "pts": pts_h})
-        rows.append({"team": a, "date": date, "opponent": h, "venue": "Away", "result_letter": res_a, "score_display": score_str, "gf": int(ga), "ga": int(gh), "pts": pts_a})
+        rows.append(
+            {
+                "team": h,
+                "date": date,
+                "opponent": a,
+                "venue": "Home",
+                "result_letter": res_h,
+                "score_display": score_str,
+                "gf": int(gh),
+                "ga": int(ga),
+                "pts": pts_h,
+            },
+        )
+        rows.append(
+            {
+                "team": a,
+                "date": date,
+                "opponent": h,
+                "venue": "Away",
+                "result_letter": res_a,
+                "score_display": score_str,
+                "gf": int(ga),
+                "ga": int(gh),
+                "pts": pts_a,
+            },
+        )
 
     team_games = pd.DataFrame(rows)
     team_games["cumulative_pts"] = team_games.groupby("team")["pts"].cumsum()
     team_games["hover"] = (
-        "<b>" + team_games["team"] + "</b><br>"
-        + team_games["date"].dt.strftime("%d %b %Y") + "<br>"
-        + team_games["venue"] + " vs " + team_games["opponent"] + ": "
-        + team_games["score_display"] + " (" + team_games["result_letter"] + ")<br>"
-        + "Points: " + team_games["cumulative_pts"].astype(str)
+        "<b>"
+        + team_games["team"]
+        + "</b><br>"
+        + team_games["date"].dt.strftime("%d %b %Y")
+        + "<br>"
+        + team_games["venue"]
+        + " vs "
+        + team_games["opponent"]
+        + ": "
+        + team_games["score_display"]
+        + " ("
+        + team_games["result_letter"]
+        + ")<br>"
+        + "Points: "
+        + team_games["cumulative_pts"].astype(str)
     )
 
-    agg = team_games.groupby("team").agg(
-        P=("pts", "count"),
-        W=("pts", lambda s: (s == 3).sum()),
-        D=("pts", lambda s: (s == 1).sum()),
-        L=("pts", lambda s: (s == 0).sum()),
-        GF=("gf", "sum"),
-        GA=("ga", "sum"),
-        Pts=("pts", "sum"),
-    ).reset_index()
+    agg = (
+        team_games.groupby("team")
+        .agg(
+            P=("pts", "count"),
+            W=("pts", lambda s: (s == 3).sum()),
+            D=("pts", lambda s: (s == 1).sum()),
+            L=("pts", lambda s: (s == 0).sum()),
+            GF=("gf", "sum"),
+            GA=("ga", "sum"),
+            Pts=("pts", "sum"),
+        )
+        .reset_index()
+    )
     agg["GD"] = agg["GF"] - agg["GA"]
-    agg = agg.sort_values(["Pts", "GD"], ascending=[False, False]).reset_index(drop=True)
+    agg = agg.sort_values(["Pts", "GD"], ascending=[False, False]).reset_index(
+        drop=True,
+    )
     team_order = agg["team"].tolist()
     agg["GD"] = agg["GD"].apply(lambda x: f"+{x}" if x > 0 else str(x))
     standings = agg.to_dict("records")
@@ -137,7 +193,7 @@ def _build_dashboard_fragment():
                 mode="lines+markers",
                 hovertemplate="%{customdata}<extra></extra>",
                 customdata=t["hover"],
-            )
+            ),
         )
     fig_main.update_layout(
         title="",
@@ -178,17 +234,29 @@ def data_fragment(request):
         if cached is not None:
             html = render_to_string(
                 "data/data_fragment.html",
-                {"charts": cached.get("charts", []), "standings": cached.get("standings", []), "error": None},
+                {
+                    "charts": cached.get("charts", []),
+                    "standings": cached.get("standings", []),
+                    "error": None,
+                },
             )
             return HttpResponse(html, content_type="text/html")
 
     frag = _build_dashboard_fragment()
     if cache_key and not frag.get("error"):
-        cache.set(cache_key, {"charts": frag["charts"], "standings": frag["standings"]}, timeout=timeout)
+        cache.set(
+            cache_key,
+            {"charts": frag["charts"], "standings": frag["standings"]},
+            timeout=timeout,
+        )
 
     html = render_to_string(
         "data/data_fragment.html",
-        {"charts": frag.get("charts", []), "standings": frag.get("standings", []), "error": frag.get("error")},
+        {
+            "charts": frag.get("charts", []),
+            "standings": frag.get("standings", []),
+            "error": frag.get("error"),
+        },
     )
     return HttpResponse(html, content_type="text/html")
 
@@ -204,8 +272,9 @@ def data_refresh(request):
             {"status": "already_running", "message": "Pipeline already in progress"},
             status=409,
         )
-    import subprocess
-    subprocess.Popen(
+    import subprocess  # nosec B404
+
+    subprocess.Popen(  # nosec B603 B607
         ["uv", "run", "python", "-m", "football.pipeline"],
         cwd=str(_REPO_ROOT),
         start_new_session=True,

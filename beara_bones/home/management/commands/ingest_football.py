@@ -2,6 +2,7 @@
 Django management command: ingest football fixtures from RapidAPI to MinIO.
 Usage: python manage.py ingest_football [--league 39] [--season 2025]
 """
+
 import sys
 
 from django.core.management.base import BaseCommand
@@ -12,15 +13,25 @@ _repo_root = __import__("pathlib").Path(__file__).resolve().parents[4]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-from football.ingest import run_ingest
+from football.ingest import run_ingest  # noqa: E402 (import after path setup)
 
 
 class Command(BaseCommand):
     help = "Fetch fixtures from RapidAPI and store raw JSON in MinIO"
 
     def add_arguments(self, parser):
-        parser.add_argument("--league", type=int, default=39, help="League ID (default: 39)")
-        parser.add_argument("--season", type=int, default=2025, help="Season year (default: 2025)")
+        parser.add_argument(
+            "--league",
+            type=int,
+            default=39,
+            help="League ID (default: 39)",
+        )
+        parser.add_argument(
+            "--season",
+            type=int,
+            default=2025,
+            help="Season year (default: 2025)",
+        )
 
     def handle(self, *args, **options):
         league = options["league"]

@@ -1,4 +1,5 @@
 """Tests for data app: views (page, fragment, refresh), dashboard logic, and fragment content."""
+
 import unittest
 from unittest.mock import patch
 
@@ -7,21 +8,23 @@ from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
-from data.views import _build_dashboard_fragment, data_page
+from data.views import _build_dashboard_fragment
 
 
 def _minimal_fixtures_df():
     """One fixture: TeamA 2-1 TeamB (home win)."""
-    return pd.DataFrame([
-        {
-            "fixture_date": pd.Timestamp("2025-01-15"),
-            "home_team_name": "TeamA",
-            "away_team_name": "TeamB",
-            "goals_home": 2,
-            "goals_away": 1,
-            "result": "H",
-        },
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "fixture_date": pd.Timestamp("2025-01-15"),
+                "home_team_name": "TeamA",
+                "away_team_name": "TeamB",
+                "goals_home": 2,
+                "goals_away": 1,
+                "result": "H",
+            },
+        ],
+    )
 
 
 class DataViewTests(TestCase):
@@ -47,10 +50,16 @@ class DataViewTests(TestCase):
         html = response.content.decode()
         has_table = "League table" in html
         has_error_help = "make pipeline" in html or "alert" in html
-        self.assertTrue(has_table or has_error_help, msg="Fragment should show table or error/help")
+        self.assertTrue(
+            has_table or has_error_help,
+            msg="Fragment should show table or error/help",
+        )
 
     @patch("data.views._load_fixtures_for_dashboard")
-    def test_data_fragment_with_mock_data_returns_chart_and_standings(self, mock_load: unittest.mock.Mock) -> None:
+    def test_data_fragment_with_mock_data_returns_chart_and_standings(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
         """When loader returns minimal data, fragment HTML contains plotly and standings."""
         cache.clear()
         mock_load.return_value = (_minimal_fixtures_df(), None)
@@ -60,7 +69,11 @@ class DataViewTests(TestCase):
         self.assertIn("League table", html)
         self.assertIn("TeamA", html)
         self.assertIn("TeamB", html)
-        self.assertIn("plotly", html.lower(), msg="Chart should render Plotly div/script")
+        self.assertIn(
+            "plotly",
+            html.lower(),
+            msg="Chart should render Plotly div/script",
+        )
 
     @patch("subprocess.Popen")
     def test_data_refresh_post_allowed(self, mock_popen: unittest.mock.Mock) -> None:
@@ -77,7 +90,10 @@ class DashboardFragmentUnitTests(TestCase):
     """Unit tests for _build_dashboard_fragment with mocked data loading."""
 
     @patch("data.views._load_fixtures_for_dashboard")
-    def test_build_fragment_no_data_returns_error(self, mock_load: unittest.mock.Mock) -> None:
+    def test_build_fragment_no_data_returns_error(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
         mock_load.return_value = (None, "No fixtures data.")
         out = _build_dashboard_fragment()
         self.assertEqual(out["error"], "No fixtures data.")
@@ -85,7 +101,10 @@ class DashboardFragmentUnitTests(TestCase):
         self.assertEqual(out["standings"], [])
 
     @patch("data.views._load_fixtures_for_dashboard")
-    def test_build_fragment_empty_dataframe_returns_error(self, mock_load: unittest.mock.Mock) -> None:
+    def test_build_fragment_empty_dataframe_returns_error(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
         mock_load.return_value = (pd.DataFrame(), None)
         out = _build_dashboard_fragment()
         self.assertIn("error", out)
@@ -93,7 +112,10 @@ class DashboardFragmentUnitTests(TestCase):
         self.assertEqual(out["standings"], [])
 
     @patch("data.views._load_fixtures_for_dashboard")
-    def test_build_fragment_with_minimal_data_returns_chart_and_standings(self, mock_load: unittest.mock.Mock) -> None:
+    def test_build_fragment_with_minimal_data_returns_chart_and_standings(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
         mock_load.return_value = (_minimal_fixtures_df(), None)
         out = _build_dashboard_fragment()
         self.assertIsNone(out.get("error"))

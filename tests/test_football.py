@@ -3,8 +3,8 @@ Unit tests for the football package (ingest, transform, build logic).
 
 Run from repo root: uv run pytest tests/test_football.py -v
 """
+
 import pandas as pd
-import pytest
 
 from football.transform import clean, flatten_fixtures
 
@@ -25,12 +25,19 @@ class TestFlattenFixtures:
         raw = {
             "response": [
                 {
-                    "fixture": {"id": 1, "date": "2025-01-15T15:00:00+00:00", "timestamp": 1736953200},
+                    "fixture": {
+                        "id": 1,
+                        "date": "2025-01-15T15:00:00+00:00",
+                        "timestamp": 1736953200,
+                    },
                     "league": {"id": 39, "name": "Premier League", "season": 2025},
-                    "teams": {"home": {"id": 1, "name": "TeamA"}, "away": {"id": 2, "name": "TeamB"}},
+                    "teams": {
+                        "home": {"id": 1, "name": "TeamA"},
+                        "away": {"id": 2, "name": "TeamB"},
+                    },
                     "goals": {"home": 2, "away": 1},
-                }
-            ]
+                },
+            ],
         }
         df = flatten_fixtures(raw)
         assert len(df) == 1
@@ -41,11 +48,18 @@ class TestFlattenFixtures:
         assert df["goals_away"].iloc[0] == 1
 
     def test_missing_optional_fields(self) -> None:
-        raw = {"response": [{"fixture": {"id": 2}, "league": {}, "teams": {}, "goals": {}}]}
+        raw = {
+            "response": [
+                {"fixture": {"id": 2}, "league": {}, "teams": {}, "goals": {}},
+            ],
+        }
         df = flatten_fixtures(raw)
         assert len(df) == 1
         assert df["fixture_id"].iloc[0] == 2
-        assert pd.isna(df["home_team_name"].iloc[0]) or df["home_team_name"].iloc[0] is None
+        assert (
+            pd.isna(df["home_team_name"].iloc[0])
+            or df["home_team_name"].iloc[0] is None
+        )
 
 
 class TestClean:

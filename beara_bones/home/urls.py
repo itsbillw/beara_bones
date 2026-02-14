@@ -4,6 +4,7 @@ URL routing for the home app.
 Included from project urls.py at '' so these paths are at the site root.
 Use {% url 'home:index' %}, etc., in templates.
 """
+
 from django.urls import path
 
 from .views import index, about_me, poetry

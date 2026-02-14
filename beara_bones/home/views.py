@@ -3,6 +3,7 @@ Home app views: landing, about, and static pages.
 
 All routes are defined in home/urls.py. Use {% url 'home:index' %} etc. in templates.
 """
+
 from django.template.response import TemplateResponse
 
 

@@ -3,6 +3,7 @@ WSGI entry point for production (e.g. gunicorn).
 
 Exposes `application` for the WSGI server. Uses production settings by default.
 """
+
 import os
 
 from django.core.wsgi import get_wsgi_application

@@ -2,6 +2,7 @@
 Create stg_fixtures and fct_fixtures views in football.duckdb.
 Used when dbt build segfaults (e.g. dbt-duckdb + Python 3.13) so the pipeline still completes.
 """
+
 import logging
 from pathlib import Path
 
@@ -13,9 +14,13 @@ logger = logging.getLogger(__name__)
 
 def run() -> None:
     if not DB_PATH.exists():
-        logger.warning("DuckDB file not found: %s. Run transform and load_csv_to_duckdb first.", DB_PATH)
+        logger.warning(
+            "DuckDB file not found: %s. Run transform and load_csv_to_duckdb first.",
+            DB_PATH,
+        )
         return
     import duckdb
+
     con = duckdb.connect(str(DB_PATH))
     con.execute("""
         CREATE OR REPLACE VIEW main.stg_fixtures AS

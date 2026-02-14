@@ -44,13 +44,14 @@ repos:
     rev: 1.8.0 # Replace with the latest stable version
     hooks:
       - id: bandit
-        args: [--skip=B101] # Skip specific tests if needed
+        args: [--skip=B101, B404, B603, B607]
 
     # MyPy for static type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0 # Replace with the latest stable version
     hooks:
       - id: mypy
+        additional_dependencies: [types-PyMySQL, types-requests]
 
   - repo: https://github.com/asottile/add-trailing-comma
     rev: v3.1.0

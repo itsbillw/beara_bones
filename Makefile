@@ -29,6 +29,18 @@ test-all: test test-football  ## Run Django and football tests
 coverage:  ## Run Django tests with coverage report
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data && uv run coverage report
 
+# --- Linting & pre-commit ---
+.PHONY: install-hooks
+install-hooks:  ## Install pre-commit git hooks (run once per clone)
+	uv run pre-commit install
+
+.PHONY: lint
+lint:  ## Run all pre-commit checks (ruff, mypy, bandit, etc.)
+	uv run pre-commit run --all-files
+
+.PHONY: check
+check: lint test-all  ## Run lint + all tests (use before push)
+
 # Football pipeline (run from repo root; requires uv and optional deps: uv pip install -e ".[data]")
 .PHONY: ingest
 ingest:  ## Phase 1: Fetch fixtures from RapidAPI → MinIO
