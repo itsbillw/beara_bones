@@ -1,0 +1,2 @@
+# Django templates: contain {% %} and {{ }}; Prettier can break tag parsing
+beara_bones/**/templates/

@@ -1,8 +1,12 @@
-{% extends "home/base.html" %} {% load static %} {% block header %}
+{% extends "home/base.html" %}
+{% load static %}
+{% load plotly_dash %}
+
+{% block header %}
 <title>itsbillw - Data</title>
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-{% endblock %} {% block content %}
-<!-- Data page navbar -->
+{% endblock %}
+
+{% block content %}
 <nav class="navbar navbar-expand data-navbar py-2">
   <div class="data-navbar-inner">
     <span class="navbar-brand text-light mb-0 me-4">Football data</span>
@@ -17,105 +21,11 @@
     </button>
     <span id="refresh-status" class="me-3 small text-light"></span>
     {% endif %}
-    <div class="me-3">
-      <label for="league-select" class="visually-hidden">League</label>
-      <select
-        id="league-select"
-        class="form-select form-select-sm form-select-dark d-inline-block w-auto"
-      >
-        {% for league in leagues %}
-        <option
-          value="{{ league.id }}"
-          {%
-          if
-          league.id=""
-          ="current_league"
-          %}selected{%
-          endif
-          %}
-        >
-          {{ league.name }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label for="season-select" class="visually-hidden">Season</label>
-      <select
-        id="season-select"
-        class="form-select form-select-sm form-select-dark d-inline-block w-auto"
-      >
-        {% for season in seasons %}
-        <option
-          value="{{ season.api_year }}"
-          {%
-          if
-          season.api_year=""
-          ="current_season"
-          %}selected{%
-          endif
-          %}
-        >
-          {{ season.display }}
-        </option>
-        {% endfor %}
-      </select>
-    </div>
   </div>
 </nav>
 
 <div class="container main-container data-page-content">
-  <div id="dashboard-content">
-    {% if loading %}
-    <div class="text-center py-5 text-light" aria-live="polite">
-      <div class="spinner-border mb-3" role="status">
-        <span class="visually-hidden">Loading…</span>
-      </div>
-      <p class="mb-0">Loading chart and table…</p>
-    </div>
-    <script>
-      (function () {
-        var content = document.getElementById("dashboard-content");
-        var leagueSelect = document.getElementById("league-select");
-        var seasonSelect = document.getElementById("season-select");
-        var fragmentUrl = "{% url 'data:data_fragment' %}";
-        function loadFragment(league, season) {
-          var url =
-            fragmentUrl +
-            "?league=" +
-            encodeURIComponent(league) +
-            "&season=" +
-            encodeURIComponent(season);
-          content.innerHTML =
-            '<div class="text-center py-5 text-light"><div class="spinner-border mb-3"></div><p class="mb-0">Loading…</p></div>';
-          fetch(url)
-            .then(function (r) {
-              return r.text();
-            })
-            .then(function (html) {
-              content.innerHTML = html;
-              content.querySelectorAll("script").forEach(function (oldScript) {
-                var script = document.createElement("script");
-                if (oldScript.src) script.src = oldScript.src;
-                else script.textContent = oldScript.textContent;
-                oldScript.parentNode.replaceChild(script, oldScript);
-              });
-            })
-            .catch(function () {
-              content.innerHTML =
-                '<div class="alert alert-warning">Failed to load data.</div>';
-            });
-        }
-        function onLeagueOrSeasonChange() {
-          loadFragment(leagueSelect.value, seasonSelect.value);
-        }
-        leagueSelect.addEventListener("change", onLeagueOrSeasonChange);
-        seasonSelect.addEventListener("change", onLeagueOrSeasonChange);
-        loadFragment("{{ current_league }}", "{{ current_season }}");
-      })();
-    </script>
-    {% endif %}
-  </div>
+  {% plotly_app name="FootballDashboard" ratio=1 %}
 </div>
 
 {% if user.is_staff %}
@@ -152,4 +62,5 @@
     });
   })();
 </script>
-{% endif %} {% endblock %}
+{% endif %}
+{% endblock %}

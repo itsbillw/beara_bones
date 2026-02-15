@@ -40,10 +40,6 @@ class Command(BaseCommand):
         )
 
         raw_bucket = os.environ.get("MINIO_BUCKET", "football") or "football"
-        processed_bucket = os.environ.get(
-            "MINIO_BUCKET_PROCESSED",
-            "football-processed",
-        )
 
         LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
         if LOCK_FILE.exists():
@@ -70,7 +66,7 @@ class Command(BaseCommand):
                     df = load_processed_parquet_from_minio(
                         lid,
                         say,
-                        bucket=processed_bucket,
+                        bucket=raw_bucket,
                     )
                     if df is not None and not df.empty:
                         self.stdout.write(
@@ -96,7 +92,7 @@ class Command(BaseCommand):
                         write_files=False,
                     )
                     load_fixtures_dataframe(df, lid, say)
-                    upload_processed_parquet(df, lid, say, bucket=processed_bucket)
+                    upload_processed_parquet(df, lid, say, bucket=raw_bucket)
             self.stdout.write(self.style.SUCCESS("Rebuild completed."))
         finally:
             if LOCK_FILE.exists():

@@ -8,8 +8,11 @@ readme = "README.md"
 dependencies = [
     "certbot-nginx>=2.11.0",
     "certbot>=2.11.0",
+    "dash>=2.14.0",
+    "dash-ag-grid>=32.0.0",
     "dbt-duckdb>=1.9.0",
     # dbt-mysql for MariaDB (optional; install separately if using: uv add dbt-mysql)
+    "django-plotly-dash>=2.1.0",
     "django>=5.1.2",
     "duckdb>=1.0.0",
     "gunicorn>=23.0.0",

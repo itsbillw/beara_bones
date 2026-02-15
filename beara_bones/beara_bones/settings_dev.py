@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "home",
     "data",
 ]
@@ -41,6 +42,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_plotly_dash.middleware.BaseMiddleware",
 ]
 
 ROOT_URLCONF = "beara_bones.urls"
@@ -104,7 +106,13 @@ STATIC_ROOT = BASE_DIR / "static"
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Use CDN for Dash assets (plotly, dash_ag_grid, etc.). Avoids 404s from local static.
+PLOTLY_DASH = {"serve_locally": False}
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Allow embedding Dash apps in same-origin frames
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # --- HTTPS disabled for local dev ---
 SECURE_SSL_REDIRECT = False

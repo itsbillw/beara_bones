@@ -4,13 +4,12 @@ import unittest
 from unittest.mock import patch
 
 import pandas as pd
-from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
+from data.dashboard_utils import build_standings_and_figure
 from data.loading import load_fixtures_dataframe
 from data.models import Fixture, League, Season
-from data.views import _build_dashboard_fragment
 
 
 def _minimal_fixtures_df():
@@ -36,66 +35,12 @@ class DataViewTests(TestCase):
         response = self.client.get(reverse("data:data"))
         self.assertEqual(response.status_code, 200)
 
-    def test_data_page_context(self) -> None:
-        """Context has leagues, seasons, and default selection (from DB seed)."""
+    def test_data_page_renders_dash_embed(self) -> None:
+        """Data page returns 200 and contains the Dash app embed (FootballDashboard)."""
         response = self.client.get(reverse("data:data"))
-        self.assertTrue(response.context["loading"])
-        self.assertIn("leagues", response.context)
-        self.assertIn("seasons", response.context)
-        self.assertIn("current_league", response.context)
-        self.assertIn("current_season", response.context)
-        self.assertIn("current_league_name", response.context)
-        self.assertIn("current_season_display", response.context)
-        # With seed migration, first league is Premier League (39), first season 2025
-        if response.context["leagues"]:
-            self.assertEqual(
-                response.context["current_league_name"],
-                response.context["leagues"][0].name,
-            )
-        if response.context["seasons"]:
-            self.assertEqual(
-                response.context["current_season"],
-                response.context["seasons"][0].api_year,
-            )
-
-    def test_data_fragment_returns_200(self) -> None:
-        response = self.client.get(reverse("data:data_fragment"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_data_fragment_returns_html_content(self) -> None:
-        """Fragment returns meaningful HTML: either league table or error/help message."""
-        response = self.client.get(reverse("data:data_fragment"))
-        html = response.content.decode()
-        has_table = "League table" in html
-        has_error_help = (
-            "Admin" in html or "alert" in html or "pipeline" in html.lower()
-        )
-        self.assertTrue(
-            has_table or has_error_help,
-            msg="Fragment should show table or error/help",
-        )
-
-    @patch("data.views._load_fixtures_from_db")
-    def test_data_fragment_with_mock_data_returns_chart_and_standings(
-        self,
-        mock_load: unittest.mock.Mock,
-    ) -> None:
-        """When loader returns minimal data, fragment HTML contains plotly and standings."""
-        cache.clear()
-        mock_load.return_value = (_minimal_fixtures_df(), None)
-        response = self.client.get(
-            reverse("data:data_fragment") + "?league=39&season=2025",
-        )
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn("League table", html)
-        self.assertIn("TeamA", html)
-        self.assertIn("TeamB", html)
-        self.assertIn(
-            "plotly",
-            html.lower(),
-            msg="Chart should render Plotly div/script",
-        )
+        self.assertIn("FootballDashboard", html, msg="Page should embed the Dash app")
 
     def test_data_refresh_post_returns_403_when_not_staff(self) -> None:
         """POST to refresh when not staff returns 403."""
@@ -121,50 +66,36 @@ class DataViewTests(TestCase):
         self.assertEqual(response.status_code, 405)
 
 
-class DashboardFragmentUnitTests(TestCase):
-    """Unit tests for _build_dashboard_fragment with mocked data loading."""
+class DashboardUtilsTests(TestCase):
+    """Unit tests for build_standings_and_figure (shared dashboard logic)."""
 
-    @patch("data.views._load_fixtures_from_db")
-    def test_build_fragment_no_data_returns_error(
-        self,
-        mock_load: unittest.mock.Mock,
-    ) -> None:
-        mock_load.return_value = (None, "No fixtures data.")
-        out = _build_dashboard_fragment(39, 2025)
-        self.assertEqual(out["error"], "No fixtures data.")
-        self.assertEqual(out["charts"], [])
-        self.assertEqual(out["standings"], [])
+    def test_build_standings_no_data_returns_error(self) -> None:
+        standings, fig, err = build_standings_and_figure(None)
+        self.assertEqual(err, "No data")
+        self.assertEqual(standings, [])
+        self.assertIsNone(fig)
 
-    @patch("data.views._load_fixtures_from_db")
-    def test_build_fragment_empty_dataframe_returns_error(
-        self,
-        mock_load: unittest.mock.Mock,
-    ) -> None:
-        mock_load.return_value = (pd.DataFrame(), None)
-        out = _build_dashboard_fragment(39, 2025)
-        self.assertIn("error", out)
-        self.assertEqual(out["charts"], [])
-        self.assertEqual(out["standings"], [])
+    def test_build_standings_empty_dataframe_returns_error(self) -> None:
+        standings, fig, err = build_standings_and_figure(pd.DataFrame())
+        self.assertEqual(err, "No data")
+        self.assertEqual(standings, [])
+        self.assertIsNone(fig)
 
-    @patch("data.views._load_fixtures_from_db")
-    def test_build_fragment_with_minimal_data_returns_chart_and_standings(
+    def test_build_standings_with_minimal_data_returns_standings_and_figure(
         self,
-        mock_load: unittest.mock.Mock,
     ) -> None:
-        mock_load.return_value = (_minimal_fixtures_df(), None)
-        out = _build_dashboard_fragment(39, 2025)
-        self.assertIsNone(out.get("error"))
-        self.assertEqual(len(out["charts"]), 1)
-        self.assertIn("plotly", out["charts"][0].lower())
-        self.assertEqual(len(out["standings"]), 2)
-        teams = {r["team"] for r in out["standings"]}
+        standings, fig, err = build_standings_and_figure(_minimal_fixtures_df())
+        self.assertIsNone(err)
+        self.assertEqual(len(standings), 2)
+        teams = {r["team"] for r in standings}
         self.assertEqual(teams, {"TeamA", "TeamB"})
-        team_a = next(r for r in out["standings"] if r["team"] == "TeamA")
+        team_a = next(r for r in standings if r["team"] == "TeamA")
         self.assertEqual(team_a["Pts"], 3)
         self.assertEqual(team_a["W"], 1)
-        team_b = next(r for r in out["standings"] if r["team"] == "TeamB")
+        team_b = next(r for r in standings if r["team"] == "TeamB")
         self.assertEqual(team_b["Pts"], 0)
         self.assertEqual(team_b["L"], 1)
+        self.assertIsNotNone(fig)
 
 
 class LoadingTests(TestCase):

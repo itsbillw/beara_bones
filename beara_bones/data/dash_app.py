@@ -1,0 +1,197 @@
+"""
+Plotly Dash app: Football dashboard with points chart and AG Grid league table.
+Registered as DjangoDash so it can be embedded via {% plotly_app name="FootballDashboard" %}.
+"""
+
+import dash_ag_grid as dag
+from dash import Input, Output, dcc, html
+from django_plotly_dash import DjangoDash
+
+from .dashboard_utils import build_standings_and_figure
+from .views import _load_fixtures_from_db
+
+# Load Plotly.js from CDN so dcc.Graph works when serve_locally=False (avoids 404 for /static/.../plotly.min.js)
+PLOTLY_JS_CDN = "https://cdn.plot.ly/plotly-2.27.0.min.js"
+app = DjangoDash(
+    "FootballDashboard",
+    add_bootstrap_links=False,
+    external_scripts=[{"src": PLOTLY_JS_CDN}],
+)
+
+# Component IDs
+ID_LEAGUE_DROPDOWN = "football-dash-league"
+ID_SEASON_DROPDOWN = "football-dash-season"
+ID_GRAPH = "football-dash-graph"
+ID_GRID = "football-dash-grid"
+ID_ERROR = "football-dash-error"
+
+STANDINGS_COLUMN_DEFS = [
+    {"field": "rank", "headerName": "#", "width": 60},
+    {"field": "team", "headerName": "Team", "flex": 1},
+    {"field": "P", "headerName": "P", "width": 50},
+    {"field": "W", "headerName": "W", "width": 50},
+    {"field": "D", "headerName": "D", "width": 50},
+    {"field": "L", "headerName": "L", "width": 50},
+    {"field": "GF", "headerName": "GF", "width": 50},
+    {"field": "GA", "headerName": "GA", "width": 50},
+    {"field": "GD", "headerName": "GD", "width": 55},
+    {"field": "Pts", "headerName": "Pts", "width": 55},
+]
+
+
+def _options_from_model(model_class, value_attr, label_attr):
+    """Build Dash dropdown options from a Django model queryset."""
+    try:
+        qs = model_class.objects.all()
+        return [
+            {"label": getattr(o, label_attr), "value": getattr(o, value_attr)}
+            for o in qs
+        ]
+    except Exception:
+        return []
+
+
+def layout_with_dropdowns():
+    """Build layout with dropdowns and placeholder graph/grid. Options filled in callback."""
+    return html.Div(
+        [
+            dcc.Store(id="football-dash-init", data=0),
+            html.Div(
+                [
+                    html.Label(
+                        "League",
+                        htmlFor=ID_LEAGUE_DROPDOWN,
+                        style={"marginRight": "8px"},
+                    ),
+                    dcc.Dropdown(
+                        id=ID_LEAGUE_DROPDOWN,
+                        options=[],
+                        value=None,
+                        clearable=False,
+                        style={"minWidth": "200px", "display": "inline-block"},
+                    ),
+                    html.Label(
+                        "Season",
+                        htmlFor=ID_SEASON_DROPDOWN,
+                        style={"marginLeft": "16px", "marginRight": "8px"},
+                    ),
+                    dcc.Dropdown(
+                        id=ID_SEASON_DROPDOWN,
+                        options=[],
+                        value=None,
+                        clearable=False,
+                        style={"minWidth": "120px", "display": "inline-block"},
+                    ),
+                ],
+                style={"marginBottom": "16px"},
+            ),
+            html.Div(id=ID_ERROR, style={"color": "#856404", "marginBottom": "8px"}),
+            dcc.Graph(
+                id=ID_GRAPH,
+                figure={"layout": {"height": 620}},
+                style={"marginBottom": "24px"},
+            ),
+            html.Div(
+                [
+                    html.H3("League table", style={"marginBottom": "8px"}),
+                    dag.AgGrid(
+                        id=ID_GRID,
+                        rowData=[],
+                        columnDefs=STANDINGS_COLUMN_DEFS,
+                        defaultColDef={"sortable": True, "filter": True},
+                        columnSize="sizeToFit",
+                        dashGridOptions={"animateRows": True},
+                        style={"height": "480px", "width": "100%"},
+                    ),
+                ],
+            ),
+        ],
+        style={"padding": "16px"},
+    )
+
+
+app.layout = layout_with_dropdowns()
+
+
+@app.callback(
+    [
+        Output(ID_LEAGUE_DROPDOWN, "options"),
+        Output(ID_LEAGUE_DROPDOWN, "value"),
+        Output(ID_SEASON_DROPDOWN, "options"),
+        Output(ID_SEASON_DROPDOWN, "value"),
+    ],
+    Input("football-dash-init", "data"),
+    prevent_initial_call=False,
+)
+def _set_dropdown_options(_data):
+    """Populate league/season dropdowns from DB and set initial values."""
+    from .models import League, Season
+
+    league_opts = _options_from_model(League, "id", "name")
+    season_opts = _options_from_model(Season, "api_year", "display")
+    first_league = league_opts[0]["value"] if league_opts else None
+    first_season = season_opts[0]["value"] if season_opts else None
+    return league_opts, first_league, season_opts, first_season
+
+
+def _empty_figure(message: str):
+    """Return a figure dict safe for dcc.Graph with a message (no data)."""
+    return {
+        "data": [],
+        "layout": {
+            "height": 620,
+            "xaxis": {"visible": False},
+            "yaxis": {"visible": False},
+            "annotations": [
+                {
+                    "text": message,
+                    "showarrow": False,
+                    "xref": "paper",
+                    "yref": "paper",
+                    "x": 0.5,
+                    "y": 0.5,
+                },
+            ],
+        },
+    }
+
+
+def _figure_to_json_safe_dict(fig):
+    """Convert Plotly figure to a dict that serializes to JSON (fixes numpy/datetime types)."""
+    import plotly.io as pio
+
+    return pio.from_json(pio.to_json(fig))
+
+
+@app.callback(
+    [
+        Output(ID_GRAPH, "figure"),
+        Output(ID_GRID, "rowData"),
+        Output(ID_ERROR, "children"),
+    ],
+    [
+        Input(ID_LEAGUE_DROPDOWN, "value"),
+        Input(ID_SEASON_DROPDOWN, "value"),
+    ],
+    prevent_initial_call=False,
+)
+def _update_chart_and_grid(league_id, season):
+    """Load fixtures for league/season and update points chart and standings grid."""
+    if league_id is None or season is None:
+        return _empty_figure("Select league and season"), [], ""
+    df, err = _load_fixtures_from_db(league_id, season)
+    if err or df is None or df.empty:
+        return (
+            _empty_figure(err or "No data"),
+            [],
+            err or "No fixtures for this league/season. Run the pipeline from Admin.",
+        )
+    standings, fig, err = build_standings_and_figure(df)
+    if err:
+        return _empty_figure(err), [], err
+    # Add rank (position) for AG Grid
+    for i, row in enumerate(standings, start=1):
+        row["rank"] = i
+    # Use JSON round-trip so the figure is safe for the frontend (no numpy/datetime64)
+    figure = _figure_to_json_safe_dict(fig)
+    return figure, standings, ""
