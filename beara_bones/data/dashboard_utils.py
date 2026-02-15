@@ -23,7 +23,7 @@ def build_standings_and_figure(
 
     Returns:
         tuple: (standings: list[dict], figure, error: str | None).
-        standings have keys: team, P, W, D, L, GF, GA, GD, Pts (GD as string e.g. "+3").
+        standings have keys: team, P, W, D, L, GF, GA, GD, Pts, form. GD is numeric for sorting.
         figure is a plotly.go.Figure or None if data insufficient.
         error is a message string or None.
     """
@@ -149,7 +149,13 @@ def build_standings_and_figure(
         drop=True,
     )
     team_order = agg["team"].tolist()
-    agg["GD"] = agg["GD"].apply(lambda x: f"+{x}" if x > 0 else str(x))
+    # Keep GD numeric so AG Grid sorts correctly (no +/- formatting)
+    last_6 = (
+        team_games.groupby("team", group_keys=False)
+        .apply(lambda g: "".join(g.tail(6)["result_letter"].tolist()))
+        .to_dict()
+    )
+    agg["form"] = agg["team"].map(last_6).fillna("").astype(str)
     # Crest path and markdown for grid (crest + team name)
     if "team_id" in agg.columns:
         agg["crest_path"] = agg["team_id"].apply(

@@ -106,6 +106,15 @@ STATIC_ROOT = BASE_DIR / "static"
 STATIC_ROOT.mkdir(parents=True, exist_ok=True)
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Dash app assets (e.g. data/assets/dashAgGridComponentFunctions.js) for AG Grid form column
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "django_plotly_dash.finders.DashAssetFinder",
+    "django_plotly_dash.finders.DashComponentFinder",
+    "django_plotly_dash.finders.DashAppDirectoryFinder",
+]
+
 # Use CDN for Dash assets (plotly, dash_ag_grid, etc.). Avoids 404s from local static.
 PLOTLY_DASH = {"serve_locally": False}
 

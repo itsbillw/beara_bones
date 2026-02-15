@@ -14,10 +14,15 @@ from .views import _load_fixtures_from_db
 PLOTLY_JS_CDN = "https://cdn.plot.ly/plotly-2.27.0.min.js"
 # Crest images in grid scaled to row height (served from Django static)
 CREST_GRID_CSS = "/static/data/css/crest_grid.css"
+# Form column cell renderer (must load in iframe where the grid runs)
+FORM_RENDERER_JS = "/static/data/js/dashAgGridComponentFunctions.js"
 app = DjangoDash(
     "FootballDashboard",
     add_bootstrap_links=False,
-    external_scripts=[{"src": PLOTLY_JS_CDN}],
+    external_scripts=[
+        {"src": PLOTLY_JS_CDN},
+        {"src": FORM_RENDERER_JS},
+    ],
     external_stylesheets=[{"href": CREST_GRID_CSS, "rel": "stylesheet"}],
 )
 
@@ -33,22 +38,77 @@ ID_GRAPH = "football-dash-graph"
 ID_GRID = "football-dash-grid"
 ID_ERROR = "football-dash-error"
 
+# Min width so header text + filter icon fit; no maxWidth so columns can grow if needed
+NUM_COL_MIN_WIDTH = 90
 STANDINGS_COLUMN_DEFS = [
-    {"field": "rank", "headerName": "#", "width": 60},
+    {
+        "field": "rank",
+        "headerName": "#",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
     {
         "field": "team_display_md",
         "headerName": "Team",
         "flex": 1,
         "cellRenderer": "markdown",
     },
-    {"field": "P", "headerName": "P", "width": 50},
-    {"field": "W", "headerName": "W", "width": 50},
-    {"field": "D", "headerName": "D", "width": 50},
-    {"field": "L", "headerName": "L", "width": 50},
-    {"field": "GF", "headerName": "GF", "width": 50},
-    {"field": "GA", "headerName": "GA", "width": 50},
-    {"field": "GD", "headerName": "GD", "width": 55},
-    {"field": "Pts", "headerName": "Pts", "width": 55},
+    {
+        "field": "P",
+        "headerName": "P",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "W",
+        "headerName": "W",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "D",
+        "headerName": "D",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "L",
+        "headerName": "L",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "GF",
+        "headerName": "GF",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "GA",
+        "headerName": "GA",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "GD",
+        "headerName": "GD",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "Pts",
+        "headerName": "Pts",
+        "width": NUM_COL_MIN_WIDTH,
+        "minWidth": NUM_COL_MIN_WIDTH,
+    },
+    {
+        "field": "form",
+        "headerName": "Form",
+        "width": 130,
+        "minWidth": 130,
+        "cellRenderer": "FormCellRenderer",
+        "sortable": False,
+    },
 ]
 
 
