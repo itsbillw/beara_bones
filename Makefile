@@ -30,7 +30,7 @@ coverage:  ## Run all tests with combined coverage report
 	uv run coverage erase
 	(cd beara_bones && COVERAGE_FILE=$(CURDIR)/.coverage DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data)
 	COVERAGE_FILE=$(CURDIR)/.coverage uv run coverage run -a -m pytest tests/ -q
-	uv run coverage report --omit='*/migrations/*,*/tests.py,*/test_*.py,manage.py'
+	uv run coverage report --omit='*/migrations/*,*/tests.py,*/test_*.py,manage.py,beara_bones/beara_bones/settings.py,beara_bones/beara_bones/asgi.py,beara_bones/beara_bones/wsgi.py'
 
 # --- Linting & pre-commit ---
 .PHONY: install-hooks

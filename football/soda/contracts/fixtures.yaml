@@ -1,5 +1,5 @@
 # Soda 4 contract for fixtures table (DuckDB).
-# Replaces Soda 3 checks: row_count > 0, missing_count(fixture_id/date) = 0, duplicate_count(fixture_id) = 0
+# Ensures fixtures used by dashboard and loading have required fields and no duplicates.
 dataset: football/main/fixtures
 
 checks:
@@ -25,3 +25,28 @@ columns:
           name: No missing date
           threshold:
             must_be: 0
+  - name: league_id
+    checks:
+      - missing:
+          name: No missing league_id
+          threshold:
+            must_be: 0
+  - name: league_season
+    checks:
+      - missing:
+          name: No missing league_season
+          threshold:
+            must_be: 0
+  - name: home_team_name
+    checks:
+      - missing:
+          name: No missing home_team_name
+          threshold:
+            must_be: 0
+  - name: away_team_name
+    checks:
+      - missing:
+          name: No missing away_team_name
+          threshold:
+            must_be: 0
+  # goals_home / goals_away may be null for unplayed fixtures; team ids may be missing in some API responses
