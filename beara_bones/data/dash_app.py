@@ -28,6 +28,7 @@ STANDINGS_CREST_MAX_HEIGHT_PX = 28  # leave padding in row
 # Component IDs
 ID_LEAGUE_DROPDOWN = "football-dash-league"
 ID_SEASON_DROPDOWN = "football-dash-season"
+ID_X_AXIS_DROPDOWN = "football-dash-x-axis"
 ID_GRAPH = "football-dash-graph"
 ID_GRID = "football-dash-grid"
 ID_ERROR = "football-dash-error"
@@ -93,6 +94,21 @@ def layout_with_dropdowns():
                         value=None,
                         clearable=False,
                         style={"minWidth": "120px", "display": "inline-block"},
+                    ),
+                    html.Label(
+                        "Chart x-axis",
+                        htmlFor=ID_X_AXIS_DROPDOWN,
+                        style={"marginLeft": "16px", "marginRight": "8px"},
+                    ),
+                    dcc.Dropdown(
+                        id=ID_X_AXIS_DROPDOWN,
+                        options=[
+                            {"label": "Games played", "value": "games_played"},
+                            {"label": "Fixture (date)", "value": "fixture_date"},
+                        ],
+                        value="games_played",
+                        clearable=False,
+                        style={"minWidth": "140px", "display": "inline-block"},
                     ),
                 ],
                 style={"marginBottom": "16px"},
@@ -187,10 +203,11 @@ def _figure_to_json_safe_dict(fig):
     [
         Input(ID_LEAGUE_DROPDOWN, "value"),
         Input(ID_SEASON_DROPDOWN, "value"),
+        Input(ID_X_AXIS_DROPDOWN, "value"),
     ],
     prevent_initial_call=False,
 )
-def _update_chart_and_grid(league_id, season):
+def _update_chart_and_grid(league_id, season, x_axis):
     """Load fixtures for league/season and update points chart and standings grid."""
     if league_id is None or season is None:
         return _empty_figure("Select league and season"), [], ""
@@ -201,7 +218,8 @@ def _update_chart_and_grid(league_id, season):
             [],
             err or "No fixtures for this league/season. Run the pipeline from Admin.",
         )
-    standings, fig, err = build_standings_and_figure(df)
+    x_axis = x_axis or "games_played"
+    standings, fig, err = build_standings_and_figure(df, x_axis=x_axis)
     if err:
         return _empty_figure(err), [], err
     # Add rank (position) for AG Grid

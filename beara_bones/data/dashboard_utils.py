@@ -3,10 +3,19 @@ Shared logic for building league standings and points chart from fixture data.
 Used by both the legacy fragment view and the Dash FootballDashboard app.
 """
 
+from typing import Literal
+
 import pandas as pd
 
+X_AXIS_OPTIONS = Literal["games_played", "fixture_date"]
+SEASON_START_HOVER = "Season start · 0 pts"
 
-def build_standings_and_figure(df: pd.DataFrame):
+
+def build_standings_and_figure(
+    df: pd.DataFrame,
+    *,
+    x_axis: X_AXIS_OPTIONS = "games_played",
+):
     """
     Build standings table and Plotly figure from a fixtures DataFrame.
     Expects columns: date (or fixture_date), home_team_name, away_team_name,
@@ -97,13 +106,18 @@ def build_standings_and_figure(df: pd.DataFrame):
         )
 
     team_games = pd.DataFrame(rows)
-    # Sort by team then date so cumulative_pts is in fixture order (not row order)
+    # Sort by team then date so cumulative_pts is in chronological order
     team_games = team_games.sort_values(["team", "date"]).reset_index(drop=True)
     team_games["cumulative_pts"] = team_games.groupby("team")["pts"].cumsum()
+    # Game number (1, 2, 3...) per team for "games played" x-axis
+    team_games["game_number"] = team_games.groupby("team").cumcount() + 1
     team_games["hover"] = (
         "<b>"
         + team_games["team"]
         + "</b><br>"
+        + "Gameday: "
+        + team_games["game_number"].astype(str)
+        + "<br>"
         + team_games["date"].dt.strftime("%d %b %Y")
         + "<br>"
         + team_games["venue"]
@@ -114,7 +128,7 @@ def build_standings_and_figure(df: pd.DataFrame):
         + " ("
         + team_games["result_letter"]
         + ")<br>"
-        + "Points: "
+        + "Season Points: "
         + team_games["cumulative_pts"].astype(str)
     )
 
@@ -162,22 +176,37 @@ def build_standings_and_figure(df: pd.DataFrame):
                 .sort_values("date")
                 .reset_index(drop=True)
             )
-            # Y-axis: cumulative points (sum of 0/1/3 per game), not games played
-            y_vals = t["cumulative_pts"].astype(int).tolist()
+            # Prepend (0, 0) so every team starts at zero
+            y_vals = [0] + t["cumulative_pts"].astype(int).tolist()
+            hover_list = t["hover"].tolist()
+            start_hover = f"<b>{team}</b><br>{SEASON_START_HOVER}"
+            customdata = [start_hover] + hover_list
+
+            if x_axis == "games_played":
+                # x = 0, 1, 2, ... (games played)
+                x_vals = [0] + t["game_number"].astype(int).tolist()
+            else:
+                # x = date; start a few days before first fixture
+                first_date = t["date"].iloc[0]
+                start_date = first_date - pd.Timedelta(days=5)
+                x_vals = [start_date] + t["date"].tolist()
+
             fig_main.add_trace(
                 go.Scatter(
-                    x=t["date"],
+                    x=x_vals,
                     y=y_vals,
                     name=team,
                     mode="lines+markers",
                     hovertemplate="%{customdata}<extra></extra>",
-                    customdata=t["hover"],
+                    customdata=customdata,
                 ),
             )
+
+        xaxis_title = "Games played" if x_axis == "games_played" else "Fixture (date)"
         fig_main.update_layout(
             title="",
-            xaxis_title="Fixture (date)",
-            yaxis_title="Cumulative points",
+            xaxis_title=xaxis_title,
+            yaxis_title="Points",
             template="plotly_white",
             height=620,
             hovermode="closest",
