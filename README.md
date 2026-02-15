@@ -86,4 +86,4 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 - Set in `.env`: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS` (comma-separated), and MariaDB vars: `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`.
 - The app uses **PyMySQL** to talk to MariaDB (no native MySQL client build required on the Pi).
 - SSL is handled by NGINX and Certbot; Django is configured for HTTPS (secure cookies, HSTS, etc.).
-- Run `uv sync` and restart your ASGI/WSGI server after pulling.
+- After pulling: run `make deploy` (runs `uv sync`, `migrate`, `collectstatic --noinput --clear`, and `sudo systemctl restart uvicorn`). Override the service with `make deploy SYSTEMCTL_SERVICE=gunicorn` if needed.

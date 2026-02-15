@@ -80,3 +80,12 @@ pipeline-all:  ## Same as pipeline but for all League×Season from Admin (uses r
 .PHONY: rebuild-football
 rebuild-football:  ## Rebuild MariaDB from MinIO (no API; raw or processed)
 	cd beara_bones && uv run python manage.py rebuild_football_from_minio
+
+# --- Production deploy (run after git pull on server) ---
+SYSTEMCTL_SERVICE ?= uvicorn
+.PHONY: deploy
+deploy:  ## After git pull: uv sync, migrate, collectstatic, restart service (SYSTEMCTL_SERVICE=uvicorn)
+	uv sync
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings uv run python manage.py migrate
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings uv run python manage.py collectstatic --noinput --clear
+	sudo systemctl restart $(SYSTEMCTL_SERVICE)
