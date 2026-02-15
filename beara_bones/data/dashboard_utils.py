@@ -53,6 +53,7 @@ def build_standings_and_figure(df: pd.DataFrame):
     df_complete = df.dropna(subset=["result", "goals_home", "goals_away"]).sort_values(
         "fixture_date",
     )
+    has_team_ids = "home_team_id" in df.columns and "away_team_id" in df.columns
     rows = []
     for _, r in df_complete.iterrows():
         date = r["fixture_date"]
@@ -64,9 +65,12 @@ def build_standings_and_figure(df: pd.DataFrame):
         res_h = "W" if res == "H" else ("D" if res == "D" else "L")
         res_a = "W" if res == "A" else ("D" if res == "D" else "L")
         score_str = f"{int(gh)}-{int(ga)}"
+        hid = r.get("home_team_id") if has_team_ids else None
+        aid = r.get("away_team_id") if has_team_ids else None
         rows.append(
             {
                 "team": h,
+                "team_id": hid,
                 "date": date,
                 "opponent": a,
                 "venue": "Home",
@@ -80,6 +84,7 @@ def build_standings_and_figure(df: pd.DataFrame):
         rows.append(
             {
                 "team": a,
+                "team_id": aid,
                 "date": date,
                 "opponent": h,
                 "venue": "Away",
@@ -113,25 +118,38 @@ def build_standings_and_figure(df: pd.DataFrame):
         + team_games["cumulative_pts"].astype(str)
     )
 
-    agg = (
-        team_games.groupby("team")
-        .agg(
-            P=("pts", "count"),
-            W=("pts", lambda s: (s == 3).sum()),
-            D=("pts", lambda s: (s == 1).sum()),
-            L=("pts", lambda s: (s == 0).sum()),
-            GF=("gf", "sum"),
-            GA=("ga", "sum"),
-            Pts=("pts", "sum"),
-        )
-        .reset_index()
-    )
+    agg_kw = {
+        "P": ("pts", "count"),
+        "W": ("pts", lambda s: (s == 3).sum()),
+        "D": ("pts", lambda s: (s == 1).sum()),
+        "L": ("pts", lambda s: (s == 0).sum()),
+        "GF": ("gf", "sum"),
+        "GA": ("ga", "sum"),
+        "Pts": ("pts", "sum"),
+    }
+    if "team_id" in team_games.columns:
+        agg_kw["team_id"] = ("team_id", "first")
+    agg = team_games.groupby("team").agg(**agg_kw).reset_index()
     agg["GD"] = agg["GF"] - agg["GA"]
     agg = agg.sort_values(["Pts", "GD"], ascending=[False, False]).reset_index(
         drop=True,
     )
     team_order = agg["team"].tolist()
     agg["GD"] = agg["GD"].apply(lambda x: f"+{x}" if x > 0 else str(x))
+    # Crest path and markdown for grid (crest + team name)
+    if "team_id" in agg.columns:
+        agg["crest_path"] = agg["team_id"].apply(
+            lambda tid: f"/data/crest/{tid}/" if pd.notna(tid) else None,
+        )
+        agg["team_display_md"] = agg.apply(
+            lambda r: f"![{r['team']}]({r['crest_path']}) {r['team']}"
+            if r.get("crest_path")
+            else r["team"],
+            axis=1,
+        )
+    else:
+        agg["crest_path"] = None
+        agg["team_display_md"] = agg["team"]
     standings = agg.to_dict("records")
 
     try:

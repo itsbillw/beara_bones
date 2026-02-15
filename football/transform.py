@@ -134,6 +134,9 @@ def run_transform(
         out_dir.mkdir(parents=True, exist_ok=True)
 
     raw = load_raw_from_minio(resolved_bucket, resolved_key)
+    from football.crests import sync_crests_from_response
+
+    sync_crests_from_response(raw, bucket=resolved_bucket)
     df = flatten_fixtures(raw)
     df = clean(df)
 

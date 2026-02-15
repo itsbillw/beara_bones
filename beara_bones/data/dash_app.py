@@ -12,11 +12,18 @@ from .views import _load_fixtures_from_db
 
 # Load Plotly.js from CDN so dcc.Graph works when serve_locally=False (avoids 404 for /static/.../plotly.min.js)
 PLOTLY_JS_CDN = "https://cdn.plot.ly/plotly-2.27.0.min.js"
+# Crest images in grid scaled to row height (served from Django static)
+CREST_GRID_CSS = "/static/data/css/crest_grid.css"
 app = DjangoDash(
     "FootballDashboard",
     add_bootstrap_links=False,
     external_scripts=[{"src": PLOTLY_JS_CDN}],
+    external_stylesheets=[{"href": CREST_GRID_CSS, "rel": "stylesheet"}],
 )
+
+# Row height for standings grid; crests are scaled to fit
+STANDINGS_ROW_HEIGHT_PX = 41
+STANDINGS_CREST_MAX_HEIGHT_PX = 28  # leave padding in row
 
 # Component IDs
 ID_LEAGUE_DROPDOWN = "football-dash-league"
@@ -27,7 +34,12 @@ ID_ERROR = "football-dash-error"
 
 STANDINGS_COLUMN_DEFS = [
     {"field": "rank", "headerName": "#", "width": 60},
-    {"field": "team", "headerName": "Team", "flex": 1},
+    {
+        "field": "team_display_md",
+        "headerName": "Team",
+        "flex": 1,
+        "cellRenderer": "markdown",
+    },
     {"field": "P", "headerName": "P", "width": 50},
     {"field": "W", "headerName": "W", "width": 50},
     {"field": "D", "headerName": "D", "width": 50},
@@ -100,7 +112,10 @@ def layout_with_dropdowns():
                         columnDefs=STANDINGS_COLUMN_DEFS,
                         defaultColDef={"sortable": True, "filter": True},
                         columnSize="sizeToFit",
-                        dashGridOptions={"animateRows": True},
+                        dashGridOptions={
+                            "animateRows": True,
+                            "rowHeight": STANDINGS_ROW_HEIGHT_PX,
+                        },
                         style={"height": "480px", "width": "100%"},
                     ),
                 ],

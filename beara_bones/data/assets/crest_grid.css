@@ -1,0 +1,8 @@
+/* Scale team crest images to fit AG Grid row height (41px) */
+#football-dash-grid .ag-cell img,
+.ag-root-wrapper .ag-cell img {
+  max-height: 28px;
+  height: auto;
+  vertical-align: middle;
+  margin-right: 6px;
+}

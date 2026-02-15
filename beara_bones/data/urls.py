@@ -9,11 +9,12 @@ from django.urls import path
 
 from . import admin_views
 from . import dash_app  # noqa: F401 - register FootballDashboard with django-plotly-dash
-from .views import data_page, data_refresh
+from .views import crest_serve, data_page, data_refresh
 
 app_name = "data"
 urlpatterns = [
     path("data", data_page, name="data"),
+    path("data/crest/<int:team_id>/", crest_serve, name="crest"),
     path("data/refresh", data_refresh, name="data_refresh"),
     path("admin/data/pipeline/", admin_views.pipeline_control, name="admin_pipeline"),
     path(

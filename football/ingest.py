@@ -92,6 +92,9 @@ def run_ingest(
     data = fetch_fixtures(league=league, season=season)
     client = get_client()
     ensure_bucket(client, resolved_bucket)
+    from football.crests import sync_crests_from_response
+
+    sync_crests_from_response(data, bucket=resolved_bucket, client=client)
     return upload_raw(client, resolved_bucket, data, league, season)
 
 

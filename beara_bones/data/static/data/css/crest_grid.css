@@ -1,0 +1,21 @@
+/* Fixed-width crest slot (30px) so team names align; crest centered in slot (row 41px) */
+#football-dash-grid .ag-cell[col-id="team_display_md"],
+#football-dash-grid .ag-cell:has(img),
+.ag-root-wrapper .ag-cell[col-id="team_display_md"],
+.ag-root-wrapper .ag-cell:has(img) {
+  position: relative;
+  padding-left: 38px; /* 30px slot + 8px gap */
+}
+
+#football-dash-grid .ag-cell img,
+.ag-root-wrapper .ag-cell img {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 28px;
+  object-fit: contain;
+  object-position: center;
+  margin: 0;
+}
