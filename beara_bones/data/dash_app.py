@@ -38,14 +38,15 @@ ID_GRAPH = "football-dash-graph"
 ID_GRID = "football-dash-grid"
 ID_ERROR = "football-dash-error"
 
-# Min width so header text + filter icon fit; no maxWidth so columns can grow if needed
-NUM_COL_MIN_WIDTH = 90
+# Fixed width (96px) for compact numeric columns
+NUM_COL_WIDTH = 96
 STANDINGS_COLUMN_DEFS = [
     {
         "field": "rank",
         "headerName": "#",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "team_display_md",
@@ -56,56 +57,64 @@ STANDINGS_COLUMN_DEFS = [
     {
         "field": "P",
         "headerName": "P",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "W",
         "headerName": "W",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "D",
         "headerName": "D",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "L",
         "headerName": "L",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "GF",
         "headerName": "GF",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "GA",
         "headerName": "GA",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "GD",
         "headerName": "GD",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "Pts",
         "headerName": "Pts",
-        "width": NUM_COL_MIN_WIDTH,
-        "minWidth": NUM_COL_MIN_WIDTH,
+        "width": NUM_COL_WIDTH,
+        "minWidth": NUM_COL_WIDTH,
+        "maxWidth": NUM_COL_WIDTH,
     },
     {
         "field": "form",
         "headerName": "Form",
-        "width": 130,
-        "minWidth": 130,
+        "width": 168,
+        "minWidth": 168,
         "cellRenderer": "FormCellRenderer",
         "sortable": False,
     },
