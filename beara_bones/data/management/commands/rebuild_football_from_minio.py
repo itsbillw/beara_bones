@@ -13,14 +13,21 @@ _repo_root = Path(__file__).resolve().parents[4]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-LOCK_FILE = _repo_root / "data" / "football" / ".refresh.lock"
+from football.locking import (  # noqa: E402
+    acquire_lock,
+    get_pipeline_lock_file,
+    pipeline_lock,
+)
+from data.pipeline_runner import run_with_pipeline_run  # noqa: E402
+
+LOCK_FILE = get_pipeline_lock_file()
 
 
 def _object_exists(bucket: str, key: str) -> bool:
-    from football.ingest import get_client
+    from football.minio_utils import get_minio_client
 
     try:
-        get_client().stat_object(bucket, key)
+        get_minio_client().stat_object(bucket, key)
         return True
     except Exception:
         return False
@@ -42,7 +49,7 @@ class Command(BaseCommand):
         raw_bucket = os.environ.get("MINIO_BUCKET", "football") or "football"
 
         LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
-        if LOCK_FILE.exists():
+        if not acquire_lock(LOCK_FILE, fail_if_exists=True):
             self.stdout.write(
                 self.style.ERROR(
                     f"Lock file exists; another run may be in progress. Remove {LOCK_FILE} to force.",
@@ -50,8 +57,7 @@ class Command(BaseCommand):
             )
             raise SystemExit(1)
 
-        try:
-            LOCK_FILE.touch()
+        with pipeline_lock(LOCK_FILE):
             leagues = list(League.objects.all())
             seasons = list(Season.objects.all())
             if not leagues or not seasons:
@@ -72,7 +78,24 @@ class Command(BaseCommand):
                         self.stdout.write(
                             f"Loading from processed: league={lid} season={say}",
                         )
-                        load_fixtures_dataframe(df, lid, say)
+
+                        def _execute_processed() -> None:
+                            load_fixtures_dataframe(df, lid, say)
+
+                        try:
+                            run_with_pipeline_run(
+                                league_id=lid,
+                                season_year=say,
+                                source="mgmt_cmd_rebuild_from_minio_processed",
+                                execute=_execute_processed,
+                            )
+                        except Exception as exc:
+                            self.stdout.write(
+                                self.style.ERROR(
+                                    f"Rebuild from processed failed for league={lid} "
+                                    f"season={say}: {exc}",
+                                ),
+                            )
                         continue
                     # Fall back to raw JSON
                     key = f"raw/league_{lid}_season_{say}.json"
@@ -91,9 +114,23 @@ class Command(BaseCommand):
                         season=say,
                         write_files=False,
                     )
-                    load_fixtures_dataframe(df, lid, say)
-                    upload_processed_parquet(df, lid, say, bucket=raw_bucket)
+
+                    def _execute_raw() -> None:
+                        load_fixtures_dataframe(df, lid, say)
+                        upload_processed_parquet(df, lid, say, bucket=raw_bucket)
+
+                    try:
+                        run_with_pipeline_run(
+                            league_id=lid,
+                            season_year=say,
+                            source="mgmt_cmd_rebuild_from_minio_raw",
+                            execute=_execute_raw,
+                        )
+                    except Exception as exc:
+                        self.stdout.write(
+                            self.style.ERROR(
+                                f"Rebuild from raw failed for league={lid} "
+                                f"season={say}: {exc}",
+                            ),
+                        )
             self.stdout.write(self.style.SUCCESS("Rebuild completed."))
-        finally:
-            if LOCK_FILE.exists():
-                LOCK_FILE.unlink(missing_ok=True)

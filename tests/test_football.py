@@ -293,7 +293,7 @@ class TestRunTransform:
 class TestProcessed:
     """upload_processed_parquet and load_processed_parquet_from_minio with mocked MinIO."""
 
-    @patch("football.processed.get_client")
+    @patch("football.processed.get_minio_client")
     def test_upload_processed_parquet(self, mock_get_client: MagicMock) -> None:
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
@@ -302,7 +302,7 @@ class TestProcessed:
         assert key == "processed/league_39_season_2025.parquet"
         mock_client.put_object.assert_called_once()
 
-    @patch("football.processed.get_client")
+    @patch("football.processed.get_minio_client")
     def test_load_processed_parquet_from_minio_not_found(
         self,
         mock_get_client: MagicMock,
@@ -313,7 +313,7 @@ class TestProcessed:
         result = load_processed_parquet_from_minio(39, 2025, bucket="test-bucket")
         assert result is None
 
-    @patch("football.processed.get_client")
+    @patch("football.processed.get_minio_client")
     def test_load_processed_parquet_from_minio_success(
         self,
         mock_get_client: MagicMock,

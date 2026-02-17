@@ -8,7 +8,7 @@ import os
 
 import pandas as pd
 
-from football.ingest import ensure_bucket, get_client
+from football.minio_utils import ensure_bucket, get_bytes_object, get_minio_client
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +24,9 @@ def load_processed_parquet_from_minio(
     resolved_bucket: str = bucket or os.environ.get("MINIO_BUCKET") or "football"
     key = f"processed/league_{league}_season_{season}.parquet"
     try:
-        client = get_client()
-        resp = client.get_object(resolved_bucket, key)
-        try:
-            return pd.read_parquet(io.BytesIO(resp.read()))
-        finally:
-            resp.close()
+        client = get_minio_client()
+        data = get_bytes_object(client, resolved_bucket, key)
+        return pd.read_parquet(io.BytesIO(data))
     except Exception as e:
         logger.debug("No processed parquet at %s/%s: %s", resolved_bucket, key, e)
         return None
@@ -51,7 +48,7 @@ def upload_processed_parquet(
     buf = io.BytesIO()
     df.to_parquet(buf, index=False)
     buf.seek(0)
-    client = get_client()
+    client = get_minio_client()
     ensure_bucket(client, resolved_bucket)
     client.put_object(resolved_bucket, key, buf, len(buf.getvalue()))
     logger.info("Uploaded %s to %s/%s", key, resolved_bucket, key)

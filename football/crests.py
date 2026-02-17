@@ -11,7 +11,7 @@ from typing import Any
 import requests
 from minio import Minio
 
-from football.ingest import ensure_bucket, get_client
+from football.minio_utils import ensure_bucket, get_minio_client
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,13 @@ def _object_exists(client: Minio, bucket: str, key: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def get_client() -> Minio:
+    """
+    Backwards-compatible alias for tests that import football.crests.get_client.
+    """
+    return get_minio_client()
 
 
 def _ensure_crest(
@@ -85,7 +92,7 @@ def sync_crests_from_response(
     if not teams_to_fetch:
         return
     resolved_bucket = bucket or os.environ.get("MINIO_BUCKET", "football") or "football"
-    c = client or get_client()
+    c = client or get_minio_client()
     ensure_bucket(c, resolved_bucket)
     for team_id, logo_url in teams_to_fetch:
         _ensure_crest(c, resolved_bucket, team_id, logo_url)

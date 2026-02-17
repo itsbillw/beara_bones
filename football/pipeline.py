@@ -11,11 +11,13 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from football.locking import acquire_lock, get_pipeline_lock_file, pipeline_lock
+
 load_dotenv()
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "data" / "football"
-LOCK_FILE = DATA_DIR / ".refresh.lock"
+LOCK_FILE = get_pipeline_lock_file()
 logger = logging.getLogger(__name__)
 
 
@@ -85,14 +87,13 @@ def run_pipeline(
     skip_ingest: bool = False,
 ) -> int:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    if LOCK_FILE.exists():
+    if not acquire_lock(LOCK_FILE, fail_if_exists=True):
         logger.error(
             "Lock file exists; another pipeline run may be in progress. Remove %s to force.",
             LOCK_FILE,
         )
         return 1
-    try:
-        LOCK_FILE.touch()
+    with pipeline_lock(LOCK_FILE):
         if not skip_ingest:
             from football.ingest import run_ingest
 
@@ -137,9 +138,6 @@ def run_pipeline(
         if not df.empty:
             _load_to_mariadb_and_minio(df, league, season)
         return 0
-    finally:
-        if LOCK_FILE.exists():
-            LOCK_FILE.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 from dotenv import load_dotenv
-from minio import Minio
+
+from football.minio_utils import get_json_object, get_minio_client
 
 load_dotenv()
 
@@ -24,29 +25,9 @@ def _data_dir() -> Path:
     return REPO_DATA_DIR
 
 
-def get_client() -> Minio:
-    endpoint = (
-        os.environ["MINIO_ENDPOINT"].replace("https://", "").replace("http://", "")
-    )
-    return Minio(
-        endpoint,
-        access_key=os.environ["MINIO_ACCESS_KEY"],
-        secret_key=os.environ["MINIO_SECRET_KEY"],
-        secure=os.environ.get("MINIO_SECURE", "true").lower() in ("true", "1", "yes"),
-    )
-
-
 def load_raw_from_minio(bucket: str, object_key: str) -> dict:
-    client = get_client()
-    resp = client.get_object(bucket, object_key)
-    try:
-        import json
-        from typing import Any
-
-        out: dict[str, Any] = json.loads(resp.read().decode("utf-8"))
-        return out
-    finally:
-        resp.close()
+    client = get_minio_client()
+    return get_json_object(client, bucket, object_key)
 
 
 def flatten_fixtures(raw: dict) -> pd.DataFrame:

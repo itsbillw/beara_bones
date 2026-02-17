@@ -11,6 +11,8 @@ import requests
 from dotenv import load_dotenv
 from minio import Minio
 
+from football.minio_utils import ensure_bucket, get_minio_client
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -21,15 +23,10 @@ DEFAULT_SEASON = 2025
 
 
 def get_client() -> Minio:
-    endpoint = (
-        os.environ["MINIO_ENDPOINT"].replace("https://", "").replace("http://", "")
-    )
-    return Minio(
-        endpoint,
-        access_key=os.environ["MINIO_ACCESS_KEY"],
-        secret_key=os.environ["MINIO_SECRET_KEY"],
-        secure=os.environ.get("MINIO_SECURE", "true").lower() in ("true", "1", "yes"),
-    )
+    """
+    Backwards-compatible alias for tests that import football.ingest.get_client.
+    """
+    return get_minio_client()
 
 
 def fetch_fixtures(league: int = DEFAULT_LEAGUE, season: int = DEFAULT_SEASON) -> dict:
@@ -62,12 +59,6 @@ def fetch_fixtures(league: int = DEFAULT_LEAGUE, season: int = DEFAULT_SEASON) -
             all_response.extend(data2.get("response", []))
         data["response"] = all_response
     return data
-
-
-def ensure_bucket(client: Minio, bucket: str) -> None:
-    if not client.bucket_exists(bucket):
-        client.make_bucket(bucket)
-        logger.info("Created MinIO bucket %s", bucket)
 
 
 def upload_raw(client: Minio, bucket: str, data: dict, league: int, season: int) -> str:
