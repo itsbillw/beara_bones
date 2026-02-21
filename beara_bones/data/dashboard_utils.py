@@ -12,14 +12,16 @@ SEASON_START_HOVER = "Season start · 0 pts"
 
 
 def build_standings_and_figure(
-    df: pd.DataFrame,
+    df: pd.DataFrame | None = None,
     *,
     x_axis: X_AXIS_OPTIONS = "games_played",
+    team_games_df: pd.DataFrame | None = None,
 ):
     """
-    Build standings table and Plotly figure from a fixtures DataFrame.
-    Expects columns: date (or fixture_date), home_team_name, away_team_name,
-    goals_home, goals_away. Adds result (H/D/A) if missing.
+    Build standings table and Plotly figure from a fixtures DataFrame or pre-built team_games.
+
+    Either pass `df` (fixtures with home/away columns) or `team_games_df` (from data_team_game
+    view). If `team_games_df` is provided it is used and `df` is ignored.
 
     Returns:
         tuple: (standings: list[dict], figure, error: str | None).
@@ -27,6 +29,24 @@ def build_standings_and_figure(
         figure is a plotly.go.Figure or None if data insufficient.
         error is a message string or None.
     """
+    if team_games_df is not None and not team_games_df.empty:
+        need = [
+            "team",
+            "date",
+            "pts",
+            "gf",
+            "ga",
+            "result_letter",
+            "game_number",
+            "cumulative_pts",
+        ]
+        if not all(c in team_games_df.columns for c in need):
+            return [], None, "Team-games DataFrame missing required columns"
+        team_games = team_games_df.copy()
+        if "date" in team_games.columns:
+            team_games["date"] = pd.to_datetime(team_games["date"], errors="coerce")
+        return _standings_and_figure_from_team_games(team_games, x_axis)
+
     if df is None or df.empty:
         return [], None, "No data"
 
@@ -106,10 +126,8 @@ def build_standings_and_figure(
         )
 
     team_games = pd.DataFrame(rows)
-    # Sort by team then date so cumulative_pts is in chronological order
     team_games = team_games.sort_values(["team", "date"]).reset_index(drop=True)
     team_games["cumulative_pts"] = team_games.groupby("team")["pts"].cumsum()
-    # Game number (1, 2, 3...) per team for "games played" x-axis
     team_games["game_number"] = team_games.groupby("team").cumcount() + 1
     team_games["hover"] = (
         "<b>"
@@ -131,7 +149,14 @@ def build_standings_and_figure(
         + "Season Points: "
         + team_games["cumulative_pts"].astype(str)
     )
+    return _standings_and_figure_from_team_games(team_games, x_axis)
 
+
+def _standings_and_figure_from_team_games(
+    team_games: pd.DataFrame,
+    x_axis: X_AXIS_OPTIONS,
+):
+    """Build standings agg and Plotly figure from a team_games DataFrame. Returns (standings, figure, error)."""
     agg_kw = {
         "P": ("pts", "count"),
         "W": ("pts", lambda s: (s == 3).sum()),

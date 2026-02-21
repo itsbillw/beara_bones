@@ -46,6 +46,74 @@ def _load_fixtures_from_db(league_id: int, season: int):
     return df, None
 
 
+def _load_team_games_from_view(league_id: int, season: int):
+    """
+    Load team-games from data_team_game view for the given league/season.
+    Returns (DataFrame with same shape as dashboard_utils team_games, error).
+    Falls back to (None, error_msg) if the view is unavailable or empty.
+    """
+    from django.db import connection
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    team_name,
+                    team_id,
+                    fixture_date,
+                    opponent_name,
+                    venue,
+                    goals_for,
+                    goals_against,
+                    pts,
+                    result_letter,
+                    game_number,
+                    cumulative_pts
+                FROM data_team_game
+                WHERE league_id = %s AND league_season = %s
+                ORDER BY team_name, fixture_date
+                """,
+                [league_id, season],
+            )
+            columns = [col[0] for col in cursor.description]
+            rows = cursor.fetchall()
+    except Exception as e:
+        return None, str(e)
+    if not rows:
+        return None, None  # No data for this league/season
+    df = pd.DataFrame(rows, columns=columns)
+    df = df.rename(
+        columns={
+            "team_name": "team",
+            "fixture_date": "date",
+            "opponent_name": "opponent",
+            "goals_for": "gf",
+            "goals_against": "ga",
+        },
+    )
+    df["score_display"] = df["gf"].astype(str) + "-" + df["ga"].astype(str)
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["hover"] = (
+        "<b>" + df["team"] + "</b><br>"
+        "Gameday: "
+        + df["game_number"].astype(str)
+        + "<br>"
+        + df["date"].dt.strftime("%d %b %Y")
+        + "<br>"
+        + df["venue"]
+        + " vs "
+        + df["opponent"]
+        + ": "
+        + df["score_display"]
+        + " ("
+        + df["result_letter"]
+        + ")<br>"
+        "Season Points: " + df["cumulative_pts"].astype(str)
+    )
+    return df, None
+
+
 def data_page(request):
     """Data page: embeds Plotly Dash FootballDashboard (chart + AG Grid league table)."""
     return TemplateResponse(request, "data/data.html")

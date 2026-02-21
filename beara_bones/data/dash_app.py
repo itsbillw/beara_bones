@@ -8,7 +8,7 @@ from dash import Input, Output, dcc, html
 from django_plotly_dash import DjangoDash
 
 from .dashboard_utils import build_standings_and_figure
-from .views import _load_fixtures_from_db
+from .views import _load_fixtures_from_db, _load_team_games_from_view
 
 # Load Plotly.js from CDN so dcc.Graph works when serve_locally=False (avoids 404 for /static/.../plotly.min.js)
 PLOTLY_JS_CDN = "https://cdn.plot.ly/plotly-2.27.0.min.js"
@@ -277,18 +277,28 @@ def _figure_to_json_safe_dict(fig):
     prevent_initial_call=False,
 )
 def _update_chart_and_grid(league_id, season, x_axis):
-    """Load fixtures for league/season and update points chart and standings grid."""
+    """Load data for league/season and update points chart and standings grid.
+    Prefers data_team_game view when available; falls back to fixtures from DB.
+    """
     if league_id is None or season is None:
         return _empty_figure("Select league and season"), [], ""
-    df, err = _load_fixtures_from_db(league_id, season)
-    if err or df is None or df.empty:
-        return (
-            _empty_figure(err or "No data"),
-            [],
-            err or "No fixtures for this league/season. Run the pipeline from Admin.",
-        )
     x_axis = x_axis or "games_played"
-    standings, fig, err = build_standings_and_figure(df, x_axis=x_axis)
+    team_games_df, view_err = _load_team_games_from_view(league_id, season)
+    if team_games_df is not None and not team_games_df.empty:
+        standings, fig, err = build_standings_and_figure(
+            team_games_df=team_games_df,
+            x_axis=x_axis,
+        )
+    else:
+        df, err = _load_fixtures_from_db(league_id, season)
+        if err or df is None or df.empty:
+            return (
+                _empty_figure(err or "No data"),
+                [],
+                err
+                or "No fixtures for this league/season. Run the pipeline from Admin.",
+            )
+        standings, fig, err = build_standings_and_figure(df, x_axis=x_axis)
     if err:
         return _empty_figure(err), [], err
     # Add rank (position) for AG Grid
