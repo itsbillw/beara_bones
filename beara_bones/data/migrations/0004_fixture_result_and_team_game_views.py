@@ -136,6 +136,8 @@ def drop_views(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False  # MariaDB/MySQL cannot roll back DDL (CREATE VIEW); run without transaction
+
     dependencies = [
         ("data", "0003_pipelinerun"),
     ]
