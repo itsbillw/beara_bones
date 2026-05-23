@@ -1,10 +1,14 @@
-{% extends "home/base.html" %} {% load static %} {% block header %}
-<title>itsbillw - About</title>
-{% endblock %} {% block content %}
-<div class="container main-container">
-  <div class="jumbotron rounded">
-    <h1 class="display-5 fw-bold text-center">About itsbillw</h1>
+{% extends "home/base.html" %}
+{% load static %}
 
+{% block header %}
+<title>itsbillw - About</title>
+{% endblock %}
+
+{% block content %}
+<div class="container main-container">
+  {% include "home/_page_header.html" with page_title="About itsbillw" only %}
+  <div class="prose">
     <p>
       <strong>What is itsbillw.eu?</strong><br />
       itsbillw.eu is my personal website, built and hosted on a Raspberry Pi
@@ -12,7 +16,6 @@
       FOSS (Free and Open Source Software), and a playground for learning and
       sharing ideas.
     </p>
-
     <p>
       <strong>What’s the project about?</strong><br />
       This project brings together several interests: FOSS, Raspberry Pis (and
@@ -21,10 +24,10 @@
       a Raspberry Pi 4 (8GB RAM) with an Aegon One M.2 SSD case (500GB) and
       DietPi OS. Alongside the website I run Nextcloud, Jellyfin,
       Audiobookshelf, MinIO, Metabase, and other self‑hosted tools, with Homarr
-      as a dashboard. Monitoring is with Netdata and status checks
-      on Uptime Kuma. I gathered the equipment over the years and estimate a
-      maximum spend of around €250. From readings on a Tapo smart plug, the
-      whole home server uses under €10 of electricity per year (~€0.75/month).
+      as a dashboard. Monitoring is with Netdata and status checks on Uptime
+      Kuma. I gathered the equipment over the years and estimate a maximum spend
+      of around €250. From readings on a Tapo smart plug, the whole home server
+      uses under €10 of electricity per year (~€0.75/month).
     </p>
   </div>
 </div>

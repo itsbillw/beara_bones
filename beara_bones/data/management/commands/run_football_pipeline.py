@@ -6,7 +6,6 @@ Uses a lock file to prevent overlapping runs.
 import sys
 from pathlib import Path
 
-from django.core.cache import cache
 from django.core.management.base import BaseCommand
 
 _repo_root = Path(__file__).resolve().parents[4]
@@ -82,12 +81,10 @@ class Command(BaseCommand):
                                 f"Pipeline failed for league={lid} season={sy}: {exc}",
                             ),
                         )
-            # Clear dashboard cache so fragment refetches
             try:
-                from django.conf import settings
+                from data.cache_utils import invalidate_football_dashboard_cache
 
-                if hasattr(settings, "CACHES") and settings.CACHES:
-                    cache.clear()
+                invalidate_football_dashboard_cache()
             except Exception:  # nosec B110
                 pass
             self.stdout.write(self.style.SUCCESS("Pipeline completed."))

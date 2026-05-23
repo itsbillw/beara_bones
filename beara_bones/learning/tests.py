@@ -187,6 +187,7 @@ class LearningVaultTests(TestCase):
     def setUp(self) -> None:
         self.user = User.objects.create_user("vaultuser", "v@example.com", "pass")
         self.client.force_login(self.user)
+        cache.clear()
 
     def test_vault_renders_view_toggle_and_search(self) -> None:
         response = self.client.get(reverse("learning:vault"))
@@ -302,8 +303,14 @@ class LearningVaultTests(TestCase):
             LearningActivity.objects.filter(user=self.user, document=doc).exists(),
         )
 
+    @patch("learning.storage.open_file")
     @patch("learning.views.open_file")
-    def test_wikilink_resolves(self, mock_open: MagicMock) -> None:
+    def test_wikilink_resolves(
+        self,
+        mock_views_open: MagicMock,
+        mock_storage_open: MagicMock,
+    ) -> None:
+        cache.clear()
         directory = LearningDirectory.objects.create(
             owner=self.user,
             name="Docs",
@@ -327,10 +334,15 @@ class LearningVaultTests(TestCase):
             storage_key="source-key",
             size_bytes=10,
         )
-        mock_open.side_effect = lambda key: {
-            "source-key": b"See [[Target Note]] for details.",
-            "target-key": b"# Target",
-        }[key]
+
+        def side_effect(key: str) -> bytes:
+            return {
+                "source-key": b"See [[Target Note]] for details.",
+                "target-key": b"# Target",
+            }[key]
+
+        mock_views_open.side_effect = side_effect
+        mock_storage_open.side_effect = side_effect
         response = self.client.get(
             reverse("learning:document", kwargs={"doc_id": source.id}),
         )
@@ -338,8 +350,14 @@ class LearningVaultTests(TestCase):
         expected_url = reverse("learning:document", kwargs={"doc_id": target.id})
         self.assertContains(response, expected_url)
 
+    @patch("learning.storage.open_file")
     @patch("learning.views.open_file")
-    def test_backlinks_shown(self, mock_open: MagicMock) -> None:
+    def test_backlinks_shown(
+        self,
+        mock_views_open: MagicMock,
+        mock_storage_open: MagicMock,
+    ) -> None:
+        cache.clear()
         directory = LearningDirectory.objects.create(
             owner=self.user,
             name="Docs",
@@ -363,10 +381,15 @@ class LearningVaultTests(TestCase):
             storage_key="source-key",
             size_bytes=10,
         )
-        mock_open.side_effect = lambda key: {
-            "source-key": b"See [[Target Note]] for details.",
-            "target-key": b"# Target body",
-        }[key]
+
+        def side_effect(key: str) -> bytes:
+            return {
+                "source-key": b"See [[Target Note]] for details.",
+                "target-key": b"# Target body",
+            }[key]
+
+        mock_views_open.side_effect = side_effect
+        mock_storage_open.side_effect = side_effect
         response = self.client.get(
             reverse("learning:document", kwargs={"doc_id": target.id}),
         )
@@ -636,6 +659,28 @@ class LearningVaultTests(TestCase):
         self.assertEqual(response.status_code, 302)
         directory.refresh_from_db()
         self.assertEqual(directory.name, "New Name")
+
+    def test_move_directory_into_descendant_blocked(self) -> None:
+        parent = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Parent",
+            slug="parent",
+        )
+        child = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Child",
+            slug="child",
+            parent=parent,
+        )
+        response = self.client.post(
+            reverse("learning:directory_move", kwargs={"dir_id": parent.id}),
+            {"directory_id": str(child.id)},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        parent.refresh_from_db()
+        self.assertIsNone(parent.parent_id)
+        self.assertContains(response, "subfolder")
 
     @patch("learning.views.save_file", return_value="users/1/dir/doc_test.md")
     def test_duplicate_hash_warning(self, _mock_save: object) -> None:

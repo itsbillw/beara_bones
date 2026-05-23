@@ -25,9 +25,9 @@
             type="button"
             class="btn btn-sm btn-outline-light learning-star-btn {% if is_starred %}starred{% endif %}"
             data-star-url="{% url 'learning:document_star' doc_id=document.id %}"
-            title="Star"
+            aria-label="{% if is_starred %}Unstar{% else %}Star{% endif %} {{ document.title }}"
           >
-            <i class="bi {% if is_starred %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+            <i class="bi {% if is_starred %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>
           </button>
           <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#metaModal">
             Edit metadata
@@ -56,18 +56,18 @@
       <div class="learning-pdf-container">
         <div class="learning-pdf-main">
           <div class="learning-pdf-toolbar" id="pdf-toolbar">
-            <button type="button" id="pdf-prev" title="Previous page"><i class="bi bi-chevron-left"></i></button>
+            <button type="button" id="pdf-prev" aria-label="Previous page"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
             <span class="learning-pdf-page-controls">
               <input type="number" id="pdf-page-input" min="1" value="{{ initial_page }}" aria-label="Page number" />
               <span id="pdf-page-count">/ 1</span>
             </span>
-            <button type="button" id="pdf-next" title="Next page"><i class="bi bi-chevron-right"></i></button>
+            <button type="button" id="pdf-next" aria-label="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
             <span class="learning-pdf-toolbar-divider"></span>
-            <button type="button" id="pdf-zoom-out" title="Zoom out"><i class="bi bi-dash-lg"></i></button>
-            <button type="button" id="pdf-zoom-in" title="Zoom in"><i class="bi bi-plus-lg"></i></button>
-            <button type="button" id="pdf-fit-width" title="Fit width">Fit width</button>
-            <button type="button" id="pdf-fit-page" title="Fit page">Fit page</button>
-            <button type="button" id="pdf-fullscreen" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+            <button type="button" id="pdf-zoom-out" aria-label="Zoom out"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>
+            <button type="button" id="pdf-zoom-in" aria-label="Zoom in"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
+            <button type="button" id="pdf-fit-width" aria-label="Fit width">Fit width</button>
+            <button type="button" id="pdf-fit-page" aria-label="Fit page">Fit page</button>
+            <button type="button" id="pdf-fullscreen" aria-label="Fullscreen"><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i></button>
           </div>
           <div id="pdf-viewer" class="learning-pdf-viewer" tabindex="0"></div>
         </div>

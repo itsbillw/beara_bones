@@ -42,7 +42,27 @@
       </div>
 
       <div class="learning-toolbar-end">
-        <div class="learning-filter-tabs" role="group" aria-label="Content filter">
+        <label class="visually-hidden" for="learning-filter-select">Content filter</label>
+        <select
+          id="learning-filter-select"
+          class="form-select form-select-sm learning-filter-select d-md-none"
+          aria-label="Content filter"
+        >
+          <option
+            value="?{% if sort_by %}sort={{ sort_by }}{% endif %}{% if tag_slug %}{% if sort_by %}&{% endif %}tag={{ tag_slug }}{% endif %}"
+            {% if not content_filter %}selected{% endif %}
+          >All</option>
+          <option
+            value="?type=pdf{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}"
+            {% if content_filter == 'pdf' %}selected{% endif %}
+          >Documents</option>
+          <option
+            value="?type=markdown{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}"
+            {% if content_filter == 'markdown' %}selected{% endif %}
+          >Notes</option>
+        </select>
+
+        <div class="learning-filter-tabs d-none d-md-inline-flex" role="group" aria-label="Content filter">
           <a
             href="?{% if sort_by %}sort={{ sort_by }}{% endif %}{% if tag_slug %}{% if sort_by %}&{% endif %}tag={{ tag_slug }}{% endif %}"
             class="learning-filter-tab {% if not content_filter %}active{% endif %}"
@@ -58,11 +78,11 @@
         </div>
 
         <div class="learning-view-toggle" role="group" aria-label="View mode">
-          <button type="button" class="learning-view-btn active" data-view="grid" aria-pressed="true" title="Grid view (g g)">
-            <i class="bi bi-grid-3x3-gap"></i>
+          <button type="button" class="learning-view-btn active" data-view="grid" aria-pressed="true" aria-label="Grid view" title="Grid view (g g)">
+            <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
           </button>
-          <button type="button" class="learning-view-btn" data-view="list" aria-pressed="false" title="List view (g l)">
-            <i class="bi bi-list-ul"></i>
+          <button type="button" class="learning-view-btn" data-view="list" aria-pressed="false" aria-label="List view" title="List view (g l)">
+            <i class="bi bi-list-ul" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -124,7 +144,15 @@
 
       <div class="learning-upload-progress" id="learning-upload-progress" hidden>
         <div class="progress">
-          <div class="progress-bar" id="learning-upload-bar" role="progressbar" style="width: 0%"></div>
+          <div
+            class="progress-bar"
+            id="learning-upload-bar"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+            style="width: 0%"
+          ></div>
         </div>
         <span id="learning-upload-label">Uploading…</span>
       </div>

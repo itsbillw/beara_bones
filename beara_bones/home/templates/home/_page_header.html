@@ -1,0 +1,13 @@
+<header class="page-header">
+  <div class="page-header-text">
+    <h1 class="page-header-title">{{ page_title }}</h1>
+    {% if page_subtitle %}
+      <p class="page-header-subtitle">{{ page_subtitle }}</p>
+    {% endif %}
+  </div>
+  {% if page_header_actions_template %}
+    <div class="page-header-actions">
+      {% include page_header_actions_template %}
+    </div>
+  {% endif %}
+</header>

@@ -50,9 +50,9 @@ def _load_to_mariadb_and_minio(df, league: int, season: int) -> None:
         season,
     )
     try:
-        from django.core.cache import cache
+        from data.cache_utils import invalidate_football_dashboard_cache
 
-        cache.clear()
+        invalidate_football_dashboard_cache()
     except Exception:  # nosec B110
         pass
 

@@ -9,11 +9,20 @@ from typing import TYPE_CHECKING, BinaryIO
 
 from django.utils.text import slugify
 
-from .forms import ALLOWED_EXTENSIONS
+from django.core.exceptions import ValidationError
+
+from .forms import ALLOWED_EXTENSIONS, validate_upload_file
 from .models import LearningDirectory
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractBaseUser
+
+MAX_ZIP_MEMBERS = 500
+MAX_ZIP_UNCOMPRESSED_BYTES = 100 * 1024 * 1024
+
+
+class ZipImportError(Exception):
+    """Raised when a zip archive fails safety checks."""
 
 
 def _safe_zip_path(name: str) -> PurePosixPath | None:
@@ -34,8 +43,22 @@ def extract_zip_to_directory(
     dirs_created = 0
     docs_created = 0
     dir_cache: dict[str, LearningDirectory] = {"": parent}
+    total_uncompressed = 0
+    file_members = 0
 
     with zipfile.ZipFile(zip_file) as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            file_members += 1
+            if file_members > MAX_ZIP_MEMBERS:
+                raise ZipImportError(
+                    f"Zip contains more than {MAX_ZIP_MEMBERS} files.",
+                )
+            total_uncompressed += info.file_size
+            if total_uncompressed > MAX_ZIP_UNCOMPRESSED_BYTES:
+                raise ZipImportError("Zip uncompressed size exceeds limit.")
+
         for info in zf.infolist():
             if info.is_dir():
                 continue
@@ -71,6 +94,11 @@ def extract_zip_to_directory(
             buffer: io.BytesIO = io.BytesIO(data)
             setattr(buffer, "name", filename)
             setattr(buffer, "size", len(data))
+            try:
+                validate_upload_file(buffer)
+            except ValidationError as exc:
+                raise ZipImportError(str(exc)) from exc
+            buffer.seek(0)
             save_document_fn(user, current, buffer)
             docs_created += 1
 

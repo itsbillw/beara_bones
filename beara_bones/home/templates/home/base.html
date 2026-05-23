@@ -4,6 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#008080" />
     <link
       rel="icon"
       href="{% static 'home/images/tukibill-icon.png' %}"
@@ -18,16 +19,17 @@
       rel="stylesheet"
     />
     <link href="{% static 'home/css/base_style.css' %}" rel="stylesheet" />
-    {% block header %} {% endblock %}
+    {% block header %}{% endblock %}
   </head>
   <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg sticky-top">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <nav class="navbar navbar-expand-md sticky-top">
       <div class="container">
-        <a class="navbar-brand text-light" href="{% url 'home:index' %}">
+        <a class="navbar-brand" href="{% url 'home:index' %}">
           <img
             src="{% static 'home/images/itsbillw-logo.png' %}"
-            alt="Logo"
+            alt="itsbillw home"
             height="40"
           />
         </a>
@@ -43,25 +45,31 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-          <!-- Navbar items aligned to the left -->
           <ul class="navbar-nav me-auto">
             <li class="nav-item">
               <a
-                class="nav-link btn btn-outline-light me-2 text-light"
+                class="nav-link{% if request.path == '/' %} active{% endif %}"
                 href="{% url 'home:index' %}"
                 >Home</a
               >
             </li>
             <li class="nav-item">
               <a
-                class="nav-link btn btn-outline-light me-2 text-light"
+                class="nav-link{% if request.path|slice:':6' == '/data/' or request.path == '/data' %} active{% endif %}"
                 href="{% url 'data:data' %}"
                 >Data</a
               >
             </li>
+            <li class="nav-item">
+              <a
+                class="nav-link{% if request.path|slice:':10' == '/learning/' %} active{% endif %}"
+                href="{% url 'learning:vault' %}"
+                >Learning</a
+              >
+            </li>
             <li class="nav-item dropdown">
               <a
-                class="nav-link btn btn-outline-light dropdown-toggle me-2 text-light"
+                class="nav-link dropdown-toggle"
                 href="#"
                 id="servicesDropdown"
                 role="button"
@@ -74,139 +82,73 @@
                 class="dropdown-menu dropdown-menu-dark"
                 aria-labelledby="servicesDropdown"
               >
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://cloud.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Nextcloud</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://jelly.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Jellyfin</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://books.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Audiobookshelf</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://minio-console.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >MinIO</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://metabase.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Metabase</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://monitor.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Netdata</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://status.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Status</a
-                  >
-                </li>
-                <li>
-                  <a
-                    class="dropdown-item text-light"
-                    href="https://dashboard.itsbillw.eu/"
-                    target="_blank"
-                    rel="noopener"
-                    >Homarr</a
-                  >
-                </li>
+                {% include "home/_services_nav.html" %}
               </ul>
             </li>
             <li class="nav-item">
               <a
-                class="nav-link btn btn-outline-light me-2 text-light"
-                href="{% url 'learning:vault' %}"
-                >Learning</a
-              >
-            </li>
-            <li class="nav-item">
-              <a
-                class="nav-link btn btn-outline-light me-2 text-light"
+                class="nav-link{% if request.path == '/about' %} active{% endif %}"
                 href="{% url 'home:about' %}"
                 >About</a
               >
             </li>
           </ul>
-          <!-- Auth + social links -->
-          <div class="d-flex align-items-center">
+          <div class="d-flex align-items-center gap-3">
             {% if user.is_authenticated %}
-              <span class="text-light me-3 small">{{ user.username }}</span>
-              <form method="post" action="{% url 'learning:logout' %}" class="d-inline me-3">
+              <span class="small">{{ user.username }}</span>
+              <form method="post" action="{% url 'learning:logout' %}" class="d-inline">
                 {% csrf_token %}
                 <button
                   type="submit"
                   class="btn btn-link text-light p-0 border-0"
-                  title="Sign out"
+                  aria-label="Sign out"
                 >
-                  <i class="bi bi-box-arrow-right"></i>
+                  <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                 </button>
               </form>
             {% else %}
-              <a href="{% url 'learning:login' %}" class="text-light me-3" title="Sign in"
-                ><i class="bi bi-person-circle"></i
-              ></a>
+              <a href="{% url 'learning:login' %}" class="text-light" aria-label="Sign in">
+                <i class="bi bi-person-circle" aria-hidden="true"></i>
+              </a>
             {% endif %}
+            <span class="navbar-divider" aria-hidden="true">|</span>
             <a
               href="https://www.instagram.com/itsbillw/"
-              class="text-light me-3"
-              ><i class="bi bi-instagram"></i
+              class="text-light"
+              aria-label="Instagram"
+              rel="noopener"
+              target="_blank"
+              ><i class="bi bi-instagram" aria-hidden="true"></i
             ></a>
-            <a href="https://mastodon.social/@itsbillw" class="text-light me-3"
-              ><i class="bi bi-mastodon"></i
+            <a
+              href="https://mastodon.social/@itsbillw"
+              class="text-light"
+              aria-label="Mastodon"
+              rel="noopener"
+              target="_blank"
+              ><i class="bi bi-mastodon" aria-hidden="true"></i
             ></a>
-            <a href="https://github.com/itsbillw" class="text-light me-3"
-              ><i class="bi bi-github"></i
+            <a
+              href="https://github.com/itsbillw"
+              class="text-light"
+              aria-label="GitHub"
+              rel="noopener"
+              target="_blank"
+              ><i class="bi bi-github" aria-hidden="true"></i
             ></a>
-            <a href="mailto:admin@itsbillw.com" class="text-light me-3"
-              ><i class="bi bi-envelope"></i
-            ></a>
+            <a href="mailto:admin@itsbillw.com" class="text-light" aria-label="Email">
+              <i class="bi bi-envelope" aria-hidden="true"></i>
+            </a>
           </div>
         </div>
       </div>
     </nav>
 
-    <main class="d-flex flex-column">{% block content %} {% endblock %}</main>
+    <main id="main" class="d-flex flex-column flex-grow-1">{% block content %}{% endblock %}</main>
 
-    <!-- Footer -->
-    <footer class="footer text-light text-center py-4 mt-auto">
+    <footer class="footer text-center py-4 mt-auto">
       <div class="container">
-        <p>© {% now 'Y' %} itsbillw</p>
+        <p class="mb-0">© {% now 'Y' %} itsbillw</p>
       </div>
     </footer>
 

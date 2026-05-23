@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import html
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -99,11 +101,12 @@ def resolve_wikilinks(
         url = link_index.get(target.lower())
         if url:
             preview = previews.get(target.lower(), "")
-            title_attr = f' title="{preview}"' if preview else ""
+            safe_preview = html.escape(preview, quote=True) if preview else ""
+            title_attr = f' title="{safe_preview}"' if safe_preview else ""
             popover = (
                 f' data-bs-toggle="popover" data-bs-trigger="hover" '
-                f'data-bs-content="{preview}"'
-                if preview
+                f'data-bs-content="{safe_preview}"'
+                if safe_preview
                 else ""
             )
             return f'<a href="{url}" class="wikilink"{title_attr}{popover}>{alias}</a>'
@@ -243,6 +246,37 @@ def cached_render_markdown(
     )
     cache.set(cache_key, result, timeout=3600)
     return result
+
+
+def _markdown_fingerprint(docs: list[LearningDocument]) -> str:
+    parts = sorted(f"{d.id}:{d.content_hash}:{d.updated_at.timestamp()}" for d in docs)
+    return hashlib.sha256("|".join(parts).encode()).hexdigest()
+
+
+def get_user_markdown_raw_contents(
+    user_id: int,
+    documents: list[LearningDocument],
+) -> dict[str, str]:
+    """Load markdown bodies with a cache keyed by content fingerprints."""
+    from minio.error import S3Error
+
+    from .storage import open_file
+
+    markdown_docs = [d for d in documents if d.content_type == d.ContentType.MARKDOWN]
+    fingerprint = _markdown_fingerprint(markdown_docs)
+    cache_key = f"learning:raw_index:{user_id}:{fingerprint}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return dict(cached)
+
+    raw_contents: dict[str, str] = {}
+    for doc in markdown_docs:
+        try:
+            raw_contents[str(doc.id)] = open_file(doc.storage_key).decode("utf-8")
+        except (FileNotFoundError, UnicodeDecodeError, S3Error):
+            continue
+    cache.set(cache_key, raw_contents, timeout=3600)
+    return raw_contents
 
 
 def find_backlinks_with_contents(

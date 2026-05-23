@@ -38,6 +38,7 @@ from .markdown_utils import (
     build_preview_index,
     cached_render_markdown,
     find_backlinks_with_contents as find_backlinks,
+    get_user_markdown_raw_contents,
     parse_frontmatter,
 )
 from .models import (
@@ -57,7 +58,7 @@ from .storage import (
 )
 from .thumbnail_utils import generate_pdf_thumbnail
 from .tree_utils import active_directory_path, build_directory_tree
-from .zip_utils import build_directory_zip, extract_zip_to_directory
+from .zip_utils import ZipImportError, build_directory_zip, extract_zip_to_directory
 
 
 def _get_directory_for_user(user, dir_id: uuid.UUID) -> LearningDirectory:
@@ -120,21 +121,42 @@ def _starred_ids(user) -> set[uuid.UUID]:
     )
 
 
+def _build_sibling_map(
+    all_dirs: list[LearningDirectory],
+) -> dict[int | None, list[LearningDirectory]]:
+    from collections import defaultdict
+
+    by_parent: dict[int | None, list[LearningDirectory]] = defaultdict(list)
+    for directory in all_dirs:
+        by_parent[directory.parent_id].append(directory)
+    for siblings in by_parent.values():
+        siblings.sort(key=lambda d: d.name.lower())
+    return by_parent
+
+
 def _breadcrumb_siblings(
-    user,
     breadcrumbs: list[LearningDirectory],
+    sibling_map: dict[int | None, list[LearningDirectory]],
 ) -> list[dict[str, Any]]:
     """Sibling folders at each breadcrumb level for dropdown navigation."""
     levels: list[dict[str, Any]] = []
     for crumb in breadcrumbs:
-        parent_id = crumb.parent_id
-        siblings = list(
-            LearningDirectory.objects.filter(owner=user, parent_id=parent_id).order_by(
-                "name",
-            ),
-        )
+        siblings = sibling_map.get(crumb.parent_id, [])
         levels.append({"current": crumb, "siblings": siblings})
     return levels
+
+
+def _is_directory_descendant(
+    candidate_id: uuid.UUID,
+    ancestor_id: uuid.UUID,
+    parent_map: dict[uuid.UUID, uuid.UUID | None],
+) -> bool:
+    current: uuid.UUID | None = candidate_id
+    while current is not None:
+        if current == ancestor_id:
+            return True
+        current = parent_map.get(current)
+    return False
 
 
 def _apply_filters(
@@ -184,6 +206,7 @@ def _vault_context(
     all_dirs = _user_directories(user)
     tree_nodes = build_directory_tree(all_dirs)
     active_path = active_directory_path(current_directory)
+    sibling_map = _build_sibling_map(all_dirs)
     all_tags = list(LearningTag.objects.filter(owner=user).order_by("name"))
     starred = _starred_ids(user)
 
@@ -195,6 +218,7 @@ def _vault_context(
         "current_directory": current_directory,
         "tree_nodes": tree_nodes,
         "active_path": active_path,
+        "sibling_map": sibling_map,
         "all_tags": all_tags,
         "starred_ids": starred,
         "content_filter": content_filter,
@@ -204,6 +228,17 @@ def _vault_context(
         "search_query": request.GET.get("q", ""),
     }
     ctx.update(extra)
+    return ctx
+
+
+def _vault_context_with_breadcrumbs(
+    request,
+    breadcrumbs: list[LearningDirectory],
+    **extra: Any,
+) -> dict[str, Any]:
+    ctx = _vault_context(request, **extra)
+    ctx["breadcrumbs"] = breadcrumbs
+    ctx["breadcrumb_levels"] = _breadcrumb_siblings(breadcrumbs, ctx["sibling_map"])
     return ctx
 
 
@@ -381,13 +416,12 @@ def directory_detail(request, dir_id: uuid.UUID):
     documents = _apply_filters(documents, content_filter, tag_slug)
     child_directories, documents = _sort_items(child_directories, documents, sort_by)
     breadcrumbs = directory.get_ancestors() + [directory]
-    ctx = _vault_context(
+    ctx = _vault_context_with_breadcrumbs(
         request,
+        breadcrumbs,
         current_directory=directory,
         child_directories=child_directories,
         documents=documents,
-        breadcrumbs=breadcrumbs,
-        breadcrumb_levels=_breadcrumb_siblings(request.user, breadcrumbs),
         recent_documents=[],
         starred_documents=[],
     )
@@ -559,12 +593,11 @@ def document_view(request, doc_id: uuid.UUID):
                 content_type=LearningDocument.ContentType.MARKDOWN,
             ).order_by("title"),
         )
-        ctx = _vault_context(
+        ctx = _vault_context_with_breadcrumbs(
             request,
+            breadcrumbs,
             document=document,
             current_directory=document.directory,
-            breadcrumbs=breadcrumbs,
-            breadcrumb_levels=_breadcrumb_siblings(request.user, breadcrumbs),
             raw_url=reverse("learning:document_raw", kwargs={"doc_id": document.id}),
             initial_page=activity.last_page if activity and activity.last_page else 1,
             progress_url=reverse(
@@ -586,36 +619,24 @@ def document_view(request, doc_id: uuid.UUID):
         raise Http404("Document content not found") from None
 
     all_docs = _all_user_documents(request.user)
-    raw_contents = {str(document.id): raw}
-    for doc in all_docs:
-        if (
-            doc.id == document.id
-            or doc.content_type != LearningDocument.ContentType.MARKDOWN
-        ):
-            continue
-        try:
-            raw_contents[str(doc.id)] = open_file(doc.storage_key).decode("utf-8")
-        except (FileNotFoundError, UnicodeDecodeError):
-            continue
+    raw_contents = get_user_markdown_raw_contents(request.user.id, all_docs)
+    raw_contents[str(document.id)] = raw
 
     frontmatter, body = parse_frontmatter(raw)
     previews = build_preview_index(all_docs, raw_contents)
     html_content = cached_render_markdown(document, body, all_docs, previews)
     backlinks = find_backlinks(document, all_docs, raw_contents)
 
-    ctx = _vault_context(
+    starred = _starred_ids(request.user)
+    ctx = _vault_context_with_breadcrumbs(
         request,
+        breadcrumbs,
         document=document,
         current_directory=document.directory,
         html_content=html_content,
-        breadcrumbs=breadcrumbs,
-        breadcrumb_levels=_breadcrumb_siblings(request.user, breadcrumbs),
         frontmatter=frontmatter,
         backlinks=backlinks,
-        is_starred=LearningStarred.objects.filter(
-            user=request.user,
-            document=document,
-        ).exists(),
+        is_starred=document.id in starred,
     )
     return render(request, "learning/document_markdown.html", ctx)
 
@@ -654,12 +675,11 @@ def document_edit(request, doc_id: uuid.UUID):
         },
     )
 
-    ctx = _vault_context(
+    ctx = _vault_context_with_breadcrumbs(
         request,
+        breadcrumbs,
         document=document,
         current_directory=document.directory,
-        breadcrumbs=breadcrumbs,
-        breadcrumb_levels=_breadcrumb_siblings(request.user, breadcrumbs),
         content=raw,
         note_titles_json=json.dumps(note_titles),
     )
@@ -802,10 +822,14 @@ def directory_move(request, dir_id: uuid.UUID):
             messages.error(request, "Cannot move folder into itself.")
         else:
             new_parent = _get_directory_for_user(request.user, target_id)
-            directory.parent = new_parent
-            directory.save(update_fields=["parent", "updated_at"])
-            messages.success(request, "Folder moved.")
-            return redirect("learning:directory", dir_id=new_parent.id)
+            parent_map = {d.id: d.parent_id for d in _user_directories(request.user)}
+            if _is_directory_descendant(new_parent.id, directory.id, parent_map):
+                messages.error(request, "Cannot move folder into its own subfolder.")
+            else:
+                directory.parent = new_parent
+                directory.save(update_fields=["parent", "updated_at"])
+                messages.success(request, "Folder moved.")
+                return redirect("learning:directory", dir_id=new_parent.id)
     else:
         messages.error(request, "Could not move folder.")
     return redirect("learning:directory", dir_id=directory.id)
@@ -863,6 +887,8 @@ def directory_import_zip(request, dir_id: uuid.UUID):
             lambda user, dir_obj, buf: _save_uploaded_document(user, dir_obj, buf)[0],
         )
         messages.success(request, f"Imported {docs} file(s) and {dirs} folder(s).")
+    except ZipImportError as exc:
+        messages.error(request, str(exc))
     except Exception:
         messages.error(request, "Could not import zip file.")
     return redirect("learning:directory", dir_id=directory.id)

@@ -2,12 +2,24 @@
   const layout = document.getElementById("learning-layout");
   const sidebar = document.getElementById("learning-sidebar");
   const toggle = document.getElementById("learning-sidebar-toggle");
+  const backdrop = document.getElementById("learning-sidebar-backdrop");
   const sidebarStorageKey = "learning-sidebar-collapsed";
   const treeExpandedKey = "learning-tree-expanded";
+  const mobileQuery = window.matchMedia("(max-width: 767px)");
+
+  const isMobile = () => mobileQuery.matches;
 
   if (layout && sidebar && toggle) {
+    const setBackdropVisible = (visible) => {
+      if (!backdrop) return;
+      backdrop.hidden = !visible;
+      backdrop.setAttribute("aria-hidden", String(!visible));
+    };
+
     const applyCollapsed = (collapsed) => {
       layout.classList.toggle("sidebar-collapsed", collapsed);
+      layout.classList.toggle("sidebar-open", !collapsed);
+      setBackdropVisible(isMobile() && !collapsed);
       toggle.setAttribute("aria-expanded", String(!collapsed));
       toggle.setAttribute(
         "aria-label",
@@ -19,17 +31,69 @@
       }
     };
 
-    const savedSidebar = localStorage.getItem(sidebarStorageKey);
-    if (savedSidebar === "true") {
+    const closeSidebar = () => {
       applyCollapsed(true);
-    } else {
-      layout.classList.add("sidebar-open");
-    }
+      if (!isMobile()) {
+        localStorage.setItem(sidebarStorageKey, "true");
+      }
+    };
+
+    const openSidebar = () => {
+      applyCollapsed(false);
+      if (!isMobile()) {
+        localStorage.setItem(sidebarStorageKey, "false");
+      }
+    };
+
+    const initSidebar = () => {
+      if (isMobile()) {
+        applyCollapsed(true);
+        return;
+      }
+      const savedSidebar = localStorage.getItem(sidebarStorageKey);
+      applyCollapsed(savedSidebar === "true");
+    };
+
+    initSidebar();
 
     toggle.addEventListener("click", () => {
       const collapsed = !layout.classList.contains("sidebar-collapsed");
-      applyCollapsed(collapsed);
-      localStorage.setItem(sidebarStorageKey, String(collapsed));
+      if (collapsed) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+
+    if (backdrop) {
+      backdrop.addEventListener("click", closeSidebar);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (
+        e.key === "Escape" &&
+        isMobile() &&
+        !layout.classList.contains("sidebar-collapsed")
+      ) {
+        closeSidebar();
+      }
+    });
+
+    mobileQuery.addEventListener("change", () => {
+      if (isMobile()) {
+        applyCollapsed(true);
+      } else {
+        setBackdropVisible(false);
+        const savedSidebar = localStorage.getItem(sidebarStorageKey);
+        applyCollapsed(savedSidebar === "true");
+      }
+    });
+  }
+
+  const filterSelect = document.getElementById("learning-filter-select");
+  if (filterSelect) {
+    filterSelect.addEventListener("change", () => {
+      window.location.href = filterSelect.value;
     });
   }
 
@@ -70,6 +134,11 @@
   if (filesContainer && viewButtons.length) {
     const applyView = (view) => {
       filesContainer.dataset.view = view;
+      document
+        .querySelectorAll(".learning-section-files")
+        .forEach((section) => {
+          section.dataset.view = view;
+        });
       viewButtons.forEach((btn) => {
         const isActive = btn.dataset.view === view;
         btn.classList.toggle("active", isActive);
@@ -109,10 +178,17 @@
     xhr.open("POST", uploadForm.action);
     xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
     if (uploadProgress) uploadProgress.hidden = false;
+    if (uploadBar) {
+      uploadBar.style.width = "0%";
+      uploadBar.setAttribute("aria-valuenow", "0");
+    }
     xhr.upload.onprogress = (e) => {
       if (uploadProgress && e.lengthComputable) {
         const pct = Math.round((e.loaded / e.total) * 100);
-        if (uploadBar) uploadBar.style.width = `${pct}%`;
+        if (uploadBar) {
+          uploadBar.style.width = `${pct}%`;
+          uploadBar.setAttribute("aria-valuenow", String(pct));
+        }
         if (uploadLabel) uploadLabel.textContent = `Uploading… ${pct}%`;
       }
     };
@@ -152,7 +228,9 @@
   }
 
   document.querySelectorAll(".learning-star-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       const url = btn.dataset.starUrl;
       const csrf = document.querySelector("[name=csrfmiddlewaretoken]")?.value;
       fetch(url, {
@@ -166,8 +244,15 @@
         .then((data) => {
           btn.classList.toggle("starred", data.starred);
           const icon = btn.querySelector("i");
-          if (icon)
+          if (icon) {
             icon.className = data.starred ? "bi bi-star-fill" : "bi bi-star";
+          }
+          btn.setAttribute(
+            "aria-label",
+            data.starred
+              ? btn.dataset.unstarLabel || "Unstar"
+              : btn.dataset.starLabel || "Star",
+          );
         });
     });
   });

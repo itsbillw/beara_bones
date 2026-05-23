@@ -25,9 +25,9 @@
             type="button"
             class="btn btn-sm btn-outline-light learning-star-btn {% if is_starred %}starred{% endif %}"
             data-star-url="{% url 'learning:document_star' doc_id=document.id %}"
-            title="Star"
+            aria-label="{% if is_starred %}Unstar{% else %}Star{% endif %} {{ document.title }}"
           >
-            <i class="bi {% if is_starred %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+            <i class="bi {% if is_starred %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>
           </button>
           <a href="{% url 'learning:document_edit' doc_id=document.id %}" class="btn btn-sm btn-outline-light">Edit</a>
           <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#metaModal">

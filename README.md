@@ -68,7 +68,7 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 - **`beara_bones/`** – Django project root (run `manage.py` from here)
   - **`beara_bones/`** – Django config (settings, urls, wsgi, asgi)
   - **`home/`** – main app: landing page, about, static poem, base template and navbar
-  - **`data/`** – data app: football dashboard (data page, fragment endpoint, refresh trigger), and `ingest_football` management command
+  - **`data/`** – data app: football dashboard (embedded Plotly Dash at `/data`, refresh trigger), and `ingest_football` management command
   - **`learning/`** – learning vault: invite-only auth, per-user folders, PDF/markdown viewing at `/learning`
 - **`football/`** – pipeline package (ingest, transform, build_views, Soda 4 contracts); not a Django app
 - **`data_modelling/`** – dbt-duckdb project (marts, staging, sources)
@@ -77,7 +77,7 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 
 ## Data page and pipeline
 
-- **Data page** (`/data`): loads quickly with a shell; the points chart and league table are loaded asynchronously from `/data/fragment`. The fragment is cached (by data file mtime) to avoid recomputing on every request.
+- **Data page** (`/data`): football dashboard with an embedded Plotly Dash app (points chart and league table). Dropdown changes are cached in Django’s file cache (`FOOTBALL_DASHBOARD_CACHE_TIMEOUT`, default 600s); the pipeline bumps a cache version on success so stale figures are not served after refresh.
 - **Refresh**: POST to `/data/refresh` starts the pipeline in the background (ingest → transform → DuckDB → Soda → dbt → MariaDB + MinIO). A lock file prevents overlapping runs.
 - **Pipeline**: `make pipeline` (or the refresh button) runs ingest (RapidAPI → MinIO), transform (MinIO → CSV/Parquet), loads into DuckDB, runs Soda 4 contract verification, runs dbt, then loads to MariaDB and uploads processed Parquet to MinIO. The dashboard reads from MariaDB.
 

@@ -5,8 +5,11 @@ Registered as DjangoDash so it can be embedded via {% plotly_app name="FootballD
 
 import dash_ag_grid as dag
 from dash import Input, Output, dcc, html
+from django.conf import settings
+from django.core.cache import cache
 from django_plotly_dash import DjangoDash
 
+from .cache_utils import football_dashboard_cache_version
 from .dashboard_utils import build_standings_and_figure
 from .views import _load_fixtures_from_db, _load_team_games_from_view
 
@@ -23,7 +26,17 @@ app = DjangoDash(
         {"src": PLOTLY_JS_CDN},
         {"src": FORM_RENDERER_JS},
     ],
-    external_stylesheets=[{"href": CREST_GRID_CSS, "rel": "stylesheet"}],
+    external_stylesheets=[
+        {"href": CREST_GRID_CSS, "rel": "stylesheet"},
+        {
+            "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css",
+            "rel": "stylesheet",
+        },
+        {
+            "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine-dark.css",
+            "rel": "stylesheet",
+        },
+    ],
 )
 
 # Row height for standings grid; crests are scaled to fit
@@ -182,7 +195,7 @@ def layout_with_dropdowns():
                 ],
                 style={"marginBottom": "16px"},
             ),
-            html.Div(id=ID_ERROR, style={"color": "#856404", "marginBottom": "8px"}),
+            html.Div(id=ID_ERROR, style={"color": "#f9d4e4", "marginBottom": "8px"}),
             dcc.Graph(
                 id=ID_GRAPH,
                 figure={"layout": {"height": 620}},
@@ -197,6 +210,7 @@ def layout_with_dropdowns():
                         columnDefs=STANDINGS_COLUMN_DEFS,
                         defaultColDef={"sortable": True, "filter": True},
                         columnSize="sizeToFit",
+                        className="ag-theme-alpine-dark",
                         dashGridOptions={
                             "animateRows": True,
                             "rowHeight": STANDINGS_ROW_HEIGHT_PX,
@@ -239,6 +253,7 @@ def _empty_figure(message: str):
     return {
         "data": [],
         "layout": {
+            "template": "plotly_dark",
             "height": 620,
             "xaxis": {"visible": False},
             "yaxis": {"visible": False},
@@ -254,6 +269,16 @@ def _empty_figure(message: str):
             ],
         },
     }
+
+
+def _apply_plotly_dark(fig_or_dict):
+    """Ensure Plotly figures use the dark template."""
+    if hasattr(fig_or_dict, "update_layout"):
+        fig_or_dict.update_layout(template="plotly_dark")
+        return fig_or_dict
+    layout = fig_or_dict.setdefault("layout", {})
+    layout["template"] = "plotly_dark"
+    return fig_or_dict
 
 
 def _figure_to_json_safe_dict(fig):
@@ -283,6 +308,15 @@ def _update_chart_and_grid(league_id, season, x_axis):
     if league_id is None or season is None:
         return _empty_figure("Select league and season"), [], ""
     x_axis = x_axis or "games_played"
+    cache_timeout = getattr(settings, "FOOTBALL_DASHBOARD_CACHE_TIMEOUT", 600)
+    cache_key = (
+        f"football:dash:{football_dashboard_cache_version()}:"
+        f"{league_id}:{season}:{x_axis}"
+    )
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     team_games_df, view_err = _load_team_games_from_view(league_id, season)
     if team_games_df is not None and not team_games_df.empty:
         standings, fig, err = build_standings_and_figure(
@@ -305,5 +339,8 @@ def _update_chart_and_grid(league_id, season, x_axis):
     for i, row in enumerate(standings, start=1):
         row["rank"] = i
     # Use JSON round-trip so the figure is safe for the frontend (no numpy/datetime64)
+    fig = _apply_plotly_dark(fig)
     figure = _figure_to_json_safe_dict(fig)
-    return figure, standings, ""
+    result = (figure, standings, "")
+    cache.set(cache_key, result, timeout=cache_timeout)
+    return result

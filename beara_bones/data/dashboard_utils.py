@@ -238,7 +238,7 @@ def _standings_and_figure_from_team_games(
             title="",
             xaxis_title=xaxis_title,
             yaxis_title="Points",
-            template="plotly_white",
+            template="plotly_dark",
             height=620,
             hovermode="closest",
             margin=dict(r=220),

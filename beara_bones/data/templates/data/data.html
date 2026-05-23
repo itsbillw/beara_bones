@@ -7,25 +7,12 @@
 {% endblock %}
 
 {% block content %}
-<nav class="navbar navbar-expand data-navbar py-2">
-  <div class="data-navbar-inner">
-    <span class="navbar-brand text-light mb-0 me-4">Football data</span>
-    {% if user.is_staff %}
-    <button
-      type="button"
-      class="btn btn-outline-light btn-sm me-3"
-      id="refresh-btn"
-      data-url="{% url 'data:data_refresh' %}"
-    >
-      Refresh pipeline
-    </button>
-    <span id="refresh-status" class="me-3 small text-light"></span>
-    {% endif %}
-  </div>
-</nav>
-
 <div class="container main-container data-page-content">
-  {% plotly_app name="FootballDashboard" ratio=1 %}
+  {% include "home/_page_header.html" with page_title="Football data" page_subtitle="League standings and points over the season" page_header_actions_template="home/_page_header_data_actions.html" %}
+
+  <div class="data-panel">
+    {% plotly_app name="FootballDashboard" ratio=1 %}
+  </div>
 </div>
 
 {% if user.is_staff %}
