@@ -29,6 +29,20 @@ class LearningAuthTests(TestCase):
         response = self.client.get(reverse("learning:login"))
         self.assertEqual(response.status_code, 200)
 
+    def test_logout_get_not_allowed(self) -> None:
+        response = self.client.get(reverse("learning:logout"))
+        self.assertEqual(response.status_code, 405)
+
+    def test_logout_post_redirects_to_vault_then_login(self) -> None:
+        user = User.objects.create_user("logoutuser", "l@example.com", "pass")
+        self.client.force_login(user)
+        response = self.client.post(reverse("learning:logout"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("learning:vault"))
+        follow = self.client.get(reverse("learning:vault"))
+        self.assertEqual(follow.status_code, 302)
+        self.assertIn("/learning/login/", follow.url)
+
 
 class LearningInviteTests(TestCase):
     def setUp(self) -> None:

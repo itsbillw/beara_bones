@@ -167,9 +167,16 @@
           <div class="d-flex align-items-center">
             {% if user.is_authenticated %}
               <span class="text-light me-3 small">{{ user.username }}</span>
-              <a href="{% url 'learning:logout' %}" class="text-light me-3" title="Sign out"
-                ><i class="bi bi-box-arrow-right"></i
-              ></a>
+              <form method="post" action="{% url 'learning:logout' %}" class="d-inline me-3">
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="btn btn-link text-light p-0 border-0"
+                  title="Sign out"
+                >
+                  <i class="bi bi-box-arrow-right"></i>
+                </button>
+              </form>
             {% else %}
               <a href="{% url 'learning:login' %}" class="text-light me-3" title="Sign in"
                 ><i class="bi bi-person-circle"></i

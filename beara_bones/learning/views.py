@@ -80,7 +80,7 @@ class LearningLoginView(LoginView):
 
 
 class LearningLogoutView(LogoutView):
-    next_page = reverse_lazy("learning:login")
+    next_page = reverse_lazy("learning:vault")
 
 
 @require_http_methods(["GET", "POST"])
