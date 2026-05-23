@@ -1,0 +1,22 @@
+<aside class="learning-sidebar" id="learning-sidebar">
+  <div class="learning-sidebar-header">
+    <a
+      href="{% url 'learning:vault' %}"
+      class="learning-sidebar-title {% if not current_directory %}active{% endif %}"
+    >
+      <i class="bi bi-journal-bookmark"></i> Learning
+    </a>
+  </div>
+  <nav class="learning-tree">
+    {% for dir in tree_directories %}
+      {% if not dir.parent_id %}
+        <a
+          href="{% url 'learning:directory' dir_id=dir.id %}"
+          class="learning-tree-item {% if current_directory and current_directory.id == dir.id %}active{% endif %}"
+        >
+          <i class="bi bi-folder"></i> {{ dir.name }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+</aside>

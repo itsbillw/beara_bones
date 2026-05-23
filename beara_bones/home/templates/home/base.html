@@ -151,13 +151,30 @@
             <li class="nav-item">
               <a
                 class="nav-link btn btn-outline-light me-2 text-light"
+                href="{% url 'learning:vault' %}"
+                >Learning</a
+              >
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link btn btn-outline-light me-2 text-light"
                 href="{% url 'home:about' %}"
                 >About</a
               >
             </li>
           </ul>
-          <!-- Social media links aligned to the right -->
-          <div class="d-flex">
+          <!-- Auth + social links -->
+          <div class="d-flex align-items-center">
+            {% if user.is_authenticated %}
+              <span class="text-light me-3 small">{{ user.username }}</span>
+              <a href="{% url 'learning:logout' %}" class="text-light me-3" title="Sign out"
+                ><i class="bi bi-box-arrow-right"></i
+              ></a>
+            {% else %}
+              <a href="{% url 'learning:login' %}" class="text-light me-3" title="Sign in"
+                ><i class="bi bi-person-circle"></i
+              ></a>
+            {% endif %}
             <a
               href="https://www.instagram.com/itsbillw/"
               class="text-light me-3"

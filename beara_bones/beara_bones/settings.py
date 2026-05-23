@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django_plotly_dash.apps.DjangoPlotlyDashConfig",
     "home",
     "data",
+    "learning",
 ]
 
 MIDDLEWARE = [
@@ -158,3 +159,11 @@ CACHES = {
     },
 }
 FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600  # seconds
+
+# --- Learning vault ---
+LOGIN_URL = "/learning/login/"
+LOGIN_REDIRECT_URL = "/learning/"
+LOGOUT_REDIRECT_URL = "/learning/login/"
+LEARNING_MAX_UPLOAD_MB = int(os.getenv("LEARNING_MAX_UPLOAD_MB", "25"))
+LEARNING_INVITE_EXPIRY_DAYS = int(os.getenv("LEARNING_INVITE_EXPIRY_DAYS", "7"))
+MEDIA_URL = "/media/"

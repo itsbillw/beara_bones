@@ -1,0 +1,191 @@
+{% extends "home/base.html" %}
+{% load static learning_tags %}
+
+{% block header %}
+<link href="{% static 'learning/css/learning.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="learning-layout" id="learning-layout">
+  {% include "learning/_sidebar.html" %}
+
+  <section class="learning-main">
+    <div class="learning-toolbar">
+      <div class="learning-toolbar-start">
+        <button
+          type="button"
+          class="btn btn-link learning-sidebar-toggle"
+          id="learning-sidebar-toggle"
+          aria-controls="learning-sidebar"
+          aria-expanded="true"
+          aria-label="Hide sidebar"
+        >
+          <i class="bi bi-list"></i>
+        </button>
+
+        {% include "learning/_breadcrumb.html" %}
+      </div>
+
+      <div class="learning-toolbar-end">
+        <div class="learning-view-toggle" role="group" aria-label="View mode">
+          <button
+            type="button"
+            class="learning-view-btn active"
+            data-view="grid"
+            aria-pressed="true"
+            title="Grid view"
+          >
+            <i class="bi bi-grid-3x3-gap"></i>
+          </button>
+          <button
+            type="button"
+            class="learning-view-btn"
+            data-view="list"
+            aria-pressed="false"
+            title="List view"
+          >
+            <i class="bi bi-list-ul"></i>
+          </button>
+        </div>
+
+        <div class="dropdown learning-add-dropdown">
+          <button
+            class="btn btn-light learning-add-btn dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            <i class="bi bi-plus-lg"></i> New
+          </button>
+          <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+            <li>
+              <button
+                class="dropdown-item"
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#newFolderModal"
+              >
+                <i class="bi bi-folder-plus me-2"></i> New folder
+              </button>
+            </li>
+            {% if current_directory %}
+              <li>
+                <button class="dropdown-item" type="button" id="trigger-upload">
+                  <i class="bi bi-upload me-2"></i> Upload files
+                </button>
+              </li>
+            {% else %}
+              <li>
+                <span class="dropdown-item-text learning-dropdown-hint">
+                  Open a folder to upload files
+                </span>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="learning-content">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-info learning-alert">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      {% if child_directories or documents %}
+        <div class="learning-files" id="learning-files" data-view="grid">
+          <div class="learning-list-header" aria-hidden="true">
+            <span class="learning-file-name">Name</span>
+            <span class="learning-file-type">Type</span>
+            <span class="learning-file-date">Modified</span>
+            <span class="learning-file-size">Size</span>
+          </div>
+
+          {% for dir in child_directories %}
+            <a href="{% url 'learning:directory' dir_id=dir.id %}" class="learning-file-item">
+              <span class="learning-file-name-wrap">
+                <span class="learning-file-icon"><i class="bi bi-folder2"></i></span>
+                <span class="learning-file-name">{{ dir.name }}</span>
+              </span>
+              <span class="learning-file-type">Folder</span>
+              <span class="learning-file-date">{{ dir.updated_at|date:"M j, Y" }}</span>
+              <span class="learning-file-size">—</span>
+            </a>
+          {% endfor %}
+
+          {% for doc in documents %}
+            <a href="{% url 'learning:document' doc_id=doc.id %}" class="learning-file-item">
+              <span class="learning-file-name-wrap">
+                <span class="learning-file-icon">
+                  {% if doc.content_type == "pdf" %}
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  {% else %}
+                    <i class="bi bi-file-earmark-text"></i>
+                  {% endif %}
+                </span>
+                <span class="learning-file-name">{{ doc.title }}</span>
+              </span>
+              <span class="learning-file-type">
+                {% if doc.content_type == "pdf" %}PDF{% else %}Markdown{% endif %}
+              </span>
+              <span class="learning-file-date">{{ doc.updated_at|date:"M j, Y" }}</span>
+              <span class="learning-file-size">{{ doc.size_bytes|filesizeformat_bytes }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="learning-empty">No folders or documents yet. Use <strong>New</strong> to create a folder.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<div class="modal fade" id="newFolderModal" tabindex="-1" aria-labelledby="newFolderModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content learning-modal">
+      <form method="post" action="{% url 'learning:mkdir' %}">
+        {% csrf_token %}
+        {% if current_directory %}
+          <input type="hidden" name="parent_id" value="{{ current_directory.id }}" />
+        {% endif %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="newFolderModalLabel">New folder</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label" for="id_name">Folder name</label>
+          {{ mkdir_form.name }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-light">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if current_directory %}
+  <form
+    id="upload-form"
+    method="post"
+    action="{% url 'learning:upload' %}"
+    enctype="multipart/form-data"
+    class="d-none"
+  >
+    {% csrf_token %}
+    <input type="hidden" name="directory_id" value="{{ current_directory.id }}" />
+    <input
+      type="file"
+      name="file"
+      id="upload-input"
+      accept=".pdf,.md,.markdown"
+      multiple
+      class="d-none"
+    />
+  </form>
+{% endif %}
+
+<script src="{% static 'learning/js/learning.js' %}"></script>
+{% endblock %}

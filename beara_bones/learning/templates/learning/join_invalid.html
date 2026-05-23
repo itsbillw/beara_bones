@@ -1,0 +1,22 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block header %}
+<link href="{% static 'learning/css/learning.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="learning-auth-container">
+  <div class="learning-auth-card">
+    <h1>Invite unavailable</h1>
+    <p class="text-light">
+      {% if invite.used_at %}
+        This invite has already been used.
+      {% else %}
+        This invite has expired. Please ask for a new one.
+      {% endif %}
+    </p>
+    <a href="{% url 'learning:login' %}" class="btn btn-outline-light">Back to sign in</a>
+  </div>
+</div>
+{% endblock %}

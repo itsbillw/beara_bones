@@ -1,0 +1,23 @@
+<nav aria-label="breadcrumb" class="learning-breadcrumb">
+  <ol class="breadcrumb mb-0">
+    {% if breadcrumbs or document %}
+      <li class="breadcrumb-item">
+        <a href="{% url 'learning:vault' %}">Learning</a>
+      </li>
+      {% for crumb in breadcrumbs %}
+        {% if forloop.last and not document %}
+          <li class="breadcrumb-item active" aria-current="page">{{ crumb.name }}</li>
+        {% else %}
+          <li class="breadcrumb-item">
+            <a href="{% url 'learning:directory' dir_id=crumb.id %}">{{ crumb.name }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+      {% if document %}
+        <li class="breadcrumb-item active" aria-current="page">{{ document.title }}</li>
+      {% endif %}
+    {% else %}
+      <li class="breadcrumb-item active" aria-current="page">Learning</li>
+    {% endif %}
+  </ol>
+</nav>

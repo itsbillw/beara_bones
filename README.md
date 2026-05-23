@@ -69,6 +69,7 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
   - **`beara_bones/`** – Django config (settings, urls, wsgi, asgi)
   - **`home/`** – main app: landing page, about, static poem, base template and navbar
   - **`data/`** – data app: football dashboard (data page, fragment endpoint, refresh trigger), and `ingest_football` management command
+  - **`learning/`** – learning vault: invite-only auth, per-user folders, PDF/markdown viewing at `/learning`
 - **`football/`** – pipeline package (ingest, transform, build_views, Soda 4 contracts); not a Django app
 - **`data_modelling/`** – dbt-duckdb project (marts, staging, sources)
 - **`tests/`** – pytest tests for the `football` package; Django tests live in app `tests.py` modules

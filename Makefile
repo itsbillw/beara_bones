@@ -15,7 +15,7 @@ run-dev:  ## Run Django dev server (SQLite, settings_dev)
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py runserver
 
 .PHONY: test
-test:  ## Run Django tests (home + data apps)
+test:  ## Run Django tests (home + data + learning apps)
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py test
 
 .PHONY: test-football
@@ -28,7 +28,7 @@ test-all: test test-football  ## Run Django and football tests
 .PHONY: coverage
 coverage:  ## Run all tests with combined coverage report
 	uv run coverage erase
-	(cd beara_bones && COVERAGE_FILE=$(CURDIR)/.coverage DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data)
+	(cd beara_bones && COVERAGE_FILE=$(CURDIR)/.coverage DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data learning)
 	COVERAGE_FILE=$(CURDIR)/.coverage uv run coverage run -a -m pytest tests/ -q
 	uv run coverage report --omit='*/migrations/*,*/tests.py,*/test_*.py,manage.py,beara_bones/beara_bones/settings.py,beara_bones/beara_bones/asgi.py,beara_bones/beara_bones/wsgi.py'
 

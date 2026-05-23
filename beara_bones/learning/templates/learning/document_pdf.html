@@ -1,0 +1,70 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block header %}
+<link href="{% static 'learning/css/learning.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="learning-layout" id="learning-layout">
+  {% include "learning/_sidebar.html" %}
+
+  <section class="learning-main">
+    <div class="learning-main-header">
+      <button
+        type="button"
+        class="btn btn-link learning-sidebar-toggle"
+        id="learning-sidebar-toggle"
+        aria-controls="learning-sidebar"
+        aria-expanded="true"
+        aria-label="Hide sidebar"
+      >
+        <i class="bi bi-list"></i>
+      </button>
+
+      {% include "learning/_breadcrumb.html" %}
+    </div>
+
+    <div class="learning-content">
+      <div class="learning-doc-header">
+        <h1><i class="bi bi-file-earmark-pdf"></i> {{ document.title }}</h1>
+        <form method="post" action="{% url 'learning:document_delete' doc_id=document.id %}" onsubmit="return confirm('Delete this document?');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-outline-light">Delete</button>
+        </form>
+      </div>
+
+      <div id="pdf-viewer" class="learning-pdf-viewer"></div>
+    </div>
+  </section>
+</div>
+
+<script src="{% static 'learning/js/learning.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.mjs" type="module"></script>
+<script type="module">
+  import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.mjs";
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
+
+  const url = "{{ raw_url|escapejs }}";
+  const container = document.getElementById("pdf-viewer");
+
+  async function renderPage(pdf, pageNum) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.25 });
+    const canvas = document.createElement("canvas");
+    canvas.className = "learning-pdf-page";
+    const context = canvas.getContext("2d");
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    container.appendChild(canvas);
+    await page.render({ canvasContext: context, viewport }).promise;
+  }
+
+  pdfjsLib.getDocument(url).promise.then(async (pdf) => {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      await renderPage(pdf, i);
+    }
+  });
+</script>
+{% endblock %}

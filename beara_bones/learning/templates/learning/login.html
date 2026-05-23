@@ -1,0 +1,30 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block header %}
+<link href="{% static 'learning/css/learning.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="learning-auth-container">
+  <div class="learning-auth-card">
+    <h1><i class="bi bi-journal-bookmark"></i> Learning</h1>
+    <p class="text-light mb-4">Sign in to access your vault.</p>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="mb-3">
+        <label for="id_username" class="form-label">Username</label>
+        {{ form.username }}
+      </div>
+      <div class="mb-3">
+        <label for="id_password" class="form-label">Password</label>
+        {{ form.password }}
+      </div>
+      <button type="submit" class="btn btn-outline-light w-100">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
