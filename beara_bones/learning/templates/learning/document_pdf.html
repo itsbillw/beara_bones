@@ -6,65 +6,145 @@
 {% endblock %}
 
 {% block content %}
-<div class="learning-layout" id="learning-layout">
+<div class="learning-layout learning-pdf-layout {% if split_note %}learning-split-view{% endif %}" id="learning-layout">
   {% include "learning/_sidebar.html" %}
 
   <section class="learning-main">
     <div class="learning-main-header">
-      <button
-        type="button"
-        class="btn btn-link learning-sidebar-toggle"
-        id="learning-sidebar-toggle"
-        aria-controls="learning-sidebar"
-        aria-expanded="true"
-        aria-label="Hide sidebar"
-      >
+      <button type="button" class="btn btn-link learning-sidebar-toggle" id="learning-sidebar-toggle" aria-controls="learning-sidebar" aria-expanded="true" aria-label="Hide sidebar">
         <i class="bi bi-list"></i>
       </button>
-
       {% include "learning/_breadcrumb.html" %}
     </div>
 
-    <div class="learning-content">
+    <div class="learning-content learning-pdf-content">
       <div class="learning-doc-header">
         <h1><i class="bi bi-file-earmark-pdf"></i> {{ document.title }}</h1>
-        <form method="post" action="{% url 'learning:document_delete' doc_id=document.id %}" onsubmit="return confirm('Delete this document?');">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-sm btn-outline-light">Delete</button>
-        </form>
+        <div class="learning-doc-actions">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-light learning-star-btn {% if is_starred %}starred{% endif %}"
+            data-star-url="{% url 'learning:document_star' doc_id=document.id %}"
+            title="Star"
+          >
+            <i class="bi {% if is_starred %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#metaModal">
+            Edit metadata
+          </button>
+          {% if folder_notes %}
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                Split note
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark">
+                {% for note in folder_notes %}
+                  <li>
+                    <a class="dropdown-item" href="?note={{ note.id }}">{{ note.title }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          <form method="post" action="{% url 'learning:document_delete' doc_id=document.id %}" onsubmit="return confirm('Delete this document?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-light">Delete</button>
+          </form>
+        </div>
       </div>
 
-      <div id="pdf-viewer" class="learning-pdf-viewer"></div>
+      <div class="learning-pdf-container">
+        <div class="learning-pdf-main">
+          <div class="learning-pdf-toolbar" id="pdf-toolbar">
+            <button type="button" id="pdf-prev" title="Previous page"><i class="bi bi-chevron-left"></i></button>
+            <span class="learning-pdf-page-controls">
+              <input type="number" id="pdf-page-input" min="1" value="{{ initial_page }}" aria-label="Page number" />
+              <span id="pdf-page-count">/ 1</span>
+            </span>
+            <button type="button" id="pdf-next" title="Next page"><i class="bi bi-chevron-right"></i></button>
+            <span class="learning-pdf-toolbar-divider"></span>
+            <button type="button" id="pdf-zoom-out" title="Zoom out"><i class="bi bi-dash-lg"></i></button>
+            <button type="button" id="pdf-zoom-in" title="Zoom in"><i class="bi bi-plus-lg"></i></button>
+            <button type="button" id="pdf-fit-width" title="Fit width">Fit width</button>
+            <button type="button" id="pdf-fit-page" title="Fit page">Fit page</button>
+            <button type="button" id="pdf-fullscreen" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+          </div>
+          <div id="pdf-viewer" class="learning-pdf-viewer" tabindex="0"></div>
+        </div>
+
+        {% if split_note %}
+          <aside class="learning-split-note">
+            <h3><a href="{% url 'learning:document' doc_id=split_note.id %}">{{ split_note.title }}</a></h3>
+            <iframe src="{% url 'learning:document' doc_id=split_note.id %}" title="{{ split_note.title }}"></iframe>
+          </aside>
+        {% endif %}
+      </div>
     </div>
   </section>
 </div>
 
+<div class="modal fade" id="metaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content learning-modal">
+      <form method="post" action="{% url 'learning:document_meta' doc_id=document.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Document metadata</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="{{ document.title }}" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Language</label>
+            <select name="language" class="form-select">
+              <option value="" {% if not document.language %}selected{% endif %}>—</option>
+              <option value="es" {% if document.language == 'es' %}selected{% endif %}>Spanish</option>
+              <option value="en" {% if document.language == 'en' %}selected{% endif %}>English</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Topic</label>
+            <input type="text" name="topic" class="form-control" value="{{ document.topic }}" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Author</label>
+            <input type="text" name="author" class="form-control" value="{{ document.author }}" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Difficulty</label>
+            <select name="difficulty" class="form-select">
+              <option value="" {% if not document.difficulty %}selected{% endif %}>—</option>
+              <option value="beginner" {% if document.difficulty == 'beginner' %}selected{% endif %}>Beginner</option>
+              <option value="intermediate" {% if document.difficulty == 'intermediate' %}selected{% endif %}>Intermediate</option>
+              <option value="advanced" {% if document.difficulty == 'advanced' %}selected{% endif %}>Advanced</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tags (comma-separated)</label>
+            <input type="text" name="tag_names" class="form-control" value="{% for t in document.tags.all %}{{ t.name }}{% if not forloop.last %}, {% endif %}{% endfor %}" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-light">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'learning/js/learning.js' %}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.mjs" type="module"></script>
 <script type="module">
-  import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.min.mjs";
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.8.69/pdf.worker.min.mjs";
-
-  const url = "{{ raw_url|escapejs }}";
-  const container = document.getElementById("pdf-viewer");
-
-  async function renderPage(pdf, pageNum) {
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 1.25 });
-    const canvas = document.createElement("canvas");
-    canvas.className = "learning-pdf-page";
-    const context = canvas.getContext("2d");
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
-    container.appendChild(canvas);
-    await page.render({ canvasContext: context, viewport }).promise;
-  }
-
-  pdfjsLib.getDocument(url).promise.then(async (pdf) => {
-    for (let i = 1; i <= pdf.numPages; i++) {
-      await renderPage(pdf, i);
-    }
+  import { initPdfViewer } from "{% static 'learning/js/learning_pdf.js' %}";
+  initPdfViewer({
+    url: "{{ raw_url|escapejs }}",
+    containerId: "pdf-viewer",
+    initialPage: {{ initial_page }},
+    progressUrl: "{{ progress_url|escapejs }}",
+    csrfToken: "{{ csrf_token }}",
   });
 </script>
 {% endblock %}

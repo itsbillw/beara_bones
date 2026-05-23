@@ -37,21 +37,15 @@ def build_storage_key(
     return f"users/{user_id}/{directory_uuid}/{document_uuid}_{safe_name}"
 
 
+def build_thumbnail_key(document_uuid: str) -> str:
+    return f"thumbnails/{document_uuid}.png"
+
+
 def _local_path(storage_key: str) -> Path:
     return Path(settings.MEDIA_ROOT) / "learning" / storage_key
 
 
-def save_file(
-    user_id: int,
-    directory_uuid: str,
-    document_uuid: str,
-    filename: str,
-    file_obj: BinaryIO,
-) -> str:
-    """Persist file bytes and return the storage key."""
-    storage_key = build_storage_key(user_id, directory_uuid, document_uuid, filename)
-    data = file_obj.read()
-
+def _put_bytes(storage_key: str, data: bytes) -> None:
     if _minio_available():
         repo_root = _repo_root()
         if str(repo_root) not in sys.path:
@@ -69,6 +63,32 @@ def save_file(
         path.write_bytes(data)
         logger.debug("Saved learning file locally: %s", path)
 
+
+def save_file(
+    user_id: int,
+    directory_uuid: str,
+    document_uuid: str,
+    filename: str,
+    file_obj: BinaryIO,
+) -> str:
+    """Persist file bytes and return the storage key."""
+    storage_key = build_storage_key(user_id, directory_uuid, document_uuid, filename)
+    data = file_obj.read()
+    _put_bytes(storage_key, data)
+    return storage_key
+
+
+def overwrite_file(storage_key: str, file_obj: BinaryIO) -> int:
+    """Replace file bytes at an existing storage key. Returns byte count."""
+    data = file_obj.read()
+    _put_bytes(storage_key, data)
+    return len(data)
+
+
+def save_thumbnail(document_uuid: str, png_bytes: bytes) -> str:
+    """Save a PNG thumbnail and return its storage key."""
+    storage_key = build_thumbnail_key(document_uuid)
+    _put_bytes(storage_key, png_bytes)
     return storage_key
 
 

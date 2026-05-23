@@ -1,4 +1,4 @@
-"""Learning vault models: invites, directories, and documents."""
+"""Learning vault models: invites, directories, documents, activity, tags."""
 
 from __future__ import annotations
 
@@ -109,12 +109,53 @@ class LearningDirectory(models.Model):
         return ancestors
 
 
+class LearningTag(models.Model):
+    """User-scoped tag for organising documents."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="learning_tags",
+    )
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "slug"],
+                name="learning_unique_tag_slug_per_owner",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return str(self.name)
+
+    def save(self, *args, **kwargs) -> None:
+        if not self.slug:
+            self.slug = slugify(self.name) or "tag"
+        super().save(*args, **kwargs)
+
+
 class LearningDocument(models.Model):
     """User-owned file stored in MinIO (or local media fallback)."""
 
     class ContentType(models.TextChoices):
         PDF = "pdf", "PDF"
         MARKDOWN = "markdown", "Markdown"
+
+    class Language(models.TextChoices):
+        SPANISH = "es", "Spanish"
+        ENGLISH = "en", "English"
+        BLANK = "", "—"
+
+    class Difficulty(models.TextChoices):
+        BEGINNER = "beginner", "Beginner"
+        INTERMEDIATE = "intermediate", "Intermediate"
+        ADVANCED = "advanced", "Advanced"
+        BLANK = "", "—"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey(
@@ -132,6 +173,28 @@ class LearningDocument(models.Model):
     content_type = models.CharField(max_length=16, choices=ContentType.choices)
     storage_key = models.CharField(max_length=512)
     size_bytes = models.PositiveIntegerField(default=0)
+    language = models.CharField(
+        max_length=8,
+        choices=Language.choices,
+        blank=True,
+        default="",
+    )
+    topic = models.CharField(max_length=255, blank=True, default="")
+    author = models.CharField(max_length=255, blank=True, default="")
+    difficulty = models.CharField(
+        max_length=16,
+        choices=Difficulty.choices,
+        blank=True,
+        default="",
+    )
+    thumbnail_key = models.CharField(max_length=512, blank=True, default="")
+    content_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+    )
+    tags = models.ManyToManyField(LearningTag, blank=True, related_name="documents")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -140,3 +203,60 @@ class LearningDocument(models.Model):
 
     def __str__(self) -> str:
         return str(self.title)
+
+
+class LearningActivity(models.Model):
+    """Tracks document views and PDF reading progress per user."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="learning_activities",
+    )
+    document = models.ForeignKey(
+        LearningDocument,
+        on_delete=models.CASCADE,
+        related_name="activities",
+    )
+    last_page = models.PositiveIntegerField(null=True, blank=True)
+    last_viewed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_viewed_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "document"],
+                name="learning_unique_activity_per_user_doc",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} → {self.document_id}"
+
+
+class LearningStarred(models.Model):
+    """User-starred documents for quick access."""
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="learning_starred",
+    )
+    document = models.ForeignKey(
+        LearningDocument,
+        on_delete=models.CASCADE,
+        related_name="starred_by",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "document"],
+                name="learning_unique_starred_per_user_doc",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"★ {self.document_id} ({self.user_id})"

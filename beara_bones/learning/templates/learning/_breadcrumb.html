@@ -4,14 +4,35 @@
       <li class="breadcrumb-item">
         <a href="{% url 'learning:vault' %}">Learning</a>
       </li>
-      {% for crumb in breadcrumbs %}
-        {% if forloop.last and not document %}
-          <li class="breadcrumb-item active" aria-current="page">{{ crumb.name }}</li>
-        {% else %}
-          <li class="breadcrumb-item">
-            <a href="{% url 'learning:directory' dir_id=crumb.id %}">{{ crumb.name }}</a>
-          </li>
-        {% endif %}
+      {% for level in breadcrumb_levels %}
+        <li class="breadcrumb-item dropdown">
+          <a
+            href="{% url 'learning:directory' dir_id=level.current.id %}"
+            class="dropdown-toggle"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >{{ level.current.name }}</a>
+          <ul class="dropdown-menu dropdown-menu-dark">
+            {% for sibling in level.siblings %}
+              <li>
+                <a
+                  class="dropdown-item {% if sibling.id == level.current.id %}active{% endif %}"
+                  href="{% url 'learning:directory' dir_id=sibling.id %}"
+                >{{ sibling.name }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% empty %}
+        {% for crumb in breadcrumbs %}
+          {% if forloop.last and not document %}
+            <li class="breadcrumb-item active" aria-current="page">{{ crumb.name }}</li>
+          {% else %}
+            <li class="breadcrumb-item">
+              <a href="{% url 'learning:directory' dir_id=crumb.id %}">{{ crumb.name }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
       {% endfor %}
       {% if document %}
         <li class="breadcrumb-item active" aria-current="page">{{ document.title }}</li>

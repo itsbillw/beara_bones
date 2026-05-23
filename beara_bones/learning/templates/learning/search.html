@@ -1,0 +1,65 @@
+{% extends "home/base.html" %}
+{% load static learning_tags %}
+
+{% block header %}
+<link href="{% static 'learning/css/learning.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="learning-layout" id="learning-layout">
+  {% include "learning/_sidebar.html" %}
+
+  <section class="learning-main">
+    <div class="learning-toolbar">
+      <div class="learning-toolbar-start">
+        <button type="button" class="btn btn-link learning-sidebar-toggle" id="learning-sidebar-toggle" aria-controls="learning-sidebar" aria-expanded="true" aria-label="Hide sidebar">
+          <i class="bi bi-list"></i>
+        </button>
+        <nav aria-label="breadcrumb" class="learning-breadcrumb">
+          <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'learning:vault' %}">Learning</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Search</li>
+          </ol>
+        </nav>
+      </div>
+      <div class="learning-toolbar-center">
+        <form method="get" action="{% url 'learning:search' %}" class="learning-search-form" id="learning-search-form">
+          <i class="bi bi-search"></i>
+          <input type="search" name="q" id="learning-search-input" class="learning-search-input" placeholder="Search documents…" value="{{ query }}" autofocus />
+        </form>
+      </div>
+    </div>
+
+    <div class="learning-content">
+      {% if query %}
+        <h2 class="learning-section-title">Results for “{{ query }}”</h2>
+        {% if results %}
+          <div class="learning-search-results">
+            {% for doc in results %}
+              <a href="{% url 'learning:document' doc_id=doc.id %}" class="learning-search-item">
+                <span class="learning-search-icon">
+                  {% if doc.content_type == "pdf" %}
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  {% else %}
+                    <i class="bi bi-file-earmark-text"></i>
+                  {% endif %}
+                </span>
+                <span class="learning-search-info">
+                  <span class="learning-search-title">{{ doc.title }}</span>
+                  <span class="learning-search-meta">{{ doc.original_filename }} · {{ doc.directory.name }}</span>
+                </span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="learning-empty">No documents match your search.</p>
+        {% endif %}
+      {% else %}
+        <p class="learning-empty">Enter a search term to find documents by title or filename.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<script src="{% static 'learning/js/learning.js' %}"></script>
+{% endblock %}

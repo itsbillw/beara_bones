@@ -1,0 +1,36 @@
+{% load learning_tags %}
+<a href="{% url 'learning:document' doc_id=doc.id %}" class="learning-file-item">
+  <span class="learning-file-name-wrap">
+    <span class="learning-file-icon">
+      {% if doc.content_type == "pdf" and doc.thumbnail_key %}
+        <img
+          src="{% url 'learning:document_thumbnail' doc_id=doc.id %}"
+          alt=""
+          class="learning-file-thumb"
+          loading="lazy"
+        />
+      {% elif doc.content_type == "pdf" %}
+        <i class="bi bi-file-earmark-pdf"></i>
+      {% else %}
+        <i class="bi bi-file-earmark-text"></i>
+      {% endif %}
+    </span>
+    <span class="learning-file-name">{{ doc.title }}</span>
+    {% if show_star %}
+      <button
+        type="button"
+        class="learning-star-btn {% if doc.id in starred_ids %}starred{% endif %}"
+        data-star-url="{% url 'learning:document_star' doc_id=doc.id %}"
+        title="Star"
+        onclick="event.preventDefault(); event.stopPropagation();"
+      >
+        <i class="bi {% if doc.id in starred_ids %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+      </button>
+    {% endif %}
+  </span>
+  <span class="learning-file-type">
+    {% if doc.content_type == "pdf" %}PDF{% else %}Markdown{% endif %}
+  </span>
+  <span class="learning-file-date">{{ doc.updated_at|date:"M j, Y" }}</span>
+  <span class="learning-file-size">{{ doc.size_bytes|filesizeformat_bytes }}</span>
+</a>

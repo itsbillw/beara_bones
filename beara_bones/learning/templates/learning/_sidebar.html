@@ -7,16 +7,28 @@
       <i class="bi bi-journal-bookmark"></i> Learning
     </a>
   </div>
-  <nav class="learning-tree">
-    {% for dir in tree_directories %}
-      {% if not dir.parent_id %}
-        <a
-          href="{% url 'learning:directory' dir_id=dir.id %}"
-          class="learning-tree-item {% if current_directory and current_directory.id == dir.id %}active{% endif %}"
-        >
-          <i class="bi bi-folder"></i> {{ dir.name }}
-        </a>
-      {% endif %}
+  <nav class="learning-tree" id="learning-tree">
+    {% for node in tree_nodes %}
+      {% include "learning/_tree_node.html" with node=node %}
+    {% empty %}
+      <p class="learning-tree-empty">No folders yet</p>
     {% endfor %}
   </nav>
+  {% if all_tags %}
+    <div class="learning-sidebar-tags">
+      <span class="learning-sidebar-tags-label">Tags</span>
+      <div class="learning-tag-chips">
+        <a
+          href="{% if current_directory %}{% url 'learning:directory' dir_id=current_directory.id %}{% else %}{% url 'learning:vault' %}{% endif %}"
+          class="learning-tag-chip {% if not tag_slug %}active{% endif %}"
+        >All</a>
+        {% for tag in all_tags %}
+          <a
+            href="?tag={{ tag.slug }}{% if content_filter %}&type={{ content_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}"
+            class="learning-tag-chip {% if tag_slug == tag.slug %}active{% endif %}"
+          >{{ tag.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 </aside>

@@ -23,6 +23,10 @@
         <label for="id_password" class="form-label">Password</label>
         {{ form.password }}
       </div>
+      <div class="mb-3 form-check">
+        {{ form.remember_me }}
+        <label class="form-check-label" for="id_remember_me">Remember me</label>
+      </div>
       <button type="submit" class="btn btn-outline-light w-100">Sign in</button>
     </form>
   </div>

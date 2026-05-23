@@ -92,6 +92,94 @@ main:has(> .learning-layout) {
   opacity: 0.85;
 }
 
+.learning-tree-node {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 0.25rem;
+}
+
+.learning-tree-toggle,
+.learning-tree-toggle-spacer {
+  grid-column: 1;
+  grid-row: 1;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.learning-tree-toggle .bi {
+  transition: transform 0.15s ease;
+  font-size: 0.75rem;
+}
+
+.learning-tree-toggle.expanded .bi {
+  transform: rotate(90deg);
+}
+
+.learning-tree-node > .learning-tree-item {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.learning-tree-children {
+  grid-column: 1 / -1;
+  display: none;
+  padding-left: 0.85rem;
+}
+
+.learning-tree-children.expanded {
+  display: block;
+}
+
+.learning-tree-empty {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+  padding: 0.5rem;
+}
+
+.learning-sidebar-tags {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.learning-sidebar-tags-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.5rem;
+}
+
+.learning-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.learning-tag-chip {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+}
+
+.learning-tag-chip.active,
+.learning-tag-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f9d4e4;
+}
+
 .learning-tree-item:hover,
 .learning-tree-item.active {
   background: rgba(255, 255, 255, 0.12);
@@ -119,7 +207,8 @@ main:has(> .learning-layout) {
 }
 
 .learning-toolbar-start,
-.learning-toolbar-end {
+.learning-toolbar-end,
+.learning-toolbar-center {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -234,6 +323,178 @@ main:has(> .learning-layout) {
 .learning-dropdown-hint {
   color: rgba(255, 255, 255, 0.55);
   font-size: 0.875rem;
+}
+
+.learning-search-form {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  min-width: 180px;
+  max-width: 320px;
+  flex: 1;
+}
+
+.learning-search-input {
+  border: none;
+  background: transparent;
+  color: #fff;
+  width: 100%;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.learning-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.learning-filter-tabs {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.learning-filter-tab {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.learning-filter-tab:last-child {
+  border-right: none;
+}
+
+.learning-filter-tab.active,
+.learning-filter-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f9d4e4;
+}
+
+.learning-section {
+  margin-bottom: 1.5rem;
+}
+
+.learning-section-title {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.75rem;
+}
+
+.learning-section-files[data-view="grid"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 0.65rem;
+}
+
+.learning-file-thumb {
+  width: 48px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.learning-star-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 0;
+  line-height: 1;
+}
+
+.learning-star-btn.starred,
+.learning-star-btn:hover {
+  color: #f9d4e4;
+}
+
+.learning-sort-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.learning-sort-link.active {
+  color: #f9d4e4;
+}
+
+.learning-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 128, 128, 0.15);
+  border: 2px dashed rgba(249, 212, 228, 0.6);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.learning-content {
+  position: relative;
+}
+
+.learning-content.drag-over {
+  outline: 2px dashed rgba(249, 212, 228, 0.4);
+}
+
+.learning-drop-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f9d4e4;
+  font-size: 1.1rem;
+}
+
+.learning-upload-progress {
+  margin-bottom: 1rem;
+}
+
+.learning-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.learning-search-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.learning-search-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f9d4e4;
+}
+
+.learning-search-meta {
+  display: block;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.learning-shortcuts dt {
+  float: left;
+  clear: left;
+  width: 5rem;
+  font-family: monospace;
+  color: #f9d4e4;
+}
+
+.learning-shortcuts dd {
+  margin-left: 5.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .learning-content {
@@ -483,6 +744,200 @@ main:has(> .learning-layout) {
   white-space: nowrap;
 }
 
+.learning-doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.learning-pdf-layout .learning-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.learning-pdf-container {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.learning-pdf-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.learning-pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px 8px 0 0;
+  flex-wrap: wrap;
+}
+
+.learning-pdf-toolbar button {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.85rem;
+}
+
+.learning-pdf-page-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.learning-pdf-page-controls input {
+  width: 3rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border-radius: 4px;
+}
+
+.learning-pdf-toolbar-divider {
+  width: 1px;
+  height: 1.25rem;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 0.25rem;
+}
+
+.learning-pdf-viewer {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0 0 8px 8px;
+  padding: 1rem;
+  overflow: auto;
+  flex: 1;
+  min-height: 420px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.learning-pdf-page-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.learning-split-view .learning-pdf-container {
+  flex-wrap: wrap;
+}
+
+.learning-split-note {
+  flex: 0 0 320px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem;
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+}
+
+.learning-split-note iframe {
+  flex: 1;
+  border: none;
+  background: #fff;
+  border-radius: 4px;
+  min-height: 300px;
+}
+
+.learning-frontmatter,
+.learning-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.learning-frontmatter-item {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.learning-backlinks {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.learning-backlinks h2 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.learning-backlinks ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.learning-backlinks a {
+  color: #f9d4e4;
+}
+
+.learning-editor {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  font-size: 0.9rem;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 420px;
+}
+
+.learning-edit-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.learning-edit-hint {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.learning-autocomplete {
+  position: absolute;
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  background: rgba(30, 30, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.learning-autocomplete li {
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  color: #fff;
+}
+
+.learning-autocomplete li:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f9d4e4;
+}
+
+.learning-edit-form {
+  position: relative;
+}
+
 .learning-pdf-viewer {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 8px;
@@ -548,26 +1003,48 @@ main:has(> .learning-layout) {
 
 @media (max-width: 768px) {
   .learning-layout {
-    flex-direction: column;
+    flex-direction: row;
     min-height: auto;
+    position: relative;
   }
 
   .learning-sidebar {
-    flex: none;
-    width: 100%;
-    max-height: 220px;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1040;
+    width: min(280px, 85vw);
+    max-height: none;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    border-bottom: none;
+  }
+
+  .learning-layout.sidebar-open .learning-sidebar {
+    transform: translateX(0);
   }
 
   .learning-layout.sidebar-collapsed .learning-sidebar {
-    display: none;
+    transform: translateX(-100%);
+    opacity: 1;
+    pointer-events: none;
   }
 
   .learning-toolbar,
   .learning-main-header {
     padding-left: 0.75rem;
     padding-right: 0.75rem;
+  }
+
+  .learning-toolbar-center {
+    order: 3;
+    width: 100%;
+  }
+
+  .learning-search-form {
+    max-width: none;
   }
 
   .learning-content {
@@ -584,6 +1061,10 @@ main:has(> .learning-layout) {
   .learning-list-header .learning-file-size,
   .learning-files[data-view="list"] .learning-file-date,
   .learning-files[data-view="list"] .learning-file-size {
+    display: none;
+  }
+
+  .learning-filter-tabs {
     display: none;
   }
 }

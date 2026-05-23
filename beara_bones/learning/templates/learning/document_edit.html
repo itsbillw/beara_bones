@@ -1,0 +1,96 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block header %}
+<link href="{% static 'learning/css/learning.css' %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+<div class="learning-layout" id="learning-layout">
+  {% include "learning/_sidebar.html" %}
+
+  <section class="learning-main">
+    <div class="learning-main-header">
+      <button type="button" class="btn btn-link learning-sidebar-toggle" id="learning-sidebar-toggle" aria-controls="learning-sidebar" aria-expanded="true" aria-label="Hide sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      {% include "learning/_breadcrumb.html" %}
+    </div>
+
+    <div class="learning-content">
+      <div class="learning-doc-header">
+        <h1><i class="bi bi-pencil"></i> Edit: {{ document.title }}</h1>
+        <a href="{% url 'learning:document' doc_id=document.id %}" class="btn btn-sm btn-outline-light">Cancel</a>
+      </div>
+
+      <form method="post" class="learning-edit-form">
+        {% csrf_token %}
+        <textarea name="content" id="note-editor" class="learning-editor" rows="24">{{ content }}</textarea>
+        <div class="learning-edit-footer">
+          <p class="learning-edit-hint">Use <code>[[Note Title]]</code> for wikilinks. Type <code>[[</code> for suggestions.</p>
+          <button type="submit" class="btn btn-light">Save</button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+
+<script src="{% static 'learning/js/learning.js' %}"></script>
+<script>
+  (function () {
+    const titles = {{ note_titles_json|safe }};
+    const editor = document.getElementById("note-editor");
+    if (!editor || !titles.length) return;
+
+    let dropdown = null;
+
+    const hideDropdown = () => {
+      if (dropdown) {
+        dropdown.remove();
+        dropdown = null;
+      }
+    };
+
+    const showSuggestions = (query, pos) => {
+      hideDropdown();
+      const matches = titles.filter((t) => t.toLowerCase().includes(query.toLowerCase())).slice(0, 8);
+      if (!matches.length) return;
+
+      dropdown = document.createElement("ul");
+      dropdown.className = "learning-autocomplete";
+      matches.forEach((title) => {
+        const li = document.createElement("li");
+        li.textContent = title;
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          insertWikilink(title, pos);
+          hideDropdown();
+        });
+        dropdown.appendChild(li);
+      });
+      editor.parentElement.appendChild(dropdown);
+    };
+
+    const insertWikilink = (title, bracketPos) => {
+      const before = editor.value.slice(0, bracketPos);
+      const after = editor.value.slice(editor.selectionStart);
+      editor.value = `${before}[[${title}]]${after}`;
+      editor.focus();
+    };
+
+    editor.addEventListener("input", () => {
+      const val = editor.value;
+      const cursor = editor.selectionStart;
+      const before = val.slice(0, cursor);
+      const match = before.match(/\[\[([^\]]*?)$/);
+      if (match) {
+        showSuggestions(match[1], cursor - match[1].length - 2);
+      } else {
+        hideDropdown();
+      }
+    });
+
+    editor.addEventListener("blur", () => setTimeout(hideDropdown, 150));
+  })();
+</script>
+{% endblock %}

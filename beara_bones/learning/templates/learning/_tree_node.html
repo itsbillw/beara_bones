@@ -1,0 +1,28 @@
+<div class="learning-tree-node" data-dir-id="{{ node.directory.id }}">
+  {% if node.children %}
+    <button
+      type="button"
+      class="learning-tree-toggle"
+      data-dir-id="{{ node.directory.id }}"
+      aria-expanded="false"
+      aria-label="Expand {{ node.directory.name }}"
+    >
+      <i class="bi bi-chevron-right"></i>
+    </button>
+  {% else %}
+    <span class="learning-tree-toggle-spacer" aria-hidden="true"></span>
+  {% endif %}
+  <a
+    href="{% url 'learning:directory' dir_id=node.directory.id %}"
+    class="learning-tree-item {% if node.directory.id in active_path %}active{% endif %}"
+  >
+    <i class="bi bi-folder"></i> {{ node.directory.name }}
+  </a>
+  {% if node.children %}
+    <div class="learning-tree-children d-none" id="tree-children-{{ node.directory.id }}">
+      {% for child in node.children %}
+        {% include "learning/_tree_node.html" with node=child %}
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

@@ -26,45 +26,53 @@
         {% include "learning/_breadcrumb.html" %}
       </div>
 
+      <div class="learning-toolbar-center">
+        <form method="get" action="{% url 'learning:search' %}" class="learning-search-form" id="learning-search-form">
+          <i class="bi bi-search"></i>
+          <input
+            type="search"
+            name="q"
+            id="learning-search-input"
+            class="learning-search-input"
+            placeholder="Search documents…"
+            value="{{ search_query }}"
+            autocomplete="off"
+          />
+        </form>
+      </div>
+
       <div class="learning-toolbar-end">
+        <div class="learning-filter-tabs" role="group" aria-label="Content filter">
+          <a
+            href="?{% if sort_by %}sort={{ sort_by }}{% endif %}{% if tag_slug %}{% if sort_by %}&{% endif %}tag={{ tag_slug }}{% endif %}"
+            class="learning-filter-tab {% if not content_filter %}active{% endif %}"
+          >All</a>
+          <a
+            href="?type=pdf{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}"
+            class="learning-filter-tab {% if content_filter == 'pdf' %}active{% endif %}"
+          >Documents</a>
+          <a
+            href="?type=markdown{% if sort_by %}&sort={{ sort_by }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}"
+            class="learning-filter-tab {% if content_filter == 'markdown' %}active{% endif %}"
+          >Notes</a>
+        </div>
+
         <div class="learning-view-toggle" role="group" aria-label="View mode">
-          <button
-            type="button"
-            class="learning-view-btn active"
-            data-view="grid"
-            aria-pressed="true"
-            title="Grid view"
-          >
+          <button type="button" class="learning-view-btn active" data-view="grid" aria-pressed="true" title="Grid view (g g)">
             <i class="bi bi-grid-3x3-gap"></i>
           </button>
-          <button
-            type="button"
-            class="learning-view-btn"
-            data-view="list"
-            aria-pressed="false"
-            title="List view"
-          >
+          <button type="button" class="learning-view-btn" data-view="list" aria-pressed="false" title="List view (g l)">
             <i class="bi bi-list-ul"></i>
           </button>
         </div>
 
         <div class="dropdown learning-add-dropdown">
-          <button
-            class="btn btn-light learning-add-btn dropdown-toggle"
-            type="button"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
+          <button class="btn btn-light learning-add-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
             <i class="bi bi-plus-lg"></i> New
           </button>
           <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
             <li>
-              <button
-                class="dropdown-item"
-                type="button"
-                data-bs-toggle="modal"
-                data-bs-target="#newFolderModal"
-              >
+              <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#newFolderModal">
                 <i class="bi bi-folder-plus me-2"></i> New folder
               </button>
             </li>
@@ -74,11 +82,25 @@
                   <i class="bi bi-upload me-2"></i> Upload files
                 </button>
               </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li>
+                <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#newNoteModal">
+                  <i class="bi bi-file-earmark-text me-2"></i> New note
+                </button>
+              </li>
+              <li>
+                <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#importZipModal">
+                  <i class="bi bi-file-zip me-2"></i> Import zip
+                </button>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'learning:directory_export_zip' dir_id=current_directory.id %}">
+                  <i class="bi bi-download me-2"></i> Export zip
+                </a>
+              </li>
             {% else %}
               <li>
-                <span class="dropdown-item-text learning-dropdown-hint">
-                  Open a folder to upload files
-                </span>
+                <span class="dropdown-item-text learning-dropdown-hint">Open a folder to upload or create notes</span>
               </li>
             {% endif %}
           </ul>
@@ -86,20 +108,68 @@
       </div>
     </div>
 
-    <div class="learning-content">
+    <div class="learning-content" id="learning-content">
       {% if messages %}
         {% for message in messages %}
           <div class="alert alert-info learning-alert">{{ message }}</div>
         {% endfor %}
       {% endif %}
 
+      <div class="learning-drop-overlay" id="learning-drop-overlay" hidden>
+        <div class="learning-drop-message">
+          <i class="bi bi-cloud-upload"></i>
+          <span>Drop files to upload</span>
+        </div>
+      </div>
+
+      <div class="learning-upload-progress" id="learning-upload-progress" hidden>
+        <div class="progress">
+          <div class="progress-bar" id="learning-upload-bar" role="progressbar" style="width: 0%"></div>
+        </div>
+        <span id="learning-upload-label">Uploading…</span>
+      </div>
+
+      {% if not current_directory and recent_documents %}
+        <section class="learning-section">
+          <h2 class="learning-section-title"><i class="bi bi-clock-history"></i> Recent</h2>
+          <div class="learning-files learning-section-files" data-view="grid">
+            {% for doc in recent_documents %}
+              {% include "learning/_file_item.html" with doc=doc show_star=True %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if not current_directory and starred_documents %}
+        <section class="learning-section">
+          <h2 class="learning-section-title"><i class="bi bi-star-fill"></i> Starred</h2>
+          <div class="learning-files learning-section-files" data-view="grid">
+            {% for doc in starred_documents %}
+              {% include "learning/_file_item.html" with doc=doc show_star=True %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
       {% if child_directories or documents %}
-        <div class="learning-files" id="learning-files" data-view="grid">
+        {% if not current_directory %}
+          <h2 class="learning-section-title"><i class="bi bi-folder2"></i> Folders</h2>
+        {% endif %}
+
+        <div class="learning-files" id="learning-files" data-view="grid" data-sort="{{ sort_by }}">
           <div class="learning-list-header" aria-hidden="true">
-            <span class="learning-file-name">Name</span>
-            <span class="learning-file-type">Type</span>
-            <span class="learning-file-date">Modified</span>
-            <span class="learning-file-size">Size</span>
+            <span class="learning-file-name">
+              <a href="?sort=name{% if content_filter %}&type={{ content_filter }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}" class="learning-sort-link {% if sort_by == 'name' %}active{% endif %}">Name</a>
+            </span>
+            <span class="learning-file-type">
+              <a href="?sort=type{% if content_filter %}&type={{ content_filter }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}" class="learning-sort-link {% if sort_by == 'type' %}active{% endif %}">Type</a>
+            </span>
+            <span class="learning-file-date">
+              <a href="?sort=date{% if content_filter %}&type={{ content_filter }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}" class="learning-sort-link {% if sort_by == 'date' %}active{% endif %}">Modified</a>
+            </span>
+            <span class="learning-file-size">
+              <a href="?sort=size{% if content_filter %}&type={{ content_filter }}{% endif %}{% if tag_slug %}&tag={{ tag_slug }}{% endif %}" class="learning-sort-link {% if sort_by == 'size' %}active{% endif %}">Size</a>
+            </span>
           </div>
 
           {% for dir in child_directories %}
@@ -115,26 +185,12 @@
           {% endfor %}
 
           {% for doc in documents %}
-            <a href="{% url 'learning:document' doc_id=doc.id %}" class="learning-file-item">
-              <span class="learning-file-name-wrap">
-                <span class="learning-file-icon">
-                  {% if doc.content_type == "pdf" %}
-                    <i class="bi bi-file-earmark-pdf"></i>
-                  {% else %}
-                    <i class="bi bi-file-earmark-text"></i>
-                  {% endif %}
-                </span>
-                <span class="learning-file-name">{{ doc.title }}</span>
-              </span>
-              <span class="learning-file-type">
-                {% if doc.content_type == "pdf" %}PDF{% else %}Markdown{% endif %}
-              </span>
-              <span class="learning-file-date">{{ doc.updated_at|date:"M j, Y" }}</span>
-              <span class="learning-file-size">{{ doc.size_bytes|filesizeformat_bytes }}</span>
-            </a>
+            {% include "learning/_file_item.html" with doc=doc show_star=True %}
           {% endfor %}
         </div>
-      {% else %}
+      {% elif current_directory %}
+        <p class="learning-empty">This folder is empty. Upload files or create a note.</p>
+      {% elif not recent_documents and not starred_documents %}
         <p class="learning-empty">No folders or documents yet. Use <strong>New</strong> to create a folder.</p>
       {% endif %}
     </div>
@@ -167,25 +223,86 @@
 </div>
 
 {% if current_directory %}
-  <form
-    id="upload-form"
-    method="post"
-    action="{% url 'learning:upload' %}"
-    enctype="multipart/form-data"
-    class="d-none"
-  >
+  <form id="upload-form" method="post" action="{% url 'learning:upload' %}" enctype="multipart/form-data" class="d-none">
     {% csrf_token %}
     <input type="hidden" name="directory_id" value="{{ current_directory.id }}" />
-    <input
-      type="file"
-      name="file"
-      id="upload-input"
-      accept=".pdf,.md,.markdown"
-      multiple
-      class="d-none"
-    />
+    <input type="file" name="file" id="upload-input" accept=".pdf,.md,.markdown,.zip" multiple class="d-none" />
   </form>
+
+  <div class="modal fade" id="newNoteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content learning-modal">
+        <form method="post" action="{% url 'learning:create_note' %}">
+          {% csrf_token %}
+          <input type="hidden" name="directory_id" value="{{ current_directory.id }}" />
+          <div class="modal-header">
+            <h5 class="modal-title">New note</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label" for="note-title">Title</label>
+              <input type="text" name="title" id="note-title" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="note-template">Template</label>
+              <select name="template" id="note-template" class="form-select">
+                <option value="blank">Blank</option>
+                <option value="book-note">Book note</option>
+                <option value="concept">Concept</option>
+                <option value="spanish">Spanish</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-light">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="importZipModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content learning-modal">
+        <form method="post" action="{% url 'learning:directory_import_zip' dir_id=current_directory.id %}" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Import zip</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="file" name="file" accept=".zip" class="form-control" required />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-light">Import</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 {% endif %}
+
+<div class="modal fade" id="shortcutsModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content learning-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Keyboard shortcuts</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <dl class="learning-shortcuts">
+          <dt>/</dt><dd>Focus search</dd>
+          <dt>g then l</dt><dd>List view</dd>
+          <dt>g then g</dt><dd>Grid view</dd>
+          <dt>?</dt><dd>Show this help</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="{% static 'learning/js/learning.js' %}"></script>
 {% endblock %}

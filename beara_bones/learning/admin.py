@@ -4,7 +4,14 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import LearningDirectory, LearningDocument, LearningInvite
+from .models import (
+    LearningActivity,
+    LearningDirectory,
+    LearningDocument,
+    LearningInvite,
+    LearningStarred,
+    LearningTag,
+)
 
 
 @admin.register(LearningInvite)
@@ -54,6 +61,13 @@ class LearningDirectoryAdmin(admin.ModelAdmin):
     search_fields = ("name", "owner__username")
 
 
+@admin.register(LearningTag)
+class LearningTagAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "owner")
+    list_filter = ("owner",)
+    search_fields = ("name", "slug")
+
+
 @admin.register(LearningDocument)
 class LearningDocumentAdmin(admin.ModelAdmin):
     list_display = (
@@ -61,8 +75,24 @@ class LearningDocumentAdmin(admin.ModelAdmin):
         "owner",
         "directory",
         "content_type",
+        "language",
+        "topic",
         "size_bytes",
         "created_at",
     )
-    list_filter = ("owner", "content_type")
-    search_fields = ("title", "original_filename", "owner__username")
+    list_filter = ("owner", "content_type", "language", "difficulty")
+    search_fields = ("title", "original_filename", "topic", "author", "owner__username")
+    filter_horizontal = ("tags",)
+
+
+@admin.register(LearningActivity)
+class LearningActivityAdmin(admin.ModelAdmin):
+    list_display = ("user", "document", "last_page", "last_viewed_at")
+    list_filter = ("user",)
+    search_fields = ("document__title", "user__username")
+
+
+@admin.register(LearningStarred)
+class LearningStarredAdmin(admin.ModelAdmin):
+    list_display = ("user", "document", "created_at")
+    list_filter = ("user",)
