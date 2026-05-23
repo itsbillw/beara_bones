@@ -33,6 +33,10 @@ app = DjangoDash(
             "rel": "stylesheet",
         },
         {
+            "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css",
+            "rel": "stylesheet",
+        },
+        {
             "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine-dark.css",
             "rel": "stylesheet",
         },
@@ -50,6 +54,44 @@ ID_X_AXIS_DROPDOWN = "football-dash-x-axis"
 ID_GRAPH = "football-dash-graph"
 ID_GRID = "football-dash-grid"
 ID_ERROR = "football-dash-error"
+
+THEME_ACCENTS = {
+    "dark": "#5ba3a6",
+    "light": "#245052",
+}
+
+
+def _current_theme() -> str:
+    """Read theme from cookie set by theme.js (defaults to dark)."""
+    try:
+        from flask import has_request_context, request
+    except ImportError:
+        return "dark"
+
+    if not has_request_context():
+        return "dark"
+
+    theme = str(request.cookies.get("itsbillw-theme", "dark"))
+    if theme in ("light", "dark"):
+        return theme
+    return "dark"
+
+
+def _plotly_template() -> str:
+    return "plotly_white" if _current_theme() == "light" else "plotly_dark"
+
+
+def _grid_theme_class() -> str:
+    return "ag-theme-alpine" if _current_theme() == "light" else "ag-theme-alpine-dark"
+
+
+def _error_style() -> dict:
+    theme = _current_theme()
+    return {
+        "color": THEME_ACCENTS.get(theme, THEME_ACCENTS["dark"]),
+        "marginBottom": "8px",
+    }
+
 
 # Fixed width (96px) for compact numeric columns
 NUM_COL_WIDTH = 96
@@ -195,7 +237,7 @@ def layout_with_dropdowns():
                 ],
                 style={"marginBottom": "16px"},
             ),
-            html.Div(id=ID_ERROR, style={"color": "#f9d4e4", "marginBottom": "8px"}),
+            html.Div(id=ID_ERROR, style=_error_style()),
             dcc.Graph(
                 id=ID_GRAPH,
                 figure={"layout": {"height": 620}},
@@ -210,7 +252,7 @@ def layout_with_dropdowns():
                         columnDefs=STANDINGS_COLUMN_DEFS,
                         defaultColDef={"sortable": True, "filter": True},
                         columnSize="sizeToFit",
-                        className="ag-theme-alpine-dark",
+                        className=_grid_theme_class(),
                         dashGridOptions={
                             "animateRows": True,
                             "rowHeight": STANDINGS_ROW_HEIGHT_PX,
@@ -221,10 +263,11 @@ def layout_with_dropdowns():
             ),
         ],
         style={"padding": "16px"},
+        **{"data-theme": _current_theme()},
     )
 
 
-app.layout = layout_with_dropdowns()
+app.layout = layout_with_dropdowns
 
 
 @app.callback(
@@ -250,10 +293,11 @@ def _set_dropdown_options(_data):
 
 def _empty_figure(message: str):
     """Return a figure dict safe for dcc.Graph with a message (no data)."""
+    template = _plotly_template()
     return {
         "data": [],
         "layout": {
-            "template": "plotly_dark",
+            "template": template,
             "height": 620,
             "xaxis": {"visible": False},
             "yaxis": {"visible": False},
@@ -271,13 +315,14 @@ def _empty_figure(message: str):
     }
 
 
-def _apply_plotly_dark(fig_or_dict):
-    """Ensure Plotly figures use the dark template."""
+def _apply_plotly_theme(fig_or_dict, template: str | None = None):
+    """Ensure Plotly figures use the active theme template."""
+    template = template or _plotly_template()
     if hasattr(fig_or_dict, "update_layout"):
-        fig_or_dict.update_layout(template="plotly_dark")
+        fig_or_dict.update_layout(template=template)
         return fig_or_dict
     layout = fig_or_dict.setdefault("layout", {})
-    layout["template"] = "plotly_dark"
+    layout["template"] = template
     return fig_or_dict
 
 
@@ -308,10 +353,12 @@ def _update_chart_and_grid(league_id, season, x_axis):
     if league_id is None or season is None:
         return _empty_figure("Select league and season"), [], ""
     x_axis = x_axis or "games_played"
+    theme = _current_theme()
+    plotly_template = _plotly_template()
     cache_timeout = getattr(settings, "FOOTBALL_DASHBOARD_CACHE_TIMEOUT", 600)
     cache_key = (
         f"football:dash:{football_dashboard_cache_version()}:"
-        f"{league_id}:{season}:{x_axis}"
+        f"{league_id}:{season}:{x_axis}:{theme}"
     )
     cached = cache.get(cache_key)
     if cached is not None:
@@ -322,6 +369,7 @@ def _update_chart_and_grid(league_id, season, x_axis):
         standings, fig, err = build_standings_and_figure(
             team_games_df=team_games_df,
             x_axis=x_axis,
+            plotly_template=plotly_template,
         )
     else:
         df, err = _load_fixtures_from_db(league_id, season)
@@ -332,14 +380,18 @@ def _update_chart_and_grid(league_id, season, x_axis):
                 err
                 or "No fixtures for this league/season. Run the pipeline from Admin.",
             )
-        standings, fig, err = build_standings_and_figure(df, x_axis=x_axis)
+        standings, fig, err = build_standings_and_figure(
+            df,
+            x_axis=x_axis,
+            plotly_template=plotly_template,
+        )
     if err:
         return _empty_figure(err), [], err
     # Add rank (position) for AG Grid
     for i, row in enumerate(standings, start=1):
         row["rank"] = i
     # Use JSON round-trip so the figure is safe for the frontend (no numpy/datetime64)
-    fig = _apply_plotly_dark(fig)
+    fig = _apply_plotly_theme(fig, plotly_template)
     figure = _figure_to_json_safe_dict(fig)
     result = (figure, standings, "")
     cache.set(cache_key, result, timeout=cache_timeout)

@@ -247,12 +247,15 @@ class RunFootballPipelineCommandTests(TestCase):
         )
 
     def test_handle_exits_when_lock_exists(self) -> None:
+        from io import StringIO
+
         from data.management.commands.run_football_pipeline import Command, LOCK_FILE
 
         LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
         try:
             LOCK_FILE.touch()
             cmd = Command()
+            cmd.stdout = StringIO()
             with self.assertRaises(SystemExit) as ctx:
                 cmd.handle()
             self.assertEqual(ctx.exception.code, 1)
@@ -302,6 +305,8 @@ class RebuildFootballFromMinioCommandTests(TestCase):
         )
 
     def test_handle_exits_when_lock_exists(self) -> None:
+        from io import StringIO
+
         from data.management.commands.rebuild_football_from_minio import (
             LOCK_FILE,
             Command,
@@ -311,6 +316,7 @@ class RebuildFootballFromMinioCommandTests(TestCase):
         try:
             LOCK_FILE.touch()
             cmd = Command()
+            cmd.stdout = StringIO()
             with self.assertRaises(SystemExit) as ctx:
                 cmd.handle()
             self.assertEqual(ctx.exception.code, 1)
@@ -626,3 +632,379 @@ class AdminViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         next_page = self.client.get(response.url)
         self.assertIn(b"Rebuild failed", next_page.content)
+
+
+class DashThemeTests(TestCase):
+    """Dash app theme helpers read itsbillw-theme cookie (set by base template)."""
+
+    def test_current_theme_defaults_to_dark_without_flask_context(self) -> None:
+        from data.dash_app import _current_theme
+
+        self.assertEqual(_current_theme(), "dark")
+
+    @patch("flask.has_request_context", return_value=True)
+    def test_current_theme_reads_light_cookie(
+        self,
+        _mock_ctx: unittest.mock.Mock,
+    ) -> None:
+        from data.dash_app import (
+            _current_theme,
+            _error_style,
+            _grid_theme_class,
+            _plotly_template,
+        )
+
+        mock_request = unittest.mock.MagicMock()
+        mock_request.cookies.get.return_value = "light"
+        with patch("flask.request", mock_request, create=True):
+            self.assertEqual(_current_theme(), "light")
+            self.assertEqual(_plotly_template(), "plotly_white")
+            self.assertEqual(_grid_theme_class(), "ag-theme-alpine")
+            self.assertEqual(_error_style()["color"], "#245052")
+
+    @patch("flask.has_request_context", return_value=True)
+    def test_current_theme_invalid_cookie_falls_back_to_dark(
+        self,
+        _mock_ctx: unittest.mock.Mock,
+    ) -> None:
+        from data.dash_app import _current_theme, _plotly_template
+
+        mock_request = unittest.mock.MagicMock()
+        mock_request.cookies.get.return_value = "neon"
+        with patch("flask.request", mock_request, create=True):
+            self.assertEqual(_current_theme(), "dark")
+            self.assertEqual(_plotly_template(), "plotly_dark")
+
+    def test_apply_plotly_theme_updates_figure_object(self) -> None:
+        import plotly.graph_objects as go
+
+        from data.dash_app import _apply_plotly_theme
+
+        fig = go.Figure()
+        updated = _apply_plotly_theme(fig, "plotly_white")
+        self.assertIsNotNone(updated.layout.template)
+
+    def test_options_from_model_handles_query_errors(self) -> None:
+        from data.dash_app import _options_from_model
+
+        with patch.object(
+            League.objects,
+            "all",
+            side_effect=RuntimeError("db down"),
+        ):
+            self.assertEqual(_options_from_model(League, "id", "name"), [])
+
+
+class DashCallbackExtendedTests(TestCase):
+    """Additional Dash callback paths: cache, team_games view, build errors."""
+
+    def setUp(self) -> None:
+        from django.core.cache import cache
+
+        cache.clear()
+        League.objects.get_or_create(
+            id=39,
+            defaults={"name": "Premier League", "order": 0},
+        )
+        Season.objects.get_or_create(
+            api_year=2025,
+            defaults={"display": "2025/26", "order": 0},
+        )
+
+    @patch("data.dash_app._load_fixtures_from_db")
+    def test_update_chart_uses_cache_on_second_call(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
+        from django.core.cache import cache
+
+        from data.dash_app import _update_chart_and_grid
+
+        cache.clear()
+        mock_load.return_value = (_minimal_fixtures_df(), None)
+        first = _update_chart_and_grid(39, 2025, "games_played")
+        second = _update_chart_and_grid(39, 2025, "games_played")
+        self.assertEqual(first[1], second[1])
+        mock_load.assert_called_once()
+
+    @patch("data.dash_app._load_fixtures_from_db")
+    def test_update_chart_build_error_returns_empty_figure(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
+        from django.core.cache import cache
+
+        from data.dash_app import _update_chart_and_grid
+
+        cache.clear()
+        mock_load.return_value = (_minimal_fixtures_df(), None)
+        with patch(
+            "data.dash_app.build_standings_and_figure",
+            return_value=([], None, "Chart failed"),
+        ):
+            fig, rows, err = _update_chart_and_grid(39, 2025, "games_played")
+        self.assertEqual(rows, [])
+        self.assertEqual(err, "Chart failed")
+        self.assertIn("annotations", fig.get("layout", {}))
+
+    @patch("data.dash_app._load_fixtures_from_db")
+    @patch("data.dash_app._load_team_games_from_view")
+    def test_update_chart_prefers_team_games_view(
+        self,
+        mock_view: unittest.mock.Mock,
+        mock_db: unittest.mock.Mock,
+    ) -> None:
+        from data.dash_app import _update_chart_and_grid
+
+        mock_view.return_value = (_team_games_df(), None)
+        _update_chart_and_grid(39, 2025, "games_played")
+        mock_view.assert_called_once_with(39, 2025)
+        mock_db.assert_not_called()
+
+
+def _team_games_df():
+    """Minimal team_games DataFrame matching data_team_game view shape."""
+    return pd.DataFrame(
+        [
+            {
+                "team": "TeamA",
+                "team_id": 1,
+                "date": pd.Timestamp("2025-01-15"),
+                "opponent": "TeamB",
+                "venue": "Home",
+                "gf": 2,
+                "ga": 1,
+                "pts": 3,
+                "result_letter": "W",
+                "game_number": 1,
+                "cumulative_pts": 3,
+                "score_display": "2-1",
+                "hover": "TeamA hover",
+            },
+            {
+                "team": "TeamB",
+                "team_id": 2,
+                "date": pd.Timestamp("2025-01-15"),
+                "opponent": "TeamA",
+                "venue": "Away",
+                "gf": 1,
+                "ga": 2,
+                "pts": 0,
+                "result_letter": "L",
+                "game_number": 1,
+                "cumulative_pts": 0,
+                "score_display": "1-2",
+                "hover": "TeamB hover",
+            },
+        ],
+    )
+
+
+class DashboardUtilsExtendedTests(TestCase):
+    """build_standings_and_figure edge cases and team_games input."""
+
+    def test_team_games_df_builds_standings(self) -> None:
+        standings, fig, err = build_standings_and_figure(
+            team_games_df=_team_games_df(),
+            plotly_template="plotly_white",
+        )
+        self.assertIsNone(err)
+        self.assertEqual(len(standings), 2)
+        self.assertIsNotNone(fig.layout.template)
+
+    def test_team_games_missing_columns_returns_error(self) -> None:
+        bad = pd.DataFrame([{"team": "A"}])
+        standings, fig, err = build_standings_and_figure(team_games_df=bad)
+        self.assertEqual(err, "Team-games DataFrame missing required columns")
+        self.assertEqual(standings, [])
+        self.assertIsNone(fig)
+
+    def test_fixtures_missing_date_column_returns_error(self) -> None:
+        df = pd.DataFrame([{"home_team_name": "A", "away_team_name": "B"}])
+        standings, fig, err = build_standings_and_figure(df)
+        self.assertEqual(err, "Missing date column")
+
+    def test_fixtures_derives_result_from_goals(self) -> None:
+        df = _minimal_fixtures_df().drop(columns=["result"])
+        standings, fig, err = build_standings_and_figure(df)
+        self.assertIsNone(err)
+        team_a = next(r for r in standings if r["team"] == "TeamA")
+        self.assertEqual(team_a["Pts"], 3)
+
+    def test_fixtures_missing_required_columns_returns_error(self) -> None:
+        df = pd.DataFrame(
+            [
+                {
+                    "fixture_date": pd.Timestamp("2025-01-15"),
+                    "home_team_name": "A",
+                    "away_team_name": "B",
+                },
+            ],
+        )
+        standings, fig, err = build_standings_and_figure(df)
+        self.assertEqual(err, "Missing required columns")
+
+    def test_standings_without_team_id_uses_plain_team_display(self) -> None:
+        standings, _, err = build_standings_and_figure(_minimal_fixtures_df())
+        self.assertIsNone(err)
+        team_a = next(r for r in standings if r["team"] == "TeamA")
+        self.assertEqual(team_a["team_display_md"], "TeamA")
+        self.assertIsNone(team_a["crest_path"])
+
+    def test_plotly_import_error_returns_message(self) -> None:
+        real_import = __import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "plotly.graph_objects":
+                raise ImportError("no plotly")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            standings, fig, err = build_standings_and_figure(
+                team_games_df=_team_games_df(),
+            )
+        self.assertEqual(len(standings), 2)
+        self.assertIsNone(fig)
+        self.assertEqual(err, "Plotly not installed")
+
+
+class DataViewsExtendedTests(TestCase):
+    """load_fixtures_from_db, team_games view, refresh lock behaviour."""
+
+    def setUp(self) -> None:
+        from django.utils import timezone
+
+        from data.models import Fixture
+
+        League.objects.get_or_create(
+            id=39,
+            defaults={"name": "Premier League", "order": 0},
+        )
+        Season.objects.get_or_create(
+            api_year=2025,
+            defaults={"display": "2025/26", "order": 0},
+        )
+        Fixture.objects.create(
+            fixture_id=100,
+            date=timezone.now(),
+            timestamp=1736953200,
+            status_short="FT",
+            league_id=39,
+            league_season=2025,
+            home_team_id=1,
+            home_team_name="TeamA",
+            away_team_id=2,
+            away_team_name="TeamB",
+            goals_home=2,
+            goals_away=1,
+        )
+
+    def test_load_fixtures_from_db_returns_dataframe(self) -> None:
+        from data.views import _load_fixtures_from_db
+
+        df, err = _load_fixtures_from_db(39, 2025)
+        self.assertIsNone(err)
+        assert df is not None
+        self.assertEqual(len(df), 1)
+        self.assertEqual(df.iloc[0]["home_team_name"], "TeamA")
+
+    def test_load_fixtures_from_db_empty_returns_error(self) -> None:
+        from data.views import _load_fixtures_from_db
+
+        df, err = _load_fixtures_from_db(99, 2099)
+        self.assertIsNone(df)
+        self.assertIn("No fixtures", err or "")
+
+    def test_load_team_games_from_view_returns_dataframe(self) -> None:
+        from data.views import _load_team_games_from_view
+
+        df, err = _load_team_games_from_view(39, 2025)
+        self.assertIsNone(err)
+        assert df is not None
+        self.assertIn("team", df.columns)
+        self.assertEqual(len(df), 2)
+
+    def test_load_team_games_from_view_empty_league_returns_none(self) -> None:
+        from data.views import _load_team_games_from_view
+
+        df, err = _load_team_games_from_view(99, 2099)
+        self.assertIsNone(df)
+        self.assertIsNone(err)
+
+    def test_data_page_has_theme_support(self) -> None:
+        response = self.client.get(reverse("data:data"))
+        self.assertContains(response, "itsbillw-theme")
+
+    def test_data_refresh_post_returns_409_when_lock_exists(self) -> None:
+        from pathlib import Path
+
+        from django.conf import settings
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        user = User.objects.create_superuser("lockadmin", "lock@b.com", "pass")
+        self.client.force_login(user)
+        lock = Path(settings.BASE_DIR).parent / "data" / "football" / ".refresh.lock"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            lock.touch()
+            response = self.client.post(reverse("data:data_refresh"))
+            self.assertEqual(response.status_code, 409)
+            self.assertEqual(response.json()["status"], "already_running")
+        finally:
+            lock.unlink(missing_ok=True)
+
+
+class PipelineRunnerTests(TestCase):
+    """pipeline_runner helpers track PipelineRun rows."""
+
+    def test_run_with_pipeline_run_success(self) -> None:
+        from data.models import PipelineRun
+        from data.pipeline_runner import latest_successful_run, run_with_pipeline_run
+
+        run = run_with_pipeline_run(
+            league_id=39,
+            season_year=2025,
+            source="test",
+            execute=lambda: None,
+        )
+        self.assertEqual(run.status, PipelineRun.Status.SUCCESS)
+        self.assertIsNotNone(run.finished_at)
+        latest = latest_successful_run(league_id=39, season_year=2025)
+        self.assertIsNotNone(latest)
+        assert latest is not None
+        self.assertEqual(latest.id, run.id)
+
+    def test_run_with_pipeline_run_records_failure(self) -> None:
+        from data.models import PipelineRun
+        from data.pipeline_runner import run_with_pipeline_run
+
+        def boom() -> None:
+            raise ValueError("pipeline broke")
+
+        with self.assertRaises(ValueError):
+            run_with_pipeline_run(
+                league_id=39,
+                season_year=2025,
+                source="test",
+                execute=boom,
+            )
+        failed = PipelineRun.objects.filter(status=PipelineRun.Status.FAILED).latest(
+            "id",
+        )
+        self.assertIn("pipeline broke", failed.error_summary or "")
+
+    def test_latest_successful_run_unscoped(self) -> None:
+        from data.models import PipelineRun
+        from data.pipeline_runner import latest_successful_run, run_with_pipeline_run
+
+        run_with_pipeline_run(
+            league_id=None,
+            season_year=None,
+            source="global",
+            execute=lambda: None,
+        )
+        latest = latest_successful_run()
+        self.assertIsNotNone(latest)
+        assert latest is not None
+        self.assertEqual(latest.status, PipelineRun.Status.SUCCESS)

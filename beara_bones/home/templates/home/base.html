@@ -4,7 +4,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#008080" />
+    <meta name="theme-color" content="#1a2628" />
+    <script>
+      (function () {
+        var key = "itsbillw-theme";
+        var stored = localStorage.getItem(key);
+        var theme =
+          stored === "light" || stored === "dark"
+            ? stored
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+        document.cookie =
+          "itsbillw-theme=" + theme + ";path=/;max-age=31536000;SameSite=Lax";
+      })();
+    </script>
     <link
       rel="icon"
       href="{% static 'home/images/tukibill-icon.png' %}"
@@ -34,7 +49,7 @@
           />
         </a>
         <button
-          class="navbar-toggler navbar-dark"
+          class="navbar-toggler"
           type="button"
           data-bs-toggle="collapse"
           data-bs-target="#navbarNav"
@@ -100,21 +115,46 @@
                 {% csrf_token %}
                 <button
                   type="submit"
-                  class="btn btn-link text-light p-0 border-0"
+                  class="btn btn-link p-0 border-0 navbar-icon-link"
                   aria-label="Sign out"
                 >
                   <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                 </button>
               </form>
             {% else %}
-              <a href="{% url 'learning:login' %}" class="text-light" aria-label="Sign in">
+              <a href="{% url 'learning:login' %}" class="navbar-icon-link" aria-label="Sign in">
                 <i class="bi bi-person-circle" aria-hidden="true"></i>
               </a>
             {% endif %}
+            <div
+              class="theme-toggle"
+              id="theme-toggle"
+              role="group"
+              aria-label="Color theme"
+            >
+              <button
+                type="button"
+                class="theme-toggle-option"
+                data-theme-choice="light"
+                aria-label="Light mode"
+                aria-pressed="false"
+              >
+                Light
+              </button>
+              <button
+                type="button"
+                class="theme-toggle-option"
+                data-theme-choice="dark"
+                aria-label="Dark mode"
+                aria-pressed="true"
+              >
+                Dark
+              </button>
+            </div>
             <span class="navbar-divider" aria-hidden="true">|</span>
             <a
               href="https://www.instagram.com/itsbillw/"
-              class="text-light"
+              class="navbar-icon-link"
               aria-label="Instagram"
               rel="noopener"
               target="_blank"
@@ -122,7 +162,7 @@
             ></a>
             <a
               href="https://mastodon.social/@itsbillw"
-              class="text-light"
+              class="navbar-icon-link"
               aria-label="Mastodon"
               rel="noopener"
               target="_blank"
@@ -130,13 +170,13 @@
             ></a>
             <a
               href="https://github.com/itsbillw"
-              class="text-light"
+              class="navbar-icon-link"
               aria-label="GitHub"
               rel="noopener"
               target="_blank"
               ><i class="bi bi-github" aria-hidden="true"></i
             ></a>
-            <a href="mailto:admin@itsbillw.com" class="text-light" aria-label="Email">
+            <a href="mailto:admin@itsbillw.com" class="navbar-icon-link" aria-label="Email">
               <i class="bi bi-envelope" aria-hidden="true"></i>
             </a>
           </div>
@@ -153,5 +193,6 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'home/js/theme.js' %}"></script>
   </body>
 </html>

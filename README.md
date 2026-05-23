@@ -1,28 +1,28 @@
 # beara_bones
 
-Django-based personal site and playground. Production runs on a **Raspberry Pi 4** with **DietPi OS**, behind NGINX, using **MariaDB**. The site includes a **football data** section: dashboard (points chart + league table) and a pipeline that ingests fixtures from RapidAPI into MinIO, transforms to Parquet/DuckDB, runs Soda 4 contract verification, and builds dbt-style views.
+Django-based personal site and playground. Production runs on a **Raspberry Pi 4** with **DietPi OS**, behind NGINX, using **MariaDB**. The site includes a **football data** section (Plotly Dash dashboard + ingest pipeline), and a **learning vault** (invite-only document library with PDF/markdown viewing).
 
-## Local development
+## Quick start (local dev)
 
-1. **Clone and enter the project**
+1. **Clone and enter the repo**
 
    ```bash
    cd beara_bones
    ```
 
-2. **Create a virtual environment and install dependencies (uv)**
+2. **Install dependencies** (uses [uv](https://github.com/astral-sh/uv))
 
    ```bash
    uv sync
    ```
 
-   This installs all dependencies including dev tools (pytest, ruff, mypy, bandit, etc.).
-
 3. **Configure environment**
 
-   - Copy `.env.example` to `.env` and set at least `DJANGO_SECRET_KEY` (any value is fine for local dev).
-   - For local testing you use **SQLite** and **development settings**; no database or `.env` DB vars are required.
-   - For the **football pipeline** (ingest, transform) you need `RAPIDAPI_KEY`, and for MinIO: `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, and optionally `MINIO_BUCKET`, `MINIO_SECURE`.
+   ```bash
+   cp .env.example .env
+   ```
+
+   Set at least `DJANGO_SECRET_KEY` (any value is fine for local dev). Local dev uses **SQLite** via `beara_bones.settings_dev`; no database vars are required.
 
 4. **Run the dev server**
 
@@ -30,61 +30,135 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
    make run-dev
    ```
 
-   Or manually:
-
-   ```bash
-   cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py runserver
-   ```
-
    Open http://127.0.0.1:8000/
 
-5. **Optional: install pre-commit hooks** (run once per clone so lint, type checks, and tests run on every `git commit`)
+5. **Optional: pre-commit hooks** (lint + tests on every commit)
 
    ```bash
    make install-hooks
    ```
 
-## Commands
+## Make targets
 
-| Command              | Description                                                               |
-| -------------------- | ------------------------------------------------------------------------- |
-| `make help`          | List all make targets                                                     |
-| `make run-dev`       | Run dev server (SQLite, settings_dev)                                     |
-| `make test`          | Run Django tests (home + data apps)                                       |
-| `make test-football` | Run football package unit tests (pytest)                                  |
-| `make test-all`      | Run Django and football tests                                             |
-| `make coverage`      | Run all tests with combined coverage report (Django + football)           |
-| `make install-hooks` | Install pre-commit git hooks (run once)                                   |
-| `make lint`          | Run all pre-commit checks (ruff, mypy, bandit, prettier, etc.)            |
-| `make check`         | Run lint + all tests (use before push)                                    |
-| `make ingest`        | Pipeline phase 1: fetch fixtures from RapidAPI → MinIO                    |
-| `make transform`     | Pipeline phase 2: MinIO raw JSON → CSV/Parquet                            |
-| `make soda-check`    | Pipeline phase 3: Soda 4 contract verification                            |
-| `make dbt-build`     | Pipeline phase 4: dbt-duckdb build (in data_modelling/)                   |
-| `make pipeline`      | Full pipeline: ingest → transform → DuckDB → Soda → dbt → MariaDB + MinIO |
+Run `make help` for the full list. Common targets:
 
-## Project layout
+| Command              | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `make run-dev`       | Dev server (SQLite, `settings_dev`)            |
+| `make test`          | Django tests (home, data, learning)            |
+| `make test-football` | Pytest for the `football` package              |
+| `make test-all`      | Django + football tests                        |
+| `make coverage`      | Combined coverage report                       |
+| `make lint`          | Pre-commit checks (ruff, mypy, bandit, etc.)   |
+| `make check`         | Lint + all tests (run before push)             |
+| `make deploy`        | Production deploy after `git pull` (see below) |
 
-- **`beara_bones/`** – Django project root (run `manage.py` from here)
-  - **`beara_bones/`** – Django config (settings, urls, wsgi, asgi)
-  - **`home/`** – main app: landing page, about, static poem, base template and navbar
-  - **`data/`** – data app: football dashboard (embedded Plotly Dash at `/data`, refresh trigger), and `ingest_football` management command
-  - **`learning/`** – learning vault: invite-only auth, per-user folders, PDF/markdown viewing at `/learning`
-- **`football/`** – pipeline package (ingest, transform, build_views, Soda 4 contracts); not a Django app
-- **`data_modelling/`** – dbt-duckdb project (marts, staging, sources)
-- **`tests/`** – pytest tests for the `football` package; Django tests live in app `tests.py` modules
-- **`/data/`** (repo root) – pipeline output: `data/football/` holds fixtures (CSV, Parquet, DuckDB). Ignored by git via `/data/` in `.gitignore`.
+### Football pipeline
 
-## Data page and pipeline
+| Command                 | Description                                                               |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `make ingest`           | Phase 1: RapidAPI → MinIO (raw JSON)                                      |
+| `make transform`        | Phase 2: MinIO → CSV/Parquet                                              |
+| `make soda-check`       | Phase 3: Soda 4 contract verification                                     |
+| `make dbt-build`        | Phase 4: dbt-duckdb build (`data_modelling/`)                             |
+| `make pipeline`         | Full pipeline: ingest → transform → DuckDB → Soda → dbt → MariaDB + MinIO |
+| `make pipeline-all`     | Pipeline for every League×Season in Django Admin                          |
+| `make rebuild-football` | Rebuild MariaDB from MinIO (no API calls)                                 |
 
-- **Data page** (`/data`): football dashboard with an embedded Plotly Dash app (points chart and league table). Dropdown changes are cached in Django’s file cache (`FOOTBALL_DASHBOARD_CACHE_TIMEOUT`, default 600s); the pipeline bumps a cache version on success so stale figures are not served after refresh.
-- **Refresh**: POST to `/data/refresh` starts the pipeline in the background (ingest → transform → DuckDB → Soda → dbt → MariaDB + MinIO). A lock file prevents overlapping runs.
-- **Pipeline**: `make pipeline` (or the refresh button) runs ingest (RapidAPI → MinIO), transform (MinIO → CSV/Parquet), loads into DuckDB, runs Soda 4 contract verification, runs dbt, then loads to MariaDB and uploads processed Parquet to MinIO. The dashboard reads from MariaDB.
+Pipeline output under repo root `/data/football/` is gitignored.
 
-## Production (Raspberry Pi 4 / DietPi / MariaDB)
+## Architecture
 
-- Use **production settings**: `beara_bones.settings` (default for `manage.py`).
-- Set in `.env`: `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS` (comma-separated), and MariaDB vars: `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`.
-- The app uses **PyMySQL** to talk to MariaDB (no native MySQL client build required on the Pi).
-- SSL is handled by NGINX and Certbot; Django is configured for HTTPS (secure cookies, HSTS, etc.).
-- After pulling: run `make deploy` (runs `uv sync`, `migrate`, `collectstatic --noinput --clear`, and `sudo systemctl restart uvicorn`). Override the service with `make deploy SYSTEMCTL_SERVICE=gunicorn` if needed.
+```
+beara_bones/          Django project (run manage.py from beara_bones/)
+  home/               Landing, about, base template, theme
+  data/               Football dashboard (/data), pipeline admin, Dash app
+  learning/           Invite-only vault (/learning)
+football/             Standalone pipeline package (not a Django app)
+data_modelling/       dbt-duckdb project
+tests/                Pytest for football/
+```
+
+**Request flow (production):** NGINX → Uvicorn/Gunicorn → Django. Static files via WhiteNoise. Football dashboard embeds a Plotly Dash app (`django-plotly-dash`) in an iframe. Learning documents live in MinIO (production) or `MEDIA_ROOT/learning/` (local dev without MinIO).
+
+## Apps
+
+### Home (`/`)
+
+Landing page, about, and static content. Provides the shared **base template** (Bootstrap navbar, footer, theme toggle).
+
+### Data (`/data`)
+
+- **Dashboard:** embedded Plotly Dash app — league/season dropdowns, cumulative points chart, AG Grid league table with team crests.
+- **Refresh:** staff can POST to `/data/refresh` to start the pipeline in the background. A lock file prevents overlapping runs.
+- **Crests:** `/data/crest/<team_id>/` proxies PNG crests from MinIO.
+- **Admin:** pipeline control views for staff (`/data/admin/pipeline/`).
+
+Dashboard figures are cached in Django’s file cache (`FOOTBALL_DASHBOARD_CACHE_TIMEOUT`, default 600s). The pipeline bumps a cache version on success so stale charts are not served after refresh.
+
+### Learning (`/learning`)
+
+Invite-only vault: per-user directory trees, markdown notes with wikilinks/backlinks, PDF viewing with progress, zip import/export, search and filters. Requires a valid `LearningInvite` to sign up.
+
+## Theme system
+
+Light/dark theme is shared across Django pages and the embedded Dash dashboard.
+
+1. **Inline script** in `home/base.html` runs before paint: reads `localStorage` key `itsbillw-theme`, falls back to `prefers-color-scheme`, sets `document.documentElement.dataset.theme`, and writes cookie `itsbillw-theme`.
+2. **`home/js/theme.js`** wires the navbar toggle: updates `localStorage`, cookie, and `data-theme` on `<html>`.
+3. **CSS** in `home/css/base_style.css` (and app-specific styles) use `[data-theme="light"]` / `[data-theme="dark"]` selectors.
+4. **Dash** reads the same cookie server-side (`dash_app._current_theme()`) to pick Plotly template (`plotly_white` / `plotly_dark`) and AG Grid theme class.
+
+Theme preference persists across visits via cookie + localStorage.
+
+## Environment variables
+
+See `.env.example` for the full list. Summary:
+
+| Variable                                                  | Purpose                                    |
+| --------------------------------------------------------- | ------------------------------------------ |
+| `DJANGO_SECRET_KEY`                                       | Required in all environments               |
+| `ALLOWED_HOSTS`                                           | Comma-separated hosts (production)         |
+| `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | MariaDB (production; dev uses SQLite)      |
+| `RAPIDAPI_KEY`                                            | Football ingest (RapidAPI)                 |
+| `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`  | MinIO for pipeline + learning storage      |
+| `MINIO_BUCKET`                                            | Football bucket (default `football`)       |
+| `MINIO_LEARNING_BUCKET`                                   | Learning vault bucket (default `learning`) |
+| `MINIO_SECURE`                                            | `true`/`false` for HTTPS to MinIO          |
+| `LEARNING_MAX_UPLOAD_MB`                                  | Upload size limit (default 25)             |
+| `LEARNING_INVITE_EXPIRY_DAYS`                             | Invite TTL (default 7)                     |
+
+## Testing
+
+```bash
+make test-all      # Django + football
+make coverage      # Combined coverage report
+make check         # lint + tests
+```
+
+- **Django tests:** `beara_bones/*/tests.py` (home, data, learning)
+- **Football tests:** `tests/test_football.py` (pytest)
+
+Coverage omits migrations, settings entrypoints, and test modules. Run from repo root; Django tests use `beara_bones.settings_dev` and an in-memory/SQLite test database.
+
+## Production deploy (Raspberry Pi / DietPi / MariaDB)
+
+- Settings module: `beara_bones.settings` (default for `manage.py` on the server).
+- PyMySQL driver — no native MySQL client build required on the Pi.
+- SSL terminated at NGINX (Certbot); Django sets secure cookies and HSTS.
+
+After pulling changes on the server:
+
+```bash
+make deploy
+```
+
+This runs `uv sync`, `migrate`, `collectstatic --noinput --clear`, and `sudo systemctl restart uvicorn`. Override the service name with `make deploy SYSTEMCTL_SERVICE=gunicorn` if needed.
+
+## Project layout (detail)
+
+- **`beara_bones/beara_bones/`** — Django config (`settings`, `settings_dev`, `urls`, WSGI/ASGI)
+- **`beara_bones/data/`** — Football models, Dash app, views, management commands (`run_football_pipeline`, `rebuild_football_from_minio`, `ingest_football`)
+- **`beara_bones/learning/`** — Vault models, storage abstraction, markdown/PDF views
+- **`football/`** — Ingest, transform, Soda contracts, DuckDB views, pipeline orchestration
+- **`data_modelling/`** — dbt sources, staging, marts

@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 
 from football.crests import (
     CREST_KEY_TEMPLATE,
@@ -507,3 +508,127 @@ class TestBuildViews:
         out = con.execute("SELECT COUNT(*) FROM main.fct_fixtures").fetchone()
         assert out[0] == 1
         con.close()
+
+
+class TestLocking:
+    """football.locking helpers for pipeline lock files."""
+
+    def test_acquire_lock_creates_file(self, tmp_path: Path) -> None:
+        from football.locking import acquire_lock, release_lock
+
+        lock = tmp_path / "test.lock"
+        assert acquire_lock(lock) is True
+        assert lock.exists()
+        release_lock(lock)
+        assert not lock.exists()
+
+    def test_acquire_lock_returns_false_when_exists(self, tmp_path: Path) -> None:
+        from football.locking import acquire_lock
+
+        lock = tmp_path / "test.lock"
+        lock.touch()
+        assert acquire_lock(lock) is False
+
+    def test_acquire_lock_touch_fails_when_file_already_exists(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        from football.locking import acquire_lock
+
+        lock = tmp_path / "test.lock"
+        lock.touch()
+        assert acquire_lock(lock, fail_if_exists=False) is False
+
+    def test_is_stale_lock(self, tmp_path: Path) -> None:
+        from datetime import timedelta
+
+        from football.locking import is_stale_lock
+
+        lock = tmp_path / "test.lock"
+        assert is_stale_lock(lock, timedelta(hours=1)) is False
+        lock.touch()
+        assert is_stale_lock(lock, timedelta(hours=1)) is False
+        old = lock.stat().st_mtime - 7200
+        import os
+
+        os.utime(lock, (old, old))
+        assert is_stale_lock(lock, timedelta(hours=1)) is True
+
+    def test_pipeline_lock_context_manager(self, tmp_path: Path) -> None:
+        from football.locking import acquire_lock, pipeline_lock, release_lock
+
+        lock = tmp_path / "test.lock"
+        acquire_lock(lock)
+        with pipeline_lock(lock):
+            assert lock.exists()
+        assert not lock.exists()
+        release_lock(lock)
+
+    def test_get_pipeline_lock_file(self) -> None:
+        from football.locking import DEFAULT_LOCK_FILE, get_pipeline_lock_file
+
+        assert get_pipeline_lock_file() == DEFAULT_LOCK_FILE
+
+
+class TestMinioUtils:
+    """football.minio_utils shared MinIO helpers."""
+
+    @patch.dict(
+        "os.environ",
+        {
+            "MINIO_ENDPOINT": "https://localhost:9000",
+            "MINIO_ACCESS_KEY": "key",
+            "MINIO_SECRET_KEY": "secret",  # pragma: allowlist secret  # pragma: allowlist secret
+            "MINIO_SECURE": "false",
+        },
+    )
+    def test_get_minio_client_strips_scheme(self) -> None:
+        from football.minio_utils import get_minio_client
+
+        client = get_minio_client()
+        assert client is not None
+
+    def test_ensure_bucket_creates_when_missing(self) -> None:
+        from football.minio_utils import ensure_bucket
+
+        mock_client = MagicMock()
+        mock_client.bucket_exists.return_value = False
+        ensure_bucket(mock_client, "new-bucket")
+        mock_client.make_bucket.assert_called_once_with("new-bucket")
+
+    def test_get_json_object(self) -> None:
+        from football.minio_utils import get_json_object
+
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = b'{"ok": true}'
+        mock_client.get_object.return_value = mock_resp
+        data = get_json_object(mock_client, "b", "k.json")
+        assert data == {"ok": True}
+        mock_resp.close.assert_called_once()
+
+    def test_get_json_object_rejects_non_dict(self) -> None:
+        from football.minio_utils import get_json_object
+
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = b"[1, 2]"
+        mock_client.get_object.return_value = mock_resp
+        with pytest.raises(TypeError):
+            get_json_object(mock_client, "b", "k.json")
+
+    def test_get_bytes_object(self) -> None:
+        from football.minio_utils import get_bytes_object
+
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = b"raw-bytes"
+        mock_client.get_object.return_value = mock_resp
+        assert get_bytes_object(mock_client, "b", "k") == b"raw-bytes"
+
+    def test_put_bytes_object(self) -> None:
+        from football.minio_utils import put_bytes_object
+
+        mock_client = MagicMock()
+        put_bytes_object(mock_client, "b", "k", b"payload")
+        mock_client.put_object.assert_called_once()

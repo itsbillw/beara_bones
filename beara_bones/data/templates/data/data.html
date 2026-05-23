@@ -50,4 +50,21 @@
   })();
 </script>
 {% endif %}
+
+<script>
+  (function () {
+    var key = "itsbillw-theme";
+    var current = document.documentElement.dataset.theme;
+
+    document.addEventListener("themechange", function () {
+      window.location.reload();
+    });
+
+    window.addEventListener("storage", function (e) {
+      if (e.key === key && e.newValue && e.newValue !== current) {
+        window.location.reload();
+      }
+    });
+  })();
+</script>
 {% endblock %}

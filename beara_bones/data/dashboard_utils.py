@@ -16,6 +16,7 @@ def build_standings_and_figure(
     *,
     x_axis: X_AXIS_OPTIONS = "games_played",
     team_games_df: pd.DataFrame | None = None,
+    plotly_template: str = "plotly_dark",
 ):
     """
     Build standings table and Plotly figure from a fixtures DataFrame or pre-built team_games.
@@ -45,7 +46,11 @@ def build_standings_and_figure(
         team_games = team_games_df.copy()
         if "date" in team_games.columns:
             team_games["date"] = pd.to_datetime(team_games["date"], errors="coerce")
-        return _standings_and_figure_from_team_games(team_games, x_axis)
+        return _standings_and_figure_from_team_games(
+            team_games,
+            x_axis,
+            plotly_template=plotly_template,
+        )
 
     if df is None or df.empty:
         return [], None, "No data"
@@ -149,12 +154,18 @@ def build_standings_and_figure(
         + "Season Points: "
         + team_games["cumulative_pts"].astype(str)
     )
-    return _standings_and_figure_from_team_games(team_games, x_axis)
+    return _standings_and_figure_from_team_games(
+        team_games,
+        x_axis,
+        plotly_template=plotly_template,
+    )
 
 
 def _standings_and_figure_from_team_games(
     team_games: pd.DataFrame,
     x_axis: X_AXIS_OPTIONS,
+    *,
+    plotly_template: str = "plotly_dark",
 ):
     """Build standings agg and Plotly figure from a team_games DataFrame. Returns (standings, figure, error)."""
     agg_kw = {
@@ -238,7 +249,7 @@ def _standings_and_figure_from_team_games(
             title="",
             xaxis_title=xaxis_title,
             yaxis_title="Points",
-            template="plotly_dark",
+            template=plotly_template,
             height=620,
             hovermode="closest",
             margin=dict(r=220),

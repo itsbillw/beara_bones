@@ -834,3 +834,552 @@ class LearningStorageTests(TestCase):
             key = save_thumbnail(str(uuid.uuid4()), b"\x89PNG")
             data = open_file(key)
         self.assertEqual(data, b"\x89PNG")
+
+
+class LearningMarkdownUtilsTests(TestCase):
+    """Unit tests for markdown rendering helpers."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("mduser", "md@example.com", "pass")
+
+    def test_split_and_strip_frontmatter(self) -> None:
+        from learning.markdown_utils import split_frontmatter, strip_frontmatter
+
+        meta, body = split_frontmatter("---\ntitle: Hi\n---\n\n# Body")
+        self.assertEqual(meta["title"], "Hi")
+        self.assertIn("# Body", body)
+        self.assertEqual(strip_frontmatter("---\nx: 1\n---\nText"), "Text")
+
+    def test_resolve_wikilinks_resolves_and_marks_missing(self) -> None:
+        from learning.markdown_utils import resolve_wikilinks
+
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Target",
+            original_filename="target.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="k",
+            size_bytes=1,
+        )
+        url = reverse("learning:document", kwargs={"doc_id": doc.id})
+        html = resolve_wikilinks(
+            "See [[Target]] and [[Missing]]",
+            {"target": url},
+            {"target": "Preview text"},
+        )
+        self.assertIn(f'href="{url}"', html)
+        self.assertIn("wikilink-missing", html)
+        self.assertIn('data-bs-content="Preview text"', html)
+
+    def test_preview_snippet_truncates_long_text(self) -> None:
+        from learning.markdown_utils import _preview_snippet
+
+        long_text = "word " * 80
+        snippet = _preview_snippet(long_text, limit=40)
+        self.assertLessEqual(len(snippet), 40)
+        self.assertTrue(snippet.endswith("…"))
+
+    def test_render_markdown_sanitizes_output(self) -> None:
+        from learning.markdown_utils import render_markdown
+
+        html = render_markdown("<script>x</script>\n\n**bold**", [])
+        self.assertNotIn("<script>", html)
+        self.assertIn("<strong>bold</strong>", html)
+
+    def test_render_markdown_cached_uses_cache(self) -> None:
+        from learning.markdown_utils import render_markdown_cached
+
+        cache.clear()
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Note",
+            original_filename="note.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="k",
+            size_bytes=1,
+        )
+        with patch(
+            "learning.markdown_utils.render_markdown",
+            return_value="<p>Cached</p>",
+        ) as mock_render:
+            render_markdown_cached(doc, [], "# Body")
+            render_markdown_cached(doc, [], "# Body")
+            mock_render.assert_called_once()
+
+    def test_build_preview_index_from_raw_contents(self) -> None:
+        from learning.markdown_utils import build_preview_index
+
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Note",
+            original_filename="note.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="k",
+            size_bytes=1,
+        )
+        previews = build_preview_index([doc], {str(doc.id): "# Hello world"})
+        self.assertIn("note", previews)
+
+    @patch("learning.storage.open_file", return_value=b"Link [[Target]]")
+    def test_find_backlinks(self, _mock_open: object) -> None:
+        from learning.markdown_utils import find_backlinks
+
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        target = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Target",
+            original_filename="target.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="target",
+            size_bytes=1,
+        )
+        source = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Source",
+            original_filename="source.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="source",
+            size_bytes=1,
+        )
+        backlinks = find_backlinks(target, [source, target])
+        self.assertEqual(backlinks, [source])
+
+    def test_find_backlinks_with_contents(self) -> None:
+        from learning.markdown_utils import find_backlinks_with_contents
+
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        target = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Target",
+            original_filename="target.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="target",
+            size_bytes=1,
+        )
+        source = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Source",
+            original_filename="source.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="source",
+            size_bytes=1,
+        )
+        raw = {str(source.id): "See [[Target]]"}
+        backlinks = find_backlinks_with_contents(target, [source, target], raw)
+        self.assertEqual(backlinks, [source])
+
+    @patch("learning.storage.open_file", side_effect=FileNotFoundError)
+    def test_get_user_markdown_raw_contents_skips_missing(
+        self,
+        _mock_open: object,
+    ) -> None:
+        from learning.markdown_utils import get_user_markdown_raw_contents
+
+        cache.clear()
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Note",
+            original_filename="note.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="missing",
+            size_bytes=1,
+            content_hash="abc",
+        )
+        raw = get_user_markdown_raw_contents(self.user.id, [doc])
+        self.assertEqual(raw, {})
+
+
+class LearningTemplateTagTests(TestCase):
+    def test_filesizeformat_bytes(self) -> None:
+        from learning.templatetags.learning_tags import filesizeformat_bytes
+
+        self.assertEqual(filesizeformat_bytes(0), "0 B")
+        self.assertEqual(filesizeformat_bytes(512), "512 B")
+        self.assertEqual(filesizeformat_bytes(2048), "2.0 KB")
+        self.assertEqual(filesizeformat_bytes(5 * 1024 * 1024), "5.0 MB")
+        self.assertEqual(filesizeformat_bytes(True), "—")
+        self.assertEqual(filesizeformat_bytes("nope"), "—")
+        self.assertEqual(filesizeformat_bytes(-1), "—")
+
+
+class LearningThumbnailTests(TestCase):
+    def test_generate_pdf_thumbnail_success(self) -> None:
+        import sys
+
+        from learning.thumbnail_utils import generate_pdf_thumbnail
+
+        mock_pdfium = MagicMock()
+        mock_page = MagicMock()
+        mock_bitmap = MagicMock()
+        mock_pil = MagicMock()
+        mock_pdf = MagicMock()
+        mock_pdf.__len__.return_value = 1
+        mock_pdf.__getitem__.return_value = mock_page
+        mock_pdfium.PdfDocument.return_value = mock_pdf
+        mock_page.render.return_value = mock_bitmap
+        mock_bitmap.to_pil.return_value = mock_pil
+
+        def save_png(buffer, format="PNG"):
+            buffer.write(b"\x89PNG")
+
+        mock_pil.save.side_effect = save_png
+        with patch.dict(sys.modules, {"pypdfium2": mock_pdfium}):
+            png = generate_pdf_thumbnail(b"%PDF-1.4")
+        self.assertEqual(png, b"\x89PNG")
+
+    def test_generate_pdf_thumbnail_empty_pdf(self) -> None:
+        import sys
+
+        from learning.thumbnail_utils import generate_pdf_thumbnail
+
+        mock_pdfium = MagicMock()
+        mock_pdf = MagicMock()
+        mock_pdf.__len__.return_value = 0
+        mock_pdfium.PdfDocument.return_value = mock_pdf
+        with patch.dict(sys.modules, {"pypdfium2": mock_pdfium}):
+            self.assertIsNone(generate_pdf_thumbnail(b"%PDF-1.4"))
+
+    def test_generate_pdf_thumbnail_handles_render_error(self) -> None:
+        import sys
+
+        from learning.thumbnail_utils import generate_pdf_thumbnail
+
+        mock_pdfium = MagicMock()
+        mock_pdfium.PdfDocument.side_effect = RuntimeError("bad pdf")
+        with (
+            patch.dict(sys.modules, {"pypdfium2": mock_pdfium}),
+            patch("learning.thumbnail_utils.logger.warning") as mock_warning,
+        ):
+            self.assertIsNone(generate_pdf_thumbnail(b"not-a-pdf"))
+        mock_warning.assert_called_once()
+
+
+class LearningStorageExtendedTests(TestCase):
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())  # nosec B108
+    def test_overwrite_file_updates_bytes(self) -> None:
+        from learning.storage import open_file, overwrite_file, save_file
+
+        with patch("learning.storage._minio_available", return_value=False):
+            key = save_file(
+                1,
+                str(uuid.uuid4()),
+                str(uuid.uuid4()),
+                "a.md",
+                io.BytesIO(b"v1"),
+            )
+            size = overwrite_file(key, io.BytesIO(b"updated"))
+            self.assertEqual(size, 7)
+            self.assertEqual(open_file(key), b"updated")
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())  # nosec B108
+    def test_delete_file_removes_local_copy(self) -> None:
+        from learning.storage import delete_file, open_file, save_file
+
+        with patch("learning.storage._minio_available", return_value=False):
+            key = save_file(
+                1,
+                str(uuid.uuid4()),
+                str(uuid.uuid4()),
+                "del.md",
+                io.BytesIO(b"x"),
+            )
+            delete_file(key)
+            with self.assertRaises(FileNotFoundError):
+                open_file(key)
+
+    @patch("football.minio_utils.get_bytes_object", return_value=b"remote")
+    @patch("football.minio_utils.get_minio_client")
+    @patch("learning.storage._minio_available", return_value=True)
+    def test_open_file_reads_from_minio(
+        self,
+        _mock_avail: MagicMock,
+        mock_client_fn: MagicMock,
+        _mock_get_bytes: MagicMock,
+    ) -> None:
+        from learning.storage import open_file
+
+        mock_client_fn.return_value = MagicMock()
+        data = open_file("users/1/x/y.md")
+        self.assertEqual(data, b"remote")
+
+    @patch("football.minio_utils.get_minio_client")
+    @patch("learning.storage._minio_available", return_value=True)
+    def test_delete_file_removes_minio_object(
+        self,
+        _mock_avail: MagicMock,
+        mock_client_fn: MagicMock,
+    ) -> None:
+        from learning.storage import delete_file
+
+        mock_client = MagicMock()
+        mock_client_fn.return_value = mock_client
+        delete_file("users/1/x/y.md")
+        mock_client.remove_object.assert_called_once()
+
+
+class LearningThemeTests(TestCase):
+    def test_login_page_has_theme_support(self) -> None:
+        response = self.client.get(reverse("learning:login"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-theme-choice="light"')
+        self.assertContains(response, 'data-theme-choice="dark"')
+
+    def test_join_page_has_theme_support(self) -> None:
+        staff = User.objects.create_superuser("staff2", "s2@example.com", "pass")
+        invite = LearningInvite.objects.create(
+            email="join@example.com",
+            created_by=staff,
+        )
+        response = self.client.get(
+            reverse("learning:join", kwargs={"token": invite.token}),
+        )
+        self.assertContains(response, 'data-theme-choice="light"')
+        self.assertContains(response, 'data-theme-choice="dark"')
+
+
+class LearningViewExtendedTests(TestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("extuser", "ext@example.com", "pass")
+        self.client.force_login(self.user)
+
+    def test_note_titles_api(self) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Alpha",
+            original_filename="alpha.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="a",
+            size_bytes=1,
+        )
+        response = self.client.get(reverse("learning:note_titles_api"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["titles"], ["Alpha"])
+
+    @patch("learning.views.save_file", return_value="users/1/dir/new.md")
+    def test_create_note_from_template(self, _mock_save: object) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        response = self.client.post(
+            reverse("learning:create_note"),
+            {
+                "directory_id": str(directory.id),
+                "title": "My Note",
+                "template": "blank",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        doc = LearningDocument.objects.get(owner=self.user, title="My Note")
+        self.assertIn("/edit/", response.url)
+        self.assertEqual(doc.content_type, LearningDocument.ContentType.MARKDOWN)
+
+    @patch("learning.views.delete_file")
+    def test_document_delete(self, mock_delete: MagicMock) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Delete Me",
+            original_filename="del.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="del-key",
+            size_bytes=1,
+        )
+        response = self.client.post(
+            reverse("learning:document_delete", kwargs={"doc_id": doc.id}),
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(LearningDocument.objects.filter(id=doc.id).exists())
+        mock_delete.assert_called()
+
+    def test_document_rename(self) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Old",
+            original_filename="old.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="k",
+            size_bytes=1,
+        )
+        response = self.client.post(
+            reverse("learning:document_rename", kwargs={"doc_id": doc.id}),
+            {"title": "Renamed"},
+        )
+        self.assertEqual(response.status_code, 302)
+        doc.refresh_from_db()
+        self.assertEqual(doc.title, "Renamed")
+
+    @patch("learning.views.open_file", return_value=b"# Raw")
+    def test_document_edit_get(self, _mock_open: object) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Edit",
+            original_filename="edit.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="k",
+            size_bytes=1,
+        )
+        response = self.client.get(
+            reverse("learning:document_edit", kwargs={"doc_id": doc.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "# Raw")
+
+    @patch("learning.views.open_file", return_value=b"%PDF-1.4")
+    def test_document_raw_pdf(self, _mock_open: object) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Paper",
+            original_filename="paper.pdf",
+            content_type=LearningDocument.ContentType.PDF,
+            storage_key="pdf",
+            size_bytes=10,
+        )
+        response = self.client.get(
+            reverse("learning:document_raw", kwargs={"doc_id": doc.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+
+    @patch("learning.views.open_file")
+    @patch("learning.views.generate_pdf_thumbnail", return_value=b"\x89PNG")
+    @patch("learning.views.save_thumbnail", return_value="thumbnails/x.png")
+    def test_document_thumbnail_generates_on_demand(
+        self,
+        _mock_save: MagicMock,
+        _mock_thumb: MagicMock,
+        mock_open: MagicMock,
+    ) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Paper",
+            original_filename="paper.pdf",
+            content_type=LearningDocument.ContentType.PDF,
+            storage_key="pdf-key",
+            size_bytes=10,
+        )
+
+        def side_effect(key: str) -> bytes:
+            if key.startswith("thumbnails/"):
+                return b"\x89PNG"
+            return b"%PDF-1.4"
+
+        mock_open.side_effect = side_effect
+        response = self.client.get(
+            reverse("learning:document_thumbnail", kwargs={"doc_id": doc.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
+
+    def test_directory_move_success(self) -> None:
+        child = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Child",
+            slug="child",
+        )
+        target = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Target",
+            slug="target",
+        )
+        response = self.client.post(
+            reverse("learning:directory_move", kwargs={"dir_id": child.id}),
+            {"directory_id": str(target.id)},
+        )
+        self.assertEqual(response.status_code, 302)
+        child.refresh_from_db()
+        self.assertEqual(child.parent_id, target.id)
+
+    def test_vault_sort_by_date(self) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Zebra",
+            original_filename="z.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="z",
+            size_bytes=1,
+        )
+        response = self.client.get(
+            reverse("learning:directory", kwargs={"dir_id": directory.id}),
+            {"sort": "date"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Zebra")

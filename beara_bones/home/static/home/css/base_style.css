@@ -1,19 +1,73 @@
 /*
- * Base styles for beara_bones / itsbillw site.
- * Design tokens drive layout, color, and typography.
+ * Base styles — Coloro Transformative Teal + light/dark semantic tokens.
  */
 :root {
-  --color-bg: #0f1419;
-  --color-surface: #1a2129;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text: #e8eaed;
-  --color-muted: rgba(255, 255, 255, 0.55);
-  --color-accent: #f9d4e4;
-  --color-brand: #008080;
+  --color-brand: #306263;
+  --color-brand-hover: #3a7578;
+  --color-brand-subtle: color-mix(in srgb, var(--color-brand) 12%, transparent);
   --radius-sm: 6px;
   --radius-md: 10px;
   --space-page: 1.5rem;
   --font-sans: system-ui, -apple-system, sans-serif;
+  color-scheme: light dark;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #121a1b;
+  --color-surface: #1a2628;
+  --color-surface-raised: #243638;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.15);
+  --color-text: #e8eeef;
+  --color-text-muted: #9aadb0;
+  --color-muted: var(--color-text-muted);
+  --color-accent: #5ba3a6;
+  --color-focus-ring: #5ba3a6;
+  --color-hover-bg: rgba(255, 255, 255, 0.06);
+  --color-hover-bg-strong: rgba(255, 255, 255, 0.12);
+  --color-overlay: rgba(0, 0, 0, 0.18);
+  --color-overlay-strong: rgba(0, 0, 0, 0.35);
+  --color-shadow: rgba(0, 0, 0, 0.25);
+  --color-inverse-subtle: rgba(255, 255, 255, 0.75);
+  --color-on-brand: #ffffff;
+  --color-dropzone-border: color-mix(
+    in srgb,
+    var(--color-accent) 55%,
+    transparent
+  );
+  --color-navbar-divider: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f0f4f4;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-border: rgba(26, 36, 36, 0.1);
+  --color-border-strong: rgba(26, 36, 36, 0.16);
+  --color-text: #1a2424;
+  --color-text-muted: #5c6b6d;
+  --color-muted: var(--color-text-muted);
+  --color-accent: #245052;
+  --color-focus-ring: #306263;
+  --color-hover-bg: color-mix(in srgb, var(--color-brand) 8%, transparent);
+  --color-hover-bg-strong: color-mix(
+    in srgb,
+    var(--color-brand) 14%,
+    transparent
+  );
+  --color-overlay: rgba(48, 98, 99, 0.06);
+  --color-overlay-strong: rgba(48, 98, 99, 0.12);
+  --color-shadow: rgba(26, 36, 36, 0.12);
+  --color-inverse-subtle: rgba(26, 36, 36, 0.72);
+  --color-on-brand: #ffffff;
+  --color-dropzone-border: color-mix(
+    in srgb,
+    var(--color-brand) 45%,
+    transparent
+  );
+  --color-navbar-divider: rgba(26, 36, 36, 0.25);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -27,7 +81,6 @@
   }
 }
 
-/* Skip link */
 .skip-link {
   position: absolute;
   top: -100%;
@@ -47,11 +100,10 @@
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
 
-/* General */
 body {
   background: var(--color-bg);
   color: var(--color-text);
@@ -62,14 +114,13 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Navbar */
 .navbar {
-  background: var(--color-brand);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
 .navbar-toggler {
-  border-color: transparent;
+  border-color: var(--color-border);
   color: var(--color-text);
 }
 
@@ -93,23 +144,77 @@ body {
 .navbar .dropdown-item:hover,
 .navbar .dropdown-item:focus-visible {
   color: var(--color-accent) !important;
-  background-color: transparent;
+  background-color: var(--color-hover-bg);
 }
 
 .navbar .nav-link.active {
+  color: var(--color-brand) !important;
   text-decoration: underline;
   text-underline-offset: 0.25em;
-  text-decoration-color: var(--color-accent);
+  text-decoration-color: var(--color-brand);
+}
+
+.navbar-icon-link,
+.navbar .btn-link {
+  color: var(--color-text) !important;
+}
+
+.navbar-icon-link:hover,
+.navbar-icon-link:focus-visible {
+  color: var(--color-accent) !important;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.theme-toggle-option {
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  padding: 0.35rem 0.65rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.theme-toggle-option + .theme-toggle-option {
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.theme-toggle-option:hover {
+  color: var(--color-text);
+  background: var(--color-hover-bg);
+}
+
+.theme-toggle-option:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.theme-toggle-option[aria-pressed="true"] {
+  color: var(--color-accent);
+  background: var(--color-brand-subtle);
 }
 
 .navbar-divider {
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-navbar-divider);
   user-select: none;
   line-height: 1;
 }
 
 .dropdown-menu-dark {
-  background-color: var(--color-surface);
+  background-color: var(--color-surface-raised);
   border: 1px solid var(--color-border);
 }
 
@@ -120,17 +225,36 @@ body {
 .dropdown-menu-dark .dropdown-item:hover,
 .dropdown-menu-dark .dropdown-item:focus-visible {
   color: var(--color-accent) !important;
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--color-hover-bg);
 }
 
-/* Main content */
+.form-control,
+.form-select {
+  background-color: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--color-surface);
+  border-color: var(--color-brand);
+  color: var(--color-text);
+  box-shadow: 0 0 0 0.2rem
+    color-mix(in srgb, var(--color-brand) 25%, transparent);
+}
+
+.form-label,
+.form-check-label {
+  color: var(--color-text);
+}
+
 .main-container {
   max-width: 80%;
   margin: var(--space-page) auto;
   padding: var(--space-page);
 }
 
-/* Page header */
 .page-header {
   display: flex;
   flex-wrap: wrap;
@@ -162,7 +286,6 @@ body {
   gap: 0.75rem;
 }
 
-/* Data dashboard panel */
 .data-panel {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -175,7 +298,6 @@ body {
   max-width: 90%;
 }
 
-/* Prose content */
 .prose {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -196,7 +318,6 @@ body {
   color: var(--color-text);
 }
 
-/* Poem layout */
 .poem {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -225,7 +346,6 @@ body {
   margin-bottom: 0;
 }
 
-/* Home — hero and tiles */
 .services-hero {
   text-align: center;
   padding: 1.25rem 1rem 1.5rem;
@@ -300,10 +420,10 @@ body {
 }
 
 .service-tile:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: var(--color-hover-bg-strong);
+  border-color: var(--color-border-strong);
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 20px var(--color-shadow);
   color: var(--color-text);
 }
 
@@ -311,17 +431,17 @@ body {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-brand-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 0.85rem;
   font-size: 1.5rem;
-  color: var(--color-accent);
+  color: var(--color-brand);
 }
 
 .service-tile:hover .icon-wrap {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-hover-bg-strong);
 }
 
 .service-tile .name {
@@ -360,11 +480,28 @@ body {
   }
 }
 
-/* Footer */
 .footer {
   border-top: 1px solid var(--color-border);
-  background: var(--color-brand);
+  background: var(--color-surface);
   padding: var(--space-page);
   text-align: center;
-  color: var(--color-text);
+  color: var(--color-text-muted);
+}
+
+.btn-outline-light {
+  --bs-btn-color: var(--color-text);
+  --bs-btn-border-color: var(--color-border-strong);
+  --bs-btn-hover-color: var(--color-on-brand);
+  --bs-btn-hover-bg: var(--color-brand);
+  --bs-btn-hover-border-color: var(--color-brand);
+  --bs-btn-active-bg: var(--color-brand-hover);
+  --bs-btn-active-border-color: var(--color-brand-hover);
+}
+
+.btn-light {
+  --bs-btn-bg: var(--color-brand);
+  --bs-btn-border-color: var(--color-brand);
+  --bs-btn-color: var(--color-on-brand);
+  --bs-btn-hover-bg: var(--color-brand-hover);
+  --bs-btn-hover-border-color: var(--color-brand-hover);
 }

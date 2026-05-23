@@ -26,6 +26,6 @@ def generate_pdf_thumbnail(pdf_bytes: bytes, scale: float = 0.5) -> bytes | None
         buffer = io.BytesIO()
         pil_image.save(buffer, format="PNG")
         return buffer.getvalue()
-    except Exception:
-        logger.exception("Failed to generate PDF thumbnail")
+    except Exception as exc:
+        logger.warning("Failed to generate PDF thumbnail: %s", exc)
         return None
