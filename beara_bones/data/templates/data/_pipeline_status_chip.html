@@ -1,0 +1,21 @@
+{% if status.running %}
+  <span class="pipeline-chip pipeline-chip-running">
+    <span class="pipeline-chip-spinner" aria-hidden="true"></span>
+    {% if status.total_pairs %}
+      Running {{ status.completed|add:status.failed }}/{{ status.total_pairs }}
+    {% else %}
+      Running…
+    {% endif %}
+    {% if status.current.league_name %}
+      <span class="pipeline-chip-detail">{{ status.current.league_name }}{% if status.current.season_year %} {{ status.current.season_year }}{% endif %}</span>
+    {% endif %}
+  </span>
+{% elif status.batch_outcome == "success" %}
+  <span class="pipeline-chip pipeline-chip-success">Updated just now</span>
+{% elif status.batch_outcome == "partial" %}
+  <span class="pipeline-chip pipeline-chip-warning">Completed with errors</span>
+{% elif status.batch_outcome == "failed" %}
+  <span class="pipeline-chip pipeline-chip-error">Refresh failed</span>
+{% elif status.stale_lock %}
+  <span class="pipeline-chip pipeline-chip-warning">Run may be stuck</span>
+{% endif %}

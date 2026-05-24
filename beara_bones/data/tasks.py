@@ -12,5 +12,5 @@ def run_football_pipeline_task(source: str = "rq") -> None:
     from django.core.management import call_command
 
     logger.info("Starting football pipeline task (source=%s)", source)
-    call_command("run_football_pipeline")
+    call_command("run_football_pipeline", source=source)
     logger.info("Football pipeline task finished")

@@ -1,0 +1,115 @@
+<div class="pipeline-activity" id="pipeline-activity-panel">
+  <button
+    type="button"
+    class="pipeline-activity-toggle"
+    id="pipeline-activity-toggle"
+    aria-expanded="false"
+    aria-controls="pipeline-activity-body"
+  >
+    <i class="bi bi-activity" aria-hidden="true"></i>
+    Pipeline activity
+    {% if status.running %}
+      <span class="pipeline-activity-badge">Running</span>
+    {% endif %}
+    <i class="bi bi-chevron-down pipeline-activity-chevron" aria-hidden="true"></i>
+  </button>
+
+  <div class="pipeline-activity-body" id="pipeline-activity-body" hidden>
+    {% if status.stale_lock %}
+      <div class="pipeline-activity-alert" role="alert">
+        <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+        The pipeline lock has been held for over 2 hours. The run may be stuck.
+      </div>
+    {% endif %}
+
+    {% if status.running and status.total_pairs %}
+      <div class="pipeline-activity-progress-wrap">
+        <div
+          class="pipeline-activity-progress"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="{{ status.total_pairs }}"
+          aria-valuenow="{{ status.completed|add:status.failed }}"
+        >
+          <div
+            class="pipeline-activity-progress-bar"
+            style="width: {% widthratio status.completed|add:status.failed status.total_pairs 100 %}%"
+          ></div>
+        </div>
+        <span class="pipeline-activity-progress-label">
+          {{ status.completed|add:status.failed }} of {{ status.total_pairs }} league×season pairs
+        </span>
+      </div>
+    {% endif %}
+
+    {% if status.batch_items %}
+      <h4 class="pipeline-activity-heading">Current run</h4>
+      <ul class="pipeline-activity-steps">
+        {% for item in status.batch_items %}
+          <li class="pipeline-activity-step pipeline-activity-step-{{ item.status|lower }}">
+            <span class="pipeline-activity-step-icon" aria-hidden="true">
+              {% if item.status == "SUCCESS" %}
+                <i class="bi bi-check-circle-fill"></i>
+              {% elif item.status == "FAILED" %}
+                <i class="bi bi-x-circle-fill"></i>
+              {% elif item.status == "RUNNING" %}
+                <span class="pipeline-chip-spinner"></span>
+              {% else %}
+                <i class="bi bi-circle"></i>
+              {% endif %}
+            </span>
+            <span class="pipeline-activity-step-label">
+              {% if item.league_name %}{{ item.league_name }}{% else %}League {{ item.league_id }}{% endif %}
+              {% if item.season_year %} · {{ item.season_year }}{% endif %}
+            </span>
+            <span class="pipeline-activity-step-meta">{{ item.status|title }}</span>
+            {% if item.error_summary %}
+              <span class="pipeline-activity-step-error">{{ item.error_summary }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% elif status.running %}
+      <p class="pipeline-activity-empty">Pipeline starting…</p>
+    {% endif %}
+
+    {% if status.errors %}
+      <div class="pipeline-activity-errors" role="alert">
+        <strong>Errors in this run</strong>
+        <ul>
+          {% for err in status.errors %}
+            <li>
+              {% if err.league_name %}{{ err.league_name }}{% else %}League {{ err.league_id }}{% endif %}
+              {% if err.season_year %} {{ err.season_year }}{% endif %}:
+              {{ err.summary }}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% if status.recent_runs %}
+      <h4 class="pipeline-activity-heading">Recent runs</h4>
+      <ul class="pipeline-activity-recent">
+        {% for run in status.recent_runs %}
+          <li>
+            <span class="pipeline-activity-recent-status pipeline-activity-recent-{{ run.status|lower }}">
+              {{ run.status|title }}
+            </span>
+            {% if run.league_name %}{{ run.league_name }}{% elif run.league_id %}League {{ run.league_id }}{% else %}All{% endif %}
+            {% if run.season_year %} {{ run.season_year }}{% endif %}
+            {% if run.started_at %}
+              <span class="pipeline-activity-recent-time">{{ run.started_at }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if status.last_success_at %}
+      <p class="pipeline-activity-last-success">
+        Last successful refresh: <time id="pipeline-last-success" datetime="{{ status.last_success_at }}">{{ status.last_success_at }}</time>
+      </p>
+    {% endif %}
+  </div>
+</div>

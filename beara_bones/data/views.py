@@ -14,6 +14,7 @@ from football.ingest import get_client
 from .dashboard_service import build_dashboard_payload, league_season_defaults
 from .models import League, Season
 from .pipeline_service import enqueue_pipeline_refresh
+from .pipeline_status import get_pipeline_status
 
 
 def _parse_dashboard_params(request) -> tuple[int | None, int | None, str]:
@@ -43,6 +44,7 @@ def data_page(request):
         x_axis=x_axis,
         request=request,
     )
+    pipeline_status = get_pipeline_status() if request.user.is_staff else None
     return TemplateResponse(
         request,
         "data/data.html",
@@ -52,6 +54,7 @@ def data_page(request):
             "league_id": league_id,
             "season": season,
             "x_axis": x_axis,
+            "pipeline_status": pipeline_status,
             **payload,
         },
     )
@@ -103,3 +106,31 @@ def data_refresh(request):
     result = enqueue_pipeline_refresh(source="api_refresh")
     status_code = 409 if result["status"] == "already_running" else 202
     return JsonResponse(result, status=status_code)
+
+
+def _staff_only_json(request):
+    if not request.user.is_authenticated or not request.user.is_staff:
+        return JsonResponse({"error": "Forbidden"}, status=403)
+    return None
+
+
+@require_http_methods(["GET"])
+def pipeline_status(request):
+    """GET /data/pipeline/status: pipeline run progress (staff only)."""
+    denied = _staff_only_json(request)
+    if denied is not None:
+        return denied
+    return JsonResponse(get_pipeline_status())
+
+
+@require_http_methods(["GET"])
+def pipeline_activity(request):
+    """GET /data/pipeline/activity: HTMX partial for pipeline activity panel."""
+    denied = _staff_only_json(request)
+    if denied is not None:
+        return denied
+    return TemplateResponse(
+        request,
+        "data/_pipeline_activity.html",
+        {"status": get_pipeline_status()},
+    )

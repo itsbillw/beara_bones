@@ -1109,7 +1109,7 @@ class PipelineServiceTests(TestCase):
         from data.tasks import run_football_pipeline_task
 
         run_football_pipeline_task("rq")
-        mock_cmd.assert_called_once_with("run_football_pipeline")
+        mock_cmd.assert_called_once_with("run_football_pipeline", source="rq")
 
 
 class DataViewParamTests(TestCase):
@@ -1165,3 +1165,75 @@ class DataViewParamTests(TestCase):
         self.client.force_login(user)
         response = self.client.post(reverse("data:data_refresh"))
         self.assertEqual(response.status_code, 409)
+
+
+class PipelineStatusApiTests(TestCase):
+    """GET /data/pipeline/status and activity partial."""
+
+    def setUp(self) -> None:
+        from django.contrib.auth import get_user_model
+        from django.core.cache import cache
+
+        cache.clear()
+        League.objects.get_or_create(
+            id=39,
+            defaults={"name": "Premier League", "order": 0},
+        )
+        Season.objects.get_or_create(
+            api_year=2025,
+            defaults={"display": "2025/26", "order": 0},
+        )
+        User = get_user_model()
+        self.staff = User.objects.create_superuser("staff", "s@b.com", "pass")
+        self.user = User.objects.create_user("user", "u@b.com", "pass")
+
+    def test_pipeline_status_requires_staff(self) -> None:
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("data:pipeline_status"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_pipeline_status_returns_expected_shape(self) -> None:
+        from django.utils import timezone
+
+        from data.models import PipelineRun
+        from data.pipeline_runner import run_with_pipeline_run
+
+        run_with_pipeline_run(
+            league_id=39,
+            season_year=2025,
+            source="test",
+            execute=lambda: None,
+        )
+        PipelineRun.objects.filter(status=PipelineRun.Status.SUCCESS).update(
+            finished_at=timezone.now(),
+        )
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse("data:pipeline_status"))
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertIn("running", data)
+        self.assertIn("total_pairs", data)
+        self.assertEqual(data["total_pairs"], 1)
+        self.assertIn("last_success_at", data)
+        self.assertIn("recent_runs", data)
+
+    def test_pipeline_status_shows_running(self) -> None:
+        from data.models import PipelineRun
+
+        PipelineRun.objects.create(
+            league_id=39,
+            season_year=2025,
+            source="test",
+            status=PipelineRun.Status.RUNNING,
+        )
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse("data:pipeline_status"))
+        data = json.loads(response.content)
+        self.assertTrue(data["running"])
+        self.assertEqual(data["in_progress"], 1)
+
+    def test_pipeline_activity_partial_renders(self) -> None:
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse("data:pipeline_activity"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "pipeline-activity")

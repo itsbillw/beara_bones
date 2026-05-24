@@ -276,6 +276,70 @@ class LearningVaultTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertEqual(data["count"], 1)
+        self.assertIn("results", data)
+        self.assertEqual(data["results"][0]["status"], "ok")
+
+    @patch("learning.views._save_uploaded_document")
+    def test_upload_ajax_returns_duplicate_in_results(
+        self,
+        mock_save: MagicMock,
+    ) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs-dup",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Dup",
+            original_filename="dup.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="dup-key",
+            size_bytes=10,
+        )
+        mock_save.return_value = (doc, '"dup.md" looks like a duplicate.')
+        upload = SimpleUploadedFile("dup.md", b"# Dup", content_type="text/markdown")
+        response = self.client.post(
+            reverse("learning:upload"),
+            {"directory_id": str(directory.id), "file": upload},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data["results"][0]["status"], "duplicate")
+        self.assertTrue(data["warnings"])
+
+    @patch("learning.views._save_uploaded_document")
+    def test_upload_hx_request_returns_file_rows(
+        self,
+        mock_save: MagicMock,
+    ) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Uploads",
+            slug="uploads",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Uploaded",
+            original_filename="new.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="upload-key",
+            size_bytes=12,
+        )
+        mock_save.return_value = (doc, None)
+        upload = SimpleUploadedFile("new.md", b"# New", content_type="text/markdown")
+        response = self.client.post(
+            reverse("learning:upload"),
+            {"directory_id": str(directory.id), "file": upload},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Uploaded")
+        self.assertContains(response, f"doc-row-{doc.id}")
+        self.assertContains(response, "upload-results-meta")
 
     @patch("learning.views.open_file")
     def test_markdown_viewer_renders(self, mock_open: MagicMock) -> None:
@@ -631,36 +695,6 @@ class LearningVaultTests(TestCase):
         self.assertEqual(response.status_code, 204)
         doc.refresh_from_db()
         self.assertEqual(doc.title, "HTMX Title")
-
-    @patch("learning.views._save_uploaded_document")
-    def test_upload_hx_request_returns_file_rows(
-        self,
-        mock_save: MagicMock,
-    ) -> None:
-        directory = LearningDirectory.objects.create(
-            owner=self.user,
-            name="Uploads",
-            slug="uploads",
-        )
-        doc = LearningDocument.objects.create(
-            owner=self.user,
-            directory=directory,
-            title="Uploaded",
-            original_filename="new.md",
-            content_type=LearningDocument.ContentType.MARKDOWN,
-            storage_key="upload-key",
-            size_bytes=12,
-        )
-        mock_save.return_value = (doc, None)
-        upload = SimpleUploadedFile("new.md", b"# New", content_type="text/markdown")
-        response = self.client.post(
-            reverse("learning:upload"),
-            {"directory_id": str(directory.id), "file": upload},
-            HTTP_HX_REQUEST="true",
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Uploaded")
-        self.assertContains(response, f"doc-row-{doc.id}")
 
     @patch("learning.views.overwrite_file", return_value=12)
     def test_markdown_edit_saves(self, _mock_overwrite: object) -> None:

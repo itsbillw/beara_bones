@@ -10,6 +10,16 @@
 <div class="container main-container data-page-content">
   {% include "home/_page_header.html" with page_title="Football data" page_subtitle="League standings and points over the season" page_header_actions_template="home/_page_header_data_actions.html" %}
 
+  {% if user.is_staff and pipeline_status.last_success_at %}
+    <p class="pipeline-last-refreshed" id="pipeline-last-refreshed">
+      Last refreshed: <time datetime="{{ pipeline_status.last_success_at }}">{{ pipeline_status.last_success_at }}</time>
+    </p>
+  {% endif %}
+
+  {% if user.is_staff %}
+    {% include "data/_pipeline_activity.html" with status=pipeline_status %}
+  {% endif %}
+
   <div class="data-panel football-dashboard">
     <form
       id="football-dashboard-controls"
@@ -18,6 +28,7 @@
       hx-target="#football-dashboard-panel"
       hx-trigger="change from:select"
       hx-include="this"
+      hx-indicator="#football-dashboard-loading"
     >
       <label for="football-league">League</label>
       <select id="football-league" name="league">
@@ -44,50 +55,23 @@
       </select>
     </form>
 
-    <div id="football-dashboard-panel">
-      {% include "data/_dashboard_panel.html" %}
+    <div class="football-dashboard-panel-wrap">
+      <div id="football-dashboard-loading" class="football-dashboard-loading htmx-indicator">
+        <span class="pipeline-chip-spinner" aria-hidden="true"></span>
+        Loading chart…
+      </div>
+      <div id="football-dashboard-panel">
+        {% include "data/_dashboard_panel.html" %}
+      </div>
     </div>
   </div>
 </div>
-
-{% if user.is_staff %}
-<script>
-  (function () {
-    var btn = document.getElementById("refresh-btn");
-    var status = document.getElementById("refresh-status");
-    if (!btn) return;
-    btn.addEventListener("click", function () {
-      btn.disabled = true;
-      status.textContent = "Starting…";
-      fetch(btn.dataset.url, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": "{{ csrf_token }}",
-          "Content-Type": "application/json",
-        },
-      })
-        .then(function (r) {
-          if (r.status === 202) {
-            status.textContent = "Refresh started.";
-          } else if (r.status === 409) {
-            status.textContent = "Already running.";
-          } else {
-            status.textContent = "Error " + r.status;
-          }
-        })
-        .catch(function () {
-          status.textContent = "Request failed.";
-        })
-        .finally(function () {
-          btn.disabled = false;
-        });
-    });
-  })();
-</script>
-{% endif %}
 {% endblock %}
 
 {% block extra_scripts %}
 <script src="{% static 'data/js/plotly.min.js' %}"></script>
 <script src="{% static 'data/js/football_dashboard.js' %}"></script>
+{% if user.is_staff %}
+<script src="{% static 'data/js/pipeline_status.js' %}"></script>
+{% endif %}
 {% endblock %}

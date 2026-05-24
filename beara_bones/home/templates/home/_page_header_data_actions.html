@@ -1,9 +1,18 @@
-<button
-  type="button"
-  class="btn btn-outline-light btn-sm"
-  id="refresh-btn"
-  data-url="{% url 'data:data_refresh' %}"
->
-  Refresh pipeline
-</button>
-<span id="refresh-status" class="small text-light"></span>
+{% if user.is_staff %}
+<div class="pipeline-header-actions">
+  <button
+    type="button"
+    class="btn btn-outline-light btn-sm"
+    id="refresh-btn"
+    data-url="{% url 'data:data_refresh' %}"
+    data-status-url="{% url 'data:pipeline_status' %}"
+    data-activity-url="{% url 'data:pipeline_activity' %}"
+    data-panel-url="{% url 'data:dashboard_panel' %}"
+  >
+    Refresh pipeline
+  </button>
+  <div id="pipeline-status-chip" class="pipeline-status-chip" aria-live="polite">
+    {% include "data/_pipeline_status_chip.html" with status=pipeline_status %}
+  </div>
+</div>
+{% endif %}

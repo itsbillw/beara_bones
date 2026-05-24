@@ -14,7 +14,15 @@ LOCK_FILE = get_pipeline_lock_file()
 class Command(BaseCommand):
     help = "Ingest (API → MinIO) → transform → load to MariaDB → upload processed Parquet for all League×Season"
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--source",
+            default="mgmt_cmd_run_football_pipeline",
+            help="Trigger source recorded on PipelineRun rows.",
+        )
+
     def handle(self, *args, **options):
+        source = options.get("source", "mgmt_cmd_run_football_pipeline")
         from data.loading import load_fixtures_dataframe
         from data.models import League, Season
         from football.ingest import run_ingest
@@ -61,7 +69,7 @@ class Command(BaseCommand):
                         run_with_pipeline_run(
                             league_id=lid,
                             season_year=sy,
-                            source="mgmt_cmd_run_football_pipeline",
+                            source=source,
                             execute=_execute,
                         )
                     except Exception as exc:

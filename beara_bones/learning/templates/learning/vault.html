@@ -142,21 +142,6 @@
         </div>
       </div>
 
-      <div class="learning-upload-progress" id="learning-upload-progress" hidden>
-        <div class="progress">
-          <div
-            class="progress-bar"
-            id="learning-upload-bar"
-            role="progressbar"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-            style="width: 0%"
-          ></div>
-        </div>
-        <span id="learning-upload-label">Uploading…</span>
-      </div>
-
       {% if not current_directory and recent_documents %}
         <section class="learning-section">
           <h2 class="learning-section-title"><i class="bi bi-clock-history"></i> Recent</h2>
@@ -294,24 +279,58 @@
   <div class="modal fade" id="importZipModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content learning-modal">
-        <form method="post" action="{% url 'learning:directory_import_zip' dir_id=current_directory.id %}" enctype="multipart/form-data">
+        <form
+          id="import-zip-form"
+          method="post"
+          action="{% url 'learning:directory_import_zip' dir_id=current_directory.id %}"
+          enctype="multipart/form-data"
+        >
           {% csrf_token %}
           <div class="modal-header">
             <h5 class="modal-title">Import zip</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <input type="file" name="file" accept=".zip" class="form-control" required />
+            <input type="file" name="file" id="import-zip-input" accept=".zip" class="form-control" required />
+            <div id="import-zip-error" class="text-danger small mt-2" hidden></div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-light">Import</button>
+            <button type="submit" class="btn btn-light" id="import-zip-submit">Import</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 {% endif %}
+
+<div
+  class="learning-upload-tray"
+  id="learning-upload-tray"
+  hidden
+  aria-live="polite"
+  aria-label="Upload progress"
+>
+  <header class="learning-upload-tray-header">
+    <button
+      type="button"
+      class="learning-upload-tray-toggle"
+      id="learning-upload-tray-toggle"
+      aria-expanded="true"
+      aria-controls="learning-upload-queue"
+    >
+      <span id="learning-upload-tray-title">Uploads</span>
+      <i class="bi bi-chevron-down learning-upload-tray-chevron" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      class="learning-upload-tray-close btn-close btn-close-white"
+      id="learning-upload-tray-close"
+      aria-label="Dismiss uploads"
+    ></button>
+  </header>
+  <ul class="learning-upload-queue" id="learning-upload-queue"></ul>
+</div>
 
 <div class="modal fade" id="shortcutsModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">

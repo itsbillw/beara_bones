@@ -470,10 +470,11 @@ def mkdir(request):
 def upload(request):
     """Upload one or more PDF or markdown files into a directory."""
     directory_id = request.POST.get("directory_id")
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if not directory_id:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if is_ajax:
             return JsonResponse(
-                {"error": "Select a folder before uploading."},
+                {"error": "Select a folder before uploading.", "results": [], "warnings": []},
                 status=400,
             )
         messages.error(request, "Select a folder before uploading.")
@@ -482,26 +483,61 @@ def upload(request):
     directory = _get_directory_for_user(request.user, uuid.UUID(directory_id))
     files = request.FILES.getlist("file")
     if not files:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"error": "No files selected."}, status=400)
+        if is_ajax:
+            return JsonResponse(
+                {"error": "No files selected.", "results": [], "warnings": []},
+                status=400,
+            )
         messages.error(request, "No files selected.")
         return redirect("learning:directory", dir_id=directory.id)
 
     uploaded_names: list[str] = []
     uploaded_docs: list[LearningDocument] = []
+    results: list[dict] = []
+    warnings: list[str] = []
     for uploaded in files:
         try:
             validate_upload_file(uploaded)
         except forms.ValidationError as exc:
             msg = f"{uploaded.name}: {exc.messages[0]}"
-            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-                return JsonResponse({"error": msg}, status=400)
+            if is_ajax:
+                return JsonResponse(
+                    {
+                        "error": msg,
+                        "results": [
+                            {
+                                "name": uploaded.name,
+                                "status": "error",
+                                "message": msg,
+                            },
+                        ],
+                        "warnings": warnings,
+                    },
+                    status=400,
+                )
             messages.error(request, msg)
             continue
 
         doc, dup_msg = _save_uploaded_document(request.user, directory, uploaded)
         if dup_msg:
-            messages.warning(request, dup_msg)
+            warnings.append(dup_msg)
+            results.append(
+                {
+                    "name": uploaded.name,
+                    "status": "duplicate",
+                    "message": dup_msg,
+                    "doc_id": str(doc.id),
+                },
+            )
+        else:
+            results.append(
+                {
+                    "name": uploaded.name,
+                    "status": "ok",
+                    "message": "",
+                    "doc_id": str(doc.id),
+                },
+            )
         uploaded_names.append(uploaded.name)
         uploaded_docs.append(doc)
 
@@ -512,16 +548,28 @@ def upload(request):
             {
                 "docs": uploaded_docs,
                 "starred_ids": _starred_ids(request.user),
+                "results": results,
+                "results_json": json.dumps(results),
+                "warnings": warnings,
             },
         )
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"uploaded": uploaded_names, "count": len(uploaded_names)})
+    if is_ajax:
+        return JsonResponse(
+            {
+                "uploaded": uploaded_names,
+                "count": len(uploaded_names),
+                "results": results,
+                "warnings": warnings,
+            },
+        )
 
     if len(uploaded_names) == 1:
         messages.success(request, f'Uploaded "{uploaded_names[0]}".')
     elif uploaded_names:
         messages.success(request, f"Uploaded {len(uploaded_names)} files.")
+    for warning in warnings:
+        messages.warning(request, warning)
 
     return redirect("learning:directory", dir_id=directory.id)
 
@@ -880,8 +928,14 @@ def document_move(request, doc_id: uuid.UUID):
 def directory_import_zip(request, dir_id: uuid.UUID):
     """Import a zip archive into a directory."""
     directory = _get_directory_for_user(request.user, dir_id)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     zip_upload = request.FILES.get("file")
     if not zip_upload:
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "message": "No zip file provided."},
+                status=400,
+            )
         messages.error(request, "No zip file provided.")
         return redirect("learning:directory", dir_id=directory.id)
 
@@ -892,10 +946,22 @@ def directory_import_zip(request, dir_id: uuid.UUID):
             zip_upload,
             lambda user, dir_obj, buf: _save_uploaded_document(user, dir_obj, buf)[0],
         )
-        messages.success(request, f"Imported {docs} file(s) and {dirs} folder(s).")
+        msg = f"Imported {docs} file(s) and {dirs} folder(s)."
+        if is_ajax:
+            return JsonResponse(
+                {"status": "ok", "message": msg, "dirs": dirs, "docs": docs},
+            )
+        messages.success(request, msg)
     except ZipImportError as exc:
+        if is_ajax:
+            return JsonResponse({"status": "error", "message": str(exc)}, status=400)
         messages.error(request, str(exc))
     except Exception:
+        if is_ajax:
+            return JsonResponse(
+                {"status": "error", "message": "Could not import zip file."},
+                status=500,
+            )
         messages.error(request, "Could not import zip file.")
     return redirect("learning:directory", dir_id=directory.id)
 
