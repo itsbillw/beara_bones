@@ -56,8 +56,10 @@
     var key = "itsbillw-theme";
     var current = document.documentElement.dataset.theme;
 
-    document.addEventListener("themechange", function () {
-      window.location.reload();
+    document.addEventListener("themechange", function (e) {
+      if (e.detail && e.detail.theme && e.detail.theme !== current) {
+        window.location.reload();
+      }
     });
 
     window.addEventListener("storage", function (e) {

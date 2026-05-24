@@ -263,7 +263,6 @@ def layout_with_dropdowns():
             ),
         ],
         style={"padding": "16px"},
-        **{"data-theme": _current_theme()},
     )
 
 

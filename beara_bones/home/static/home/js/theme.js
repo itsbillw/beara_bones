@@ -40,6 +40,7 @@
   }
 
   function applyTheme(theme, persist) {
+    const previous = document.documentElement.dataset.theme;
     document.documentElement.dataset.theme = theme;
     setThemeCookie(theme);
     updateThemeColorMeta(theme);
@@ -47,9 +48,11 @@
     if (persist) {
       localStorage.setItem(STORAGE_KEY, theme);
     }
-    document.dispatchEvent(
-      new CustomEvent("themechange", { detail: { theme } }),
-    );
+    if (previous !== theme) {
+      document.dispatchEvent(
+        new CustomEvent("themechange", { detail: { theme } }),
+      );
+    }
   }
 
   function toggleTheme() {
