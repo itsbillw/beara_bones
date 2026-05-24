@@ -1,0 +1,61 @@
+/* Football Dash iframe — aligned with site semantic colors */
+
+.football-dash-root.football-dash-theme-light {
+  --dash-bg: #f0f4f4;
+  --dash-surface: #ffffff;
+  --dash-text: #1a2424;
+  --dash-text-muted: #5c6b6d;
+  --dash-border: rgba(26, 36, 36, 0.16);
+  --dash-accent: #245052;
+}
+
+.football-dash-root.football-dash-theme-dark {
+  --dash-bg: #121a1b;
+  --dash-surface: #1a2628;
+  --dash-text: #e8eeef;
+  --dash-text-muted: #9aadb0;
+  --dash-border: rgba(255, 255, 255, 0.15);
+  --dash-accent: #5ba3a6;
+}
+
+.football-dash-root {
+  background: var(--dash-bg);
+  color: var(--dash-text);
+  min-height: 100%;
+}
+
+.football-dash-root label,
+.football-dash-root h3 {
+  color: var(--dash-text);
+}
+
+.football-dash-root .Select-control,
+.football-dash-root .dash-dropdown .Select-control {
+  background-color: var(--dash-surface) !important;
+  border-color: var(--dash-border) !important;
+  color: var(--dash-text) !important;
+}
+
+.football-dash-root .Select-value-label,
+.football-dash-root .Select-placeholder {
+  color: var(--dash-text) !important;
+}
+
+.football-dash-root .Select-menu-outer {
+  background-color: var(--dash-surface) !important;
+  border-color: var(--dash-border) !important;
+}
+
+.football-dash-root .VirtualizedSelectOption {
+  background-color: var(--dash-surface);
+  color: var(--dash-text);
+}
+
+.football-dash-root .VirtualizedSelectFocusedOption {
+  background-color: color-mix(
+    in srgb,
+    var(--dash-accent) 12%,
+    var(--dash-surface)
+  );
+  color: var(--dash-accent);
+}

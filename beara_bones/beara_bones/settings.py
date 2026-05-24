@@ -55,6 +55,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_plotly_dash.middleware.BaseMiddleware",
+    "data.middleware.ThemeRequestMiddleware",
 ]
 
 ROOT_URLCONF = "beara_bones.urls"

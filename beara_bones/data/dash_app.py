@@ -17,6 +17,7 @@ from .views import _load_fixtures_from_db, _load_team_games_from_view
 PLOTLY_JS_CDN = "https://cdn.plot.ly/plotly-2.27.0.min.js"
 # Crest images in grid scaled to row height (served from Django static)
 CREST_GRID_CSS = "/static/data/css/crest_grid.css"
+DASH_THEME_CSS = "/static/data/css/dash_theme.css"
 # Form column cell renderer (must load in iframe where the grid runs)
 FORM_RENDERER_JS = "/static/data/js/dashAgGridComponentFunctions.js"
 app = DjangoDash(
@@ -28,6 +29,7 @@ app = DjangoDash(
     ],
     external_stylesheets=[
         {"href": CREST_GRID_CSS, "rel": "stylesheet"},
+        {"href": DASH_THEME_CSS, "rel": "stylesheet"},
         {
             "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css",
             "rel": "stylesheet",
@@ -61,19 +63,31 @@ THEME_ACCENTS = {
 }
 
 
+def _theme_from_cookie_value(raw: object) -> str | None:
+    theme = str(raw or "")
+    return theme if theme in ("light", "dark") else None
+
+
 def _current_theme() -> str:
-    """Read theme from cookie set by theme.js (defaults to dark)."""
+    """Read theme from itsbillw-theme cookie (Django request in django_plotly_dash)."""
+    from data.theme_context import get_django_request
+
+    django_request = get_django_request()
+    if django_request is not None:
+        theme = _theme_from_cookie_value(django_request.COOKIES.get("itsbillw-theme"))
+        if theme:
+            return theme
+
     try:
         from flask import has_request_context, request
+
+        if has_request_context():
+            theme = _theme_from_cookie_value(request.cookies.get("itsbillw-theme"))
+            if theme:
+                return theme
     except ImportError:
-        return "dark"
+        pass
 
-    if not has_request_context():
-        return "dark"
-
-    theme = str(request.cookies.get("itsbillw-theme", "dark"))
-    if theme in ("light", "dark"):
-        return theme
     return "dark"
 
 
@@ -188,8 +202,17 @@ def _options_from_model(model_class, value_attr, label_attr):
         return []
 
 
+def _dash_surface_colors() -> tuple[str, str]:
+    """Return (page background, plot/chart background) for the active theme."""
+    if _current_theme() == "light":
+        return "#f0f4f4", "#ffffff"
+    return "#1a2628", "#121a1b"
+
+
 def layout_with_dropdowns():
     """Build layout with dropdowns and placeholder graph/grid. Options filled in callback."""
+    theme = _current_theme()
+    page_bg, _plot_bg = _dash_surface_colors()
     return html.Div(
         [
             dcc.Store(id="football-dash-init", data=0),
@@ -240,7 +263,7 @@ def layout_with_dropdowns():
             html.Div(id=ID_ERROR, style=_error_style()),
             dcc.Graph(
                 id=ID_GRAPH,
-                figure={"layout": {"height": 620}},
+                figure=_empty_figure("Loading…"),
                 style={"marginBottom": "24px"},
             ),
             html.Div(
@@ -262,7 +285,8 @@ def layout_with_dropdowns():
                 ],
             ),
         ],
-        style={"padding": "16px"},
+        className=f"football-dash-root football-dash-theme-{theme}",
+        style={"padding": "16px", "backgroundColor": page_bg},
     )
 
 
@@ -293,11 +317,14 @@ def _set_dropdown_options(_data):
 def _empty_figure(message: str):
     """Return a figure dict safe for dcc.Graph with a message (no data)."""
     template = _plotly_template()
+    page_bg, plot_bg = _dash_surface_colors()
     return {
         "data": [],
         "layout": {
             "template": template,
             "height": 620,
+            "paper_bgcolor": page_bg,
+            "plot_bgcolor": plot_bg,
             "xaxis": {"visible": False},
             "yaxis": {"visible": False},
             "annotations": [
@@ -317,11 +344,17 @@ def _empty_figure(message: str):
 def _apply_plotly_theme(fig_or_dict, template: str | None = None):
     """Ensure Plotly figures use the active theme template."""
     template = template or _plotly_template()
+    page_bg, plot_bg = _dash_surface_colors()
+    layout_updates = {
+        "template": template,
+        "paper_bgcolor": page_bg,
+        "plot_bgcolor": plot_bg,
+    }
     if hasattr(fig_or_dict, "update_layout"):
-        fig_or_dict.update_layout(template=template)
+        fig_or_dict.update_layout(**layout_updates)
         return fig_or_dict
     layout = fig_or_dict.setdefault("layout", {})
-    layout["template"] = template
+    layout.update(layout_updates)
     return fig_or_dict
 
 

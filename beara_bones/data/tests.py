@@ -637,13 +637,37 @@ class AdminViewsTests(TestCase):
 class DashThemeTests(TestCase):
     """Dash app theme helpers read itsbillw-theme cookie (set by base template)."""
 
-    def test_current_theme_defaults_to_dark_without_flask_context(self) -> None:
+    def test_current_theme_defaults_to_dark_without_request(self) -> None:
         from data.dash_app import _current_theme
+        from data.theme_context import set_django_request
 
+        set_django_request(None)
         self.assertEqual(_current_theme(), "dark")
 
+    def test_current_theme_reads_light_from_django_request(self) -> None:
+        from django.test import RequestFactory
+
+        from data.dash_app import (
+            _current_theme,
+            _error_style,
+            _grid_theme_class,
+            _plotly_template,
+        )
+        from data.theme_context import set_django_request
+
+        request = RequestFactory().get("/")
+        request.COOKIES["itsbillw-theme"] = "light"
+        set_django_request(request)
+        try:
+            self.assertEqual(_current_theme(), "light")
+            self.assertEqual(_plotly_template(), "plotly_white")
+            self.assertEqual(_grid_theme_class(), "ag-theme-alpine")
+            self.assertEqual(_error_style()["color"], "#245052")
+        finally:
+            set_django_request(None)
+
     @patch("flask.has_request_context", return_value=True)
-    def test_current_theme_reads_light_cookie(
+    def test_current_theme_reads_light_flask_cookie(
         self,
         _mock_ctx: unittest.mock.Mock,
     ) -> None:
@@ -653,7 +677,9 @@ class DashThemeTests(TestCase):
             _grid_theme_class,
             _plotly_template,
         )
+        from data.theme_context import set_django_request
 
+        set_django_request(None)
         mock_request = unittest.mock.MagicMock()
         mock_request.cookies.get.return_value = "light"
         with patch("flask.request", mock_request, create=True):
@@ -662,18 +688,35 @@ class DashThemeTests(TestCase):
             self.assertEqual(_grid_theme_class(), "ag-theme-alpine")
             self.assertEqual(_error_style()["color"], "#245052")
 
-    @patch("flask.has_request_context", return_value=True)
-    def test_current_theme_invalid_cookie_falls_back_to_dark(
-        self,
-        _mock_ctx: unittest.mock.Mock,
-    ) -> None:
-        from data.dash_app import _current_theme, _plotly_template
+    def test_current_theme_invalid_cookie_falls_back_to_dark(self) -> None:
+        from django.test import RequestFactory
 
-        mock_request = unittest.mock.MagicMock()
-        mock_request.cookies.get.return_value = "neon"
-        with patch("flask.request", mock_request, create=True):
+        from data.dash_app import _current_theme, _plotly_template
+        from data.theme_context import set_django_request
+
+        request = RequestFactory().get("/")
+        request.COOKIES["itsbillw-theme"] = "neon"
+        set_django_request(request)
+        try:
             self.assertEqual(_current_theme(), "dark")
             self.assertEqual(_plotly_template(), "plotly_dark")
+        finally:
+            set_django_request(None)
+
+    def test_layout_uses_light_theme_classes(self) -> None:
+        from django.test import RequestFactory
+
+        from data.dash_app import layout_with_dropdowns
+        from data.theme_context import set_django_request
+
+        request = RequestFactory().get("/")
+        request.COOKIES["itsbillw-theme"] = "light"
+        set_django_request(request)
+        try:
+            layout = layout_with_dropdowns()
+        finally:
+            set_django_request(None)
+        self.assertIn("football-dash-theme-light", layout.className)
 
     def test_apply_plotly_theme_updates_figure_object(self) -> None:
         import plotly.graph_objects as go
