@@ -247,6 +247,58 @@ class TestIngest:
         data = adapter.fetch_fixtures(39, 2025)
         assert data["response"][0]["fixture"]["id"] == 99
 
+    def test_get_ingest_adapter_resolves_sources(self) -> None:
+        from football.ingest_adapters import (
+            ManualUploadIngest,
+            RapidAPIIngest,
+            get_ingest_adapter,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {"FOOTBALL_INGEST_SOURCE": "rapidapi"},
+            clear=False,
+        ):
+            assert isinstance(get_ingest_adapter(), RapidAPIIngest)
+        with patch.dict(
+            "os.environ",
+            {"FOOTBALL_INGEST_SOURCE": "minio"},
+            clear=False,
+        ):
+            assert isinstance(get_ingest_adapter(), ManualUploadIngest)
+        with patch.dict("os.environ", {"FOOTBALL_INGEST_SOURCE": "auto", "RAPIDAPI_KEY": ""}, clear=False):
+            assert isinstance(get_ingest_adapter(), ManualUploadIngest)
+
+    def test_get_ingest_adapter_unknown_raises(self) -> None:
+        from football.ingest_adapters import get_ingest_adapter
+
+        with patch.dict("os.environ", {"FOOTBALL_INGEST_SOURCE": "bogus"}, clear=False):
+            with pytest.raises(ValueError, match="Unknown FOOTBALL_INGEST_SOURCE"):
+                get_ingest_adapter()
+
+    @patch("football.ingest_adapters.requests.get")
+    def test_rapidapi_ingest_paginates(self, mock_get: MagicMock) -> None:
+        from football.ingest_adapters import RapidAPIIngest
+
+        page1 = MagicMock()
+        page1.json.return_value = {
+            "paging": {"total": 2},
+            "response": [{"fixture": {"id": 1}}],
+        }
+        page1.raise_for_status = MagicMock()
+        page2 = MagicMock()
+        page2.json.return_value = {"response": [{"fixture": {"id": 2}}]}
+        page2.raise_for_status = MagicMock()
+        mock_get.side_effect = [page1, page2]
+        with patch.dict(
+            "os.environ",
+            {"RAPIDAPI_KEY": "test-key"},  # pragma: allowlist secret
+            clear=False,
+        ):
+            data = RapidAPIIngest().fetch_fixtures(39, 2025)
+        assert len(data["response"]) == 2
+        assert mock_get.call_count == 2
+
     def test_upload_raw_puts_correct_key(self) -> None:
         mock_client = MagicMock()
         key = upload_raw(
@@ -646,3 +698,15 @@ class TestMinioUtils:
         mock_client = MagicMock()
         put_bytes_object(mock_client, "b", "k", b"payload")
         mock_client.put_object.assert_called_once()
+
+
+class TestDjangoBridge:
+    @patch("django.setup")
+    def test_ensure_django_is_idempotent(self, mock_setup: MagicMock) -> None:
+        import football.django_bridge as bridge
+
+        bridge._DJANGO_READY = False
+        bridge.ensure_django()
+        bridge.ensure_django()
+        mock_setup.assert_called_once()
+        bridge._DJANGO_READY = False

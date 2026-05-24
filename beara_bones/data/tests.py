@@ -582,6 +582,24 @@ class AdminViewsTests(TestCase):
         response = self.client.post(reverse("data:admin_pipeline_rebuild"))
         self.assertEqual(response.status_code, 302)
 
+    def test_pipeline_refresh_get_redirects(self) -> None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        User.objects.create_superuser("admin_get", "get@b.com", "pass")
+        self.client.force_login(User.objects.get(username="admin_get"))
+        response = self.client.get(reverse("data:admin_pipeline_refresh"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_pipeline_rebuild_get_redirects(self) -> None:
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        User.objects.create_superuser("admin_rebuild_get", "rb@b.com", "pass")
+        self.client.force_login(User.objects.get(username="admin_rebuild_get"))
+        response = self.client.get(reverse("data:admin_pipeline_rebuild"))
+        self.assertEqual(response.status_code, 302)
+
     def test_pipeline_refresh_post_with_lock_redirects_with_message(self) -> None:
 
         from django.conf import settings
@@ -940,3 +958,127 @@ class PipelineRunnerTests(TestCase):
         self.assertIsNotNone(latest)
         assert latest is not None
         self.assertEqual(latest.status, PipelineRun.Status.SUCCESS)
+
+
+class PipelineServiceTests(TestCase):
+    """Unit tests for enqueue_pipeline_refresh and background task."""
+
+    def setUp(self) -> None:
+        from django.conf import settings
+
+        self.lock = Path(settings.BASE_DIR).parent / "data" / "football" / ".refresh.lock"
+        if self.lock.exists():
+            self.lock.unlink(missing_ok=True)
+
+    def tearDown(self) -> None:
+        if self.lock.exists():
+            self.lock.unlink(missing_ok=True)
+
+    @patch("data.pipeline_service.subprocess.Popen")
+    def test_enqueue_starts_subprocess_without_redis(
+        self,
+        mock_popen: unittest.mock.Mock,
+    ) -> None:
+        import os
+
+        from data.pipeline_service import enqueue_pipeline_refresh
+
+        env = os.environ.copy()
+        env.pop("REDIS_URL", None)
+        with patch.dict(os.environ, env, clear=True):
+            result = enqueue_pipeline_refresh(source="test")
+        self.assertEqual(result["status"], "started")
+        mock_popen.assert_called_once()
+
+    def test_enqueue_returns_already_running_when_lock_exists(self) -> None:
+        import os
+
+        from data.pipeline_service import enqueue_pipeline_refresh
+
+        self.lock.parent.mkdir(parents=True, exist_ok=True)
+        self.lock.touch()
+        env = os.environ.copy()
+        env.pop("REDIS_URL", None)
+        with patch.dict(os.environ, env, clear=True):
+            result = enqueue_pipeline_refresh()
+        self.assertEqual(result["status"], "already_running")
+
+    @patch.dict("os.environ", {"REDIS_URL": "redis://127.0.0.1:6379/0"})
+    @patch("django_rq.get_queue")
+    def test_enqueue_uses_rq_when_redis_configured(
+        self,
+        mock_get_queue: unittest.mock.Mock,
+    ) -> None:
+        from data.pipeline_service import enqueue_pipeline_refresh
+
+        mock_queue = unittest.mock.MagicMock()
+        mock_get_queue.return_value = mock_queue
+        result = enqueue_pipeline_refresh(source="test")
+        self.assertEqual(result["status"], "started")
+        self.assertEqual(result["message"], "Refresh queued")
+        mock_queue.enqueue.assert_called_once_with(
+            "data.tasks.run_football_pipeline_task",
+            "test",
+        )
+
+    @patch("django.core.management.call_command")
+    def test_run_football_pipeline_task(self, mock_cmd: unittest.mock.Mock) -> None:
+        from data.tasks import run_football_pipeline_task
+
+        run_football_pipeline_task("rq")
+        mock_cmd.assert_called_once_with("run_football_pipeline")
+
+
+class DataViewParamTests(TestCase):
+    """Dashboard query param parsing and HTMX panel."""
+
+    def setUp(self) -> None:
+        from django.core.cache import cache
+
+        cache.clear()
+        League.objects.get_or_create(
+            id=39,
+            defaults={"name": "Premier League", "order": 0},
+        )
+        Season.objects.get_or_create(
+            api_year=2025,
+            defaults={"display": "2025/26", "order": 0},
+        )
+
+    @patch("data.views.build_dashboard_payload")
+    def test_dashboard_panel_invalid_params_use_defaults(
+        self,
+        mock_build: unittest.mock.Mock,
+    ) -> None:
+        mock_build.return_value = {
+            "standings": [],
+            "error": "",
+            "figure_json": "{}",
+        }
+        response = self.client.get(
+            reverse("data:dashboard_panel"),
+            {"league": "bad", "season": "nope", "x_axis": "invalid"},
+        )
+        self.assertEqual(response.status_code, 200)
+        mock_build.assert_called_once()
+        _args, kwargs = mock_build.call_args
+        self.assertEqual(kwargs["league_id"], 39)
+        self.assertEqual(kwargs["season"], 2025)
+        self.assertEqual(kwargs["x_axis"], "games_played")
+
+    @patch("data.views.enqueue_pipeline_refresh")
+    def test_data_refresh_returns_409_when_already_running(
+        self,
+        mock_enqueue: unittest.mock.Mock,
+    ) -> None:
+        from django.contrib.auth import get_user_model
+
+        mock_enqueue.return_value = {
+            "status": "already_running",
+            "message": "Pipeline already in progress",
+        }
+        User = get_user_model()
+        user = User.objects.create_superuser("admin409", "a@b.com", "pass")
+        self.client.force_login(user)
+        response = self.client.post(reverse("data:data_refresh"))
+        self.assertEqual(response.status_code, 409)

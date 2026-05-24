@@ -580,6 +580,88 @@ class LearningVaultTests(TestCase):
         response = self.client.post(url, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
         self.assertFalse(json.loads(response.content)["starred"])
 
+    def test_document_star_htmx_returns_partial(self) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Doc",
+            original_filename="doc.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="key",
+            size_bytes=10,
+        )
+        url = reverse("learning:document_star", kwargs={"doc_id": doc.id})
+        response = self.client.post(url, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"doc-row-{doc.id}")
+        self.assertContains(response, "bi-star-fill")
+
+    def test_document_meta_htmx_returns_204(self) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="docs-meta",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Old Title",
+            original_filename="note.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="key",
+            size_bytes=10,
+        )
+        response = self.client.post(
+            reverse("learning:document_meta", kwargs={"doc_id": doc.id}),
+            {
+                "title": "HTMX Title",
+                "language": "en",
+                "topic": "topic",
+                "author": "Author",
+                "difficulty": "beginner",
+                "tag_names": "one",
+            },
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 204)
+        doc.refresh_from_db()
+        self.assertEqual(doc.title, "HTMX Title")
+
+    @patch("learning.views._save_uploaded_document")
+    def test_upload_hx_request_returns_file_rows(
+        self,
+        mock_save: MagicMock,
+    ) -> None:
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Uploads",
+            slug="uploads",
+        )
+        doc = LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Uploaded",
+            original_filename="new.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="upload-key",
+            size_bytes=12,
+        )
+        mock_save.return_value = (doc, None)
+        upload = SimpleUploadedFile("new.md", b"# New", content_type="text/markdown")
+        response = self.client.post(
+            reverse("learning:upload"),
+            {"directory_id": str(directory.id), "file": upload},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Uploaded")
+        self.assertContains(response, f"doc-row-{doc.id}")
+
     @patch("learning.views.overwrite_file", return_value=12)
     def test_markdown_edit_saves(self, _mock_overwrite: object) -> None:
         directory = LearningDirectory.objects.create(
@@ -1383,3 +1465,38 @@ class LearningViewExtendedTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Zebra")
+
+
+class SearchUtilsTests(TestCase):
+    """Document search helpers."""
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("searcher", "s@example.com", "pass")
+
+    def test_search_empty_query_returns_none(self) -> None:
+        from learning.search_utils import search_documents
+
+        self.assertEqual(search_documents(self.user, "").count(), 0)
+        self.assertEqual(search_documents(self.user, "   ").count(), 0)
+
+    @patch("learning.search_utils.connection")
+    def test_search_mysql_uses_fulltext(self, mock_connection: MagicMock) -> None:
+        from learning.search_utils import search_documents
+
+        mock_connection.vendor = "mysql"
+        directory = LearningDirectory.objects.create(
+            owner=self.user,
+            name="Docs",
+            slug="search-docs",
+        )
+        LearningDocument.objects.create(
+            owner=self.user,
+            directory=directory,
+            title="Grammar guide",
+            original_filename="grammar.md",
+            content_type=LearningDocument.ContentType.MARKDOWN,
+            storage_key="grammar",
+            size_bytes=10,
+        )
+        qs = search_documents(self.user, "grammar")
+        self.assertEqual(str(qs.query).lower().count("match"), 1)
