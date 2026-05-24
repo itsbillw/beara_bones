@@ -4,10 +4,6 @@ Data app views: football dashboard, refresh endpoint, crest image proxy.
 
 from __future__ import annotations
 
-import subprocess  # nosec B404
-from pathlib import Path
-
-from django.conf import settings
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.http import require_http_methods
@@ -17,6 +13,7 @@ from football.ingest import get_client
 
 from .dashboard_service import build_dashboard_payload, league_season_defaults
 from .models import League, Season
+from .pipeline_service import enqueue_pipeline_refresh
 
 
 def _parse_dashboard_params(request) -> tuple[int | None, int | None, str]:
@@ -103,16 +100,6 @@ def data_refresh(request):
     if not request.user.is_authenticated or not request.user.is_staff:
         return JsonResponse({"error": "Forbidden"}, status=403)
 
-    repo_root = Path(settings.BASE_DIR).parent
-    lock_file = repo_root / "data" / "football" / ".refresh.lock"
-    if lock_file.exists():
-        return JsonResponse(
-            {"status": "already_running", "message": "Pipeline already in progress"},
-            status=409,
-        )
-    subprocess.Popen(  # nosec B603 B607
-        ["uv", "run", "python", "beara_bones/manage.py", "run_football_pipeline"],
-        cwd=str(repo_root),
-        start_new_session=True,
-    )
-    return JsonResponse({"status": "started", "message": "Refresh started"}, status=202)
+    result = enqueue_pipeline_refresh(source="api_refresh")
+    status_code = 409 if result["status"] == "already_running" else 202
+    return JsonResponse(result, status=status_code)

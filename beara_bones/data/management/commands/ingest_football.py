@@ -2,21 +2,11 @@
 Django management command: ingest football fixtures from RapidAPI to MinIO.
 
 Usage: python manage.py ingest_football [--league 39] [--season 2025]
-
-Run from beara_bones (project root). football package is at repo root.
-Repo root from data/management/commands/ingest_football.py = parents[4].
 """
-
-import sys
-from pathlib import Path
 
 from django.core.management.base import BaseCommand
 
-_repo_root = Path(__file__).resolve().parents[4]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
-
-from football.ingest import run_ingest  # noqa: E402 (import after path setup)
+from football.ingest import run_ingest
 
 
 class Command(BaseCommand):
@@ -44,4 +34,4 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"Ingested to MinIO: {key}"))
         except Exception as e:
             self.stdout.write(self.style.ERROR(str(e)))
-            raise SystemExit(1)
+            raise SystemExit(1) from e

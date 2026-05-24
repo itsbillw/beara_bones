@@ -47,4 +47,45 @@
       htmx.trigger(form, "change");
     }
   });
+
+  function cellValue(row, index, sortType) {
+    var cell = row.cells[index];
+    if (!cell) return "";
+    if (sortType === "number") {
+      return parseFloat(cell.textContent.trim()) || 0;
+    }
+    return cell.textContent.trim().toLowerCase();
+  }
+
+  function initFootballStandingsSort(tableId) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    var headers = table.querySelectorAll("thead th[data-sort]");
+    headers.forEach(function (th, index) {
+      if (th.getAttribute("data-sort") === "none") return;
+      th.style.cursor = "pointer";
+      th.addEventListener("click", function () {
+        var tbody = table.querySelector("tbody");
+        var rows = Array.from(tbody.querySelectorAll("tr"));
+        var sortType = th.getAttribute("data-sort") || "string";
+        var ascending = th.getAttribute("data-order") !== "asc";
+        rows.sort(function (a, b) {
+          var av = cellValue(a, index, sortType);
+          var bv = cellValue(b, index, sortType);
+          if (av < bv) return ascending ? -1 : 1;
+          if (av > bv) return ascending ? 1 : -1;
+          return 0;
+        });
+        headers.forEach(function (h) {
+          h.removeAttribute("data-order");
+        });
+        th.setAttribute("data-order", ascending ? "asc" : "desc");
+        rows.forEach(function (row) {
+          tbody.appendChild(row);
+        });
+      });
+    });
+  }
+
+  window.initFootballStandingsSort = initFootballStandingsSort;
 })();

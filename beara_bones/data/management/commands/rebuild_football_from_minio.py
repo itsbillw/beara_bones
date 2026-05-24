@@ -1,24 +1,13 @@
 """
 Rebuild football data in MariaDB from MinIO (no API calls).
-For each League×Season: try processed Parquet first (load only); else try raw JSON (transform + load + upload processed).
+For each League×Season: try processed Parquet first (load only); else try raw JSON.
 Uses same lock file as run_football_pipeline.
 """
 
-import sys
-from pathlib import Path
-
 from django.core.management.base import BaseCommand
 
-_repo_root = Path(__file__).resolve().parents[4]
-if str(_repo_root) not in sys.path:
-    sys.path.insert(0, str(_repo_root))
-
-from data.pipeline_runner import run_with_pipeline_run  # noqa: E402
-from football.locking import (  # noqa: E402
-    acquire_lock,
-    get_pipeline_lock_file,
-    pipeline_lock,
-)
+from data.pipeline_runner import run_with_pipeline_run
+from football.locking import acquire_lock, get_pipeline_lock_file, pipeline_lock
 
 LOCK_FILE = get_pipeline_lock_file()
 

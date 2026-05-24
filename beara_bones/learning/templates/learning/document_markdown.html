@@ -80,7 +80,13 @@
 <div class="modal fade" id="metaModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content learning-modal">
-      <form method="post" action="{% url 'learning:document_meta' doc_id=document.id %}">
+      <form
+        method="post"
+        action="{% url 'learning:document_meta' doc_id=document.id %}"
+        hx-post="{% url 'learning:document_meta' doc_id=document.id %}"
+        hx-swap="none"
+        hx-on::after-request="if(event.detail.successful){ bootstrap.Modal.getInstance(document.getElementById('metaModal'))?.hide(); }"
+      >
         {% csrf_token %}
         <div class="modal-header">
           <h5 class="modal-title">Document metadata</h5>

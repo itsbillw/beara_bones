@@ -110,6 +110,21 @@
   background: #e74c3c;
 }
 
+.football-standings-table thead th[data-sort]:not([data-sort="none"]) {
+  cursor: pointer;
+  user-select: none;
+}
+
+.football-standings-table thead th[data-order="asc"]::after {
+  content: " ▲";
+  font-size: 0.65rem;
+}
+
+.football-standings-table thead th[data-order="desc"]::after {
+  content: " ▼";
+  font-size: 0.65rem;
+}
+
 .football-empty-row {
   text-align: center;
   color: var(--color-text-muted);

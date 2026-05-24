@@ -4,7 +4,6 @@ Uses a lock file to prevent overlapping runs. Clears dashboard cache on success.
 """
 
 import logging
-import os
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -12,8 +11,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from football.locking import acquire_lock, get_pipeline_lock_file, pipeline_lock
+from football.logging_config import configure_logging
 
 load_dotenv()
+configure_logging()
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "data" / "football"
@@ -29,16 +30,9 @@ def _run(cmd: list[str], cwd: Path | None = None) -> int:
 
 def _load_to_mariadb_and_minio(df, league: int, season: int) -> None:
     """Load transformed data to MariaDB and upload processed Parquet to MinIO."""
-    project_root = REPO_ROOT / "beara_bones"
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
-    os.environ.setdefault(
-        "DJANGO_SETTINGS_MODULE",
-        os.environ.get("DJANGO_SETTINGS_MODULE", "beara_bones.settings_dev"),
-    )
-    import django
+    from football.django_bridge import ensure_django
 
-    django.setup()
+    ensure_django()
     from data.loading import load_fixtures_dataframe
 
     from football.processed import upload_processed_parquet
@@ -142,7 +136,7 @@ def run_pipeline(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    configure_logging()
     skip = "--skip-ingest" in sys.argv
     if skip:
         sys.argv.remove("--skip-ingest")

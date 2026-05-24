@@ -177,6 +177,7 @@
     const xhr = new XMLHttpRequest();
     xhr.open("POST", uploadForm.action);
     xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+    xhr.setRequestHeader("HX-Request", "true");
     if (uploadProgress) uploadProgress.hidden = false;
     if (uploadBar) {
       uploadBar.style.width = "0%";
@@ -194,6 +195,18 @@
     };
     xhr.onload = () => {
       if (uploadProgress) uploadProgress.hidden = true;
+      const container = document.getElementById("learning-files");
+      if (
+        xhr.status >= 200 &&
+        xhr.status < 300 &&
+        container &&
+        xhr.responseText.trim()
+      ) {
+        container.insertAdjacentHTML("beforeend", xhr.responseText);
+        const empty = document.querySelector(".learning-empty");
+        if (empty) empty.remove();
+        return;
+      }
       window.location.reload();
     };
     xhr.send(formData);

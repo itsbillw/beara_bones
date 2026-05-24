@@ -8,20 +8,20 @@
 
 <h3 class="football-table-heading">League table</h3>
 <div class="football-table-wrap">
-  <table class="football-standings-table">
+  <table class="football-standings-table" id="football-standings-table">
     <thead>
       <tr>
-        <th scope="col">#</th>
-        <th scope="col">Team</th>
-        <th scope="col">P</th>
-        <th scope="col">W</th>
-        <th scope="col">D</th>
-        <th scope="col">L</th>
-        <th scope="col">GF</th>
-        <th scope="col">GA</th>
-        <th scope="col">GD</th>
-        <th scope="col">Pts</th>
-        <th scope="col">Form</th>
+        <th scope="col" data-sort="number">#</th>
+        <th scope="col" data-sort="string">Team</th>
+        <th scope="col" data-sort="number">P</th>
+        <th scope="col" data-sort="number">W</th>
+        <th scope="col" data-sort="number">D</th>
+        <th scope="col" data-sort="number">L</th>
+        <th scope="col" data-sort="number">GF</th>
+        <th scope="col" data-sort="number">GA</th>
+        <th scope="col" data-sort="number">GD</th>
+        <th scope="col" data-sort="number">Pts</th>
+        <th scope="col" data-sort="none">Form</th>
       </tr>
     </thead>
     <tbody>
@@ -60,5 +60,8 @@
 <script>
   if (window.renderFootballChart) {
     window.renderFootballChart("football-chart");
+  }
+  if (window.initFootballStandingsSort) {
+    window.initFootballStandingsSort("football-standings-table");
   }
 </script>

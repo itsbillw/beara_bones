@@ -24,3 +24,55 @@ jobs:
 
       - name: Lint and test
         run: make check
+
+  dbt-soda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Prepare fixture DuckDB
+        run: |
+          mkdir -p data/football
+          uv run python - <<'PY'
+          import duckdb
+          from pathlib import Path
+          db = Path("data/football/football.duckdb")
+          con = duckdb.connect(str(db))
+          con.execute(
+              """
+              CREATE TABLE IF NOT EXISTS fixtures (
+                  fixture_id BIGINT,
+                  league_id INTEGER,
+                  league_season INTEGER,
+                  home_team_name VARCHAR,
+                  away_team_name VARCHAR,
+                  goals_home INTEGER,
+                  goals_away INTEGER
+              )
+              """
+          )
+          con.execute(
+              "INSERT INTO fixtures VALUES (1, 39, 2025, 'TeamA', 'TeamB', 2, 1)"
+          )
+          con.close()
+          PY
+
+      - name: dbt build
+        run: cd data_modelling && uv run dbt build
+
+      - name: Soda contract verify
+        run: |
+          uv run soda contract verify \
+            --data-source football/soda/ds_config.yml \
+            --contract football/soda/contracts/fixtures.yaml || true

@@ -1,5 +1,5 @@
 {% load learning_tags %}
-<div class="learning-file-row">
+<div class="learning-file-row" id="doc-row-{{ doc.id }}">
   <a href="{% url 'learning:document' doc_id=doc.id %}" class="learning-file-item">
     <span class="learning-file-name-wrap">
       <span class="learning-file-icon">
@@ -28,7 +28,10 @@
     <button
       type="button"
       class="learning-star-btn {% if doc.id in starred_ids %}starred{% endif %}"
-      data-star-url="{% url 'learning:document_star' doc_id=doc.id %}"
+      hx-post="{% url 'learning:document_star' doc_id=doc.id %}"
+      hx-target="#doc-row-{{ doc.id }}"
+      hx-swap="outerHTML"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
       aria-label="Star {{ doc.title }}"
     >
       <i class="bi {% if doc.id in starred_ids %}bi-star-fill{% else %}bi-star{% endif %}" aria-hidden="true"></i>

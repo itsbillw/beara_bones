@@ -15,12 +15,9 @@ from football.crests import (
     CREST_KEY_TEMPLATE,
     sync_crests_from_response,
 )
-from football.ingest import (
-    ensure_bucket,
-    fetch_fixtures,
-    get_client,
-    upload_raw,
-)
+from football.ingest import fetch_fixtures, get_client
+from football.ingest_adapters import upload_raw
+from football.minio_utils import ensure_bucket
 from football.processed import (
     load_processed_parquet_from_minio,
     upload_processed_parquet,
@@ -196,7 +193,7 @@ class TestIngest:
         assert key == "raw/league_39_season_2025.json"
         mock_client.put_object.assert_called_once()
 
-    @patch("football.ingest.requests.get")
+    @patch("football.ingest_adapters.requests.get")
     def test_fetch_fixtures(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.json.return_value = {"response": [{"fixture": {"id": 1}}]}
@@ -211,8 +208,8 @@ class TestIngest:
         assert "response" in result
         assert len(result["response"]) == 1
 
-    @patch("football.ingest.get_client")
-    @patch("football.ingest.fetch_fixtures")
+    @patch("football.ingest_adapters.get_minio_client")
+    @patch("football.ingest_adapters.RapidAPIIngest.fetch_fixtures")
     def test_run_ingest_calls_fetch_upload_and_crests(
         self,
         mock_fetch: MagicMock,
@@ -222,13 +219,33 @@ class TestIngest:
         mock_client = MagicMock()
         mock_client.bucket_exists.return_value = True
         mock_get_client.return_value = mock_client
-        with patch.dict("os.environ", {"MINIO_BUCKET": "b"}, clear=False):
+        with patch.dict(
+            "os.environ",
+            {"MINIO_BUCKET": "football-test", "FOOTBALL_INGEST_SOURCE": "rapidapi"},
+            clear=False,
+        ):
             from football.ingest import run_ingest
 
-            key = run_ingest(league=39, season=2025, bucket="b")
+            key = run_ingest(league=39, season=2025, bucket="football-test")
         assert key == "raw/league_39_season_2025.json"
         mock_fetch.assert_called_once_with(league=39, season=2025)
         mock_client.put_object.assert_called_once()
+
+    @patch("football.ingest_adapters.get_minio_client")
+    def test_manual_ingest_reads_from_minio(self, mock_get_client: MagicMock) -> None:
+        from football.ingest_adapters import ManualUploadIngest
+
+        payload = b'{"response": [{"fixture": {"id": 99}}]}'
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = payload
+        mock_resp.close = MagicMock()
+        mock_resp.release_conn = MagicMock()
+        mock_client = MagicMock()
+        mock_client.get_object.return_value = mock_resp
+        mock_get_client.return_value = mock_client
+        adapter = ManualUploadIngest(client=mock_client, bucket="football")
+        data = adapter.fetch_fixtures(39, 2025)
+        assert data["response"][0]["fixture"]["id"] == 99
 
     def test_upload_raw_puts_correct_key(self) -> None:
         mock_client = MagicMock()

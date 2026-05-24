@@ -155,6 +155,15 @@ make deploy
 
 This runs `uv sync`, `migrate`, `collectstatic --noinput --clear`, and `sudo systemctl restart uvicorn`. Override the service name with `make deploy SYSTEMCTL_SERVICE=gunicorn` if needed.
 
+Optional background pipeline jobs (when `REDIS_URL` is set):
+
+```bash
+# systemd unit example: rqworker.service
+uv run python beara_bones/manage.py rqworker default
+```
+
+Set `REDIS_URL=redis://127.0.0.1:6379/0` in production `.env` to queue pipeline refreshes via django-rq instead of subprocess-only mode.
+
 ## Project layout (detail)
 
 - **`beara_bones/beara_bones/`** — Django config (`settings/`, `settings_dev` shim, `urls`, WSGI/ASGI)

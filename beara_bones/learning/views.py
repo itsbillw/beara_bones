@@ -14,7 +14,6 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django.db.models import Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -51,6 +50,7 @@ from .models import (
     LearningStarred,
     LearningTag,
 )
+from .search_utils import search_documents
 from .storage import (
     delete_file,
     open_file,
@@ -431,14 +431,7 @@ def search(request):
     query = (request.GET.get("q") or "").strip()
     results: list[LearningDocument] = []
     if query:
-        results = list(
-            LearningDocument.objects.filter(owner=request.user)
-            .filter(
-                Q(title__icontains=query) | Q(original_filename__icontains=query),
-            )
-            .select_related("directory")
-            .order_by("title")[:50],
-        )
+        results = list(search_documents(request.user, query))
     ctx = _vault_context(
         request,
         query=query,
@@ -495,6 +488,7 @@ def upload(request):
         return redirect("learning:directory", dir_id=directory.id)
 
     uploaded_names: list[str] = []
+    uploaded_docs: list[LearningDocument] = []
     for uploaded in files:
         try:
             validate_upload_file(uploaded)
@@ -505,10 +499,21 @@ def upload(request):
             messages.error(request, msg)
             continue
 
-        _, dup_msg = _save_uploaded_document(request.user, directory, uploaded)
+        doc, dup_msg = _save_uploaded_document(request.user, directory, uploaded)
         if dup_msg:
             messages.warning(request, dup_msg)
         uploaded_names.append(uploaded.name)
+        uploaded_docs.append(doc)
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "learning/_upload_results.html",
+            {
+                "docs": uploaded_docs,
+                "starred_ids": _starred_ids(request.user),
+            },
+        )
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({"uploaded": uploaded_names, "count": len(uploaded_names)})
@@ -745,12 +750,14 @@ def document_meta(request, doc_id: uuid.UUID):
     if form.is_valid():
         form.save()
         form.save_tags(request.user)
+        if request.htmx:
+            return HttpResponse(status=204)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JsonResponse({"ok": True})
         messages.success(request, "Metadata updated.")
     else:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JsonResponse({"error": form.errors}, status=400)
+        if request.htmx:
+            return JsonResponse({"error": form.errors}, status=422)
         messages.error(request, "Could not update metadata.")
     return redirect("learning:document", doc_id=document.id)
 
@@ -767,6 +774,13 @@ def document_star(request, doc_id: uuid.UUID):
     else:
         LearningStarred.objects.create(user=request.user, document=document)
         is_starred = True
+    if request.htmx:
+        starred_ids = _starred_ids(request.user)
+        return render(
+            request,
+            "learning/_file_item.html",
+            {"doc": document, "show_star": True, "starred_ids": starred_ids},
+        )
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JsonResponse({"starred": is_starred})
     return redirect(request.META.get("HTTP_REFERER", reverse("learning:vault")))

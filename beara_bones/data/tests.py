@@ -2,6 +2,7 @@
 
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
@@ -133,14 +134,15 @@ class DataViewTests(TestCase):
         response = self.client.post(reverse("data:data_refresh"))
         self.assertEqual(response.status_code, 403)
 
-    @patch("subprocess.Popen")
+    @patch("data.views.enqueue_pipeline_refresh")
     def test_data_refresh_post_staff_returns_202_or_409(
         self,
-        mock_popen: unittest.mock.Mock,
+        mock_enqueue: unittest.mock.Mock,
     ) -> None:
         """POST to refresh as staff returns 202 or 409."""
         from django.contrib.auth import get_user_model
 
+        mock_enqueue.return_value = {"status": "started", "message": "Refresh started"}
         User = get_user_model()
         user = User.objects.create_superuser("admin", "a@b.com", "pass")
         self.client.force_login(user)
@@ -151,40 +153,21 @@ class DataViewTests(TestCase):
         response = self.client.get(reverse("data:data_refresh"))
         self.assertEqual(response.status_code, 405)
 
-    @patch("data.views.settings")
     def test_crest_serve_returns_404_when_object_missing(
         self,
-        mock_settings: unittest.mock.Mock,
     ) -> None:
         """Crest view returns 404 when MinIO object is missing."""
-        import sys
-        from pathlib import Path
-
-        # Repo root (has football/) and Django project dir (BASE_DIR)
-        repo_root = Path(__file__).resolve().parents[2]
-        mock_settings.BASE_DIR = Path(__file__).resolve().parents[1]
-        if str(repo_root) not in sys.path:
-            sys.path.insert(0, str(repo_root))
-        with patch("football.ingest.get_client") as mock_get_client:
+        with patch("data.views.get_client") as mock_get_client:
             mock_client = unittest.mock.MagicMock()
             mock_client.get_object.side_effect = Exception("Not found")
             mock_get_client.return_value = mock_client
             response = self.client.get(reverse("data:crest", kwargs={"team_id": 999}))
         self.assertEqual(response.status_code, 404)
 
-    @patch("data.views.settings")
     def test_crest_serve_returns_image_when_found(
         self,
-        mock_settings: unittest.mock.Mock,
     ) -> None:
         """Crest view returns 200 and image/png when object exists in MinIO."""
-        import sys
-        from pathlib import Path
-
-        repo_root = Path(__file__).resolve().parents[2]
-        mock_settings.BASE_DIR = Path(__file__).resolve().parents[1]
-        if str(repo_root) not in sys.path:
-            sys.path.insert(0, str(repo_root))
         fake_png = b"\x89PNG\r\n\x1a\n"
         mock_resp = unittest.mock.MagicMock()
         mock_resp.read.return_value = fake_png
@@ -600,7 +583,6 @@ class AdminViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_pipeline_refresh_post_with_lock_redirects_with_message(self) -> None:
-        from pathlib import Path
 
         from django.conf import settings
         from django.contrib.auth import get_user_model
@@ -620,21 +602,22 @@ class AdminViewsTests(TestCase):
             if lock.exists():
                 lock.unlink(missing_ok=True)
 
-    @patch("data.admin_views.subprocess.Popen")
+    @patch("data.admin_views.enqueue_pipeline_refresh")
     def test_pipeline_refresh_post_starts_pipeline(
         self,
-        mock_popen: unittest.mock.Mock,
+        mock_enqueue: unittest.mock.Mock,
     ) -> None:
         from django.contrib.auth import get_user_model
 
+        mock_enqueue.return_value = {"status": "started", "message": "Refresh started"}
         User = get_user_model()
         User.objects.create_superuser("admin3", "c@d.com", "pass")
         self.client.force_login(User.objects.get(username="admin3"))
         response = self.client.post(reverse("data:admin_pipeline_refresh"))
         self.assertEqual(response.status_code, 302)
-        mock_popen.assert_called_once()
+        mock_enqueue.assert_called_once()
 
-    @patch("django.core.management.call_command")
+    @patch("data.admin_views.call_command")
     def test_pipeline_rebuild_post_calls_command(
         self,
         mock_call: unittest.mock.Mock,
@@ -648,7 +631,7 @@ class AdminViewsTests(TestCase):
         self.assertEqual(response.status_code, 302)
         mock_call.assert_called_once_with("rebuild_football_from_minio")
 
-    @patch("django.core.management.call_command")
+    @patch("data.admin_views.call_command")
     def test_pipeline_rebuild_post_on_error_shows_message(
         self,
         mock_call: unittest.mock.Mock,
@@ -662,7 +645,7 @@ class AdminViewsTests(TestCase):
         response = self.client.post(reverse("data:admin_pipeline_rebuild"))
         self.assertEqual(response.status_code, 302)
         next_page = self.client.get(response.url)
-        self.assertIn(b"Rebuild failed", next_page.content)
+        self.assertIn(b"rebuild failed", next_page.content.lower())
 
 
 class DashboardServiceCacheTests(TestCase):
@@ -886,7 +869,6 @@ class DataViewsExtendedTests(TestCase):
         self.assertContains(response, "itsbillw-theme")
 
     def test_data_refresh_post_returns_409_when_lock_exists(self) -> None:
-        from pathlib import Path
 
         from django.conf import settings
         from django.contrib.auth import get_user_model

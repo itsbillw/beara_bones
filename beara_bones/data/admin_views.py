@@ -2,15 +2,14 @@
 Admin-only views to trigger football pipeline refresh and rebuild from MinIO.
 """
 
-import subprocess  # nosec B404
-from pathlib import Path
-
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.core.management import call_command
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+
+from data.pipeline_service import enqueue_pipeline_refresh
 
 
 @staff_member_required
@@ -24,20 +23,14 @@ def pipeline_refresh(request):
     """POST only: start run_football_pipeline in background."""
     if request.method != "POST":
         return HttpResponseRedirect(reverse("data:admin_pipeline"))
-    repo_root = Path(settings.BASE_DIR).parent
-    lock_file = repo_root / "data" / "football" / ".refresh.lock"
-    if lock_file.exists():
+    result = enqueue_pipeline_refresh(source="admin_button")
+    if result["status"] == "already_running":
         messages.warning(
             request,
             "Pipeline already in progress. Wait or remove the lock file.",
         )
-        return HttpResponseRedirect(reverse("data:admin_pipeline"))
-    subprocess.Popen(  # nosec B603 B607
-        ["uv", "run", "python", "beara_bones/manage.py", "run_football_pipeline"],
-        cwd=str(repo_root),
-        start_new_session=True,
-    )
-    messages.success(request, "Pipeline refresh started in the background.")
+    else:
+        messages.success(request, result.get("message", "Pipeline refresh started."))
     return HttpResponseRedirect(reverse("data:admin_pipeline"))
 
 
@@ -46,7 +39,9 @@ def pipeline_rebuild(request):
     """POST only: run rebuild_football_from_minio (blocking)."""
     if request.method != "POST":
         return HttpResponseRedirect(reverse("data:admin_pipeline"))
-    from django.core.management import call_command
+    from pathlib import Path
+
+    from django.conf import settings
 
     repo_root = Path(settings.BASE_DIR).parent
     lock_file = repo_root / "data" / "football" / ".refresh.lock"

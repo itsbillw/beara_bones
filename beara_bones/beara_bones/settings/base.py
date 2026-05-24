@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_htmx",
+    "django_rq",
     "home",
     "data",
     "learning",
@@ -99,6 +100,23 @@ CACHES = {
     },
 }
 FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600
+
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "TIMEOUT": FOOTBALL_DASHBOARD_CACHE_TIMEOUT,
+        },
+    }
+    RQ_QUEUES = {
+        "default": {
+            "URL": REDIS_URL,
+            "DEFAULT_TIMEOUT": 3600,
+        },
+    }
 
 LOGIN_URL = "/learning/login/"
 LOGIN_REDIRECT_URL = "/learning/"

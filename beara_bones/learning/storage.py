@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import os
-import sys
 from io import BytesIO
 from pathlib import Path
 from typing import BinaryIO
@@ -12,10 +11,6 @@ from typing import BinaryIO
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
-
-
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
 
 
 def _minio_available() -> bool:
@@ -47,9 +42,6 @@ def _local_path(storage_key: str) -> Path:
 
 def _put_bytes(storage_key: str, data: bytes) -> None:
     if _minio_available():
-        repo_root = _repo_root()
-        if str(repo_root) not in sys.path:
-            sys.path.insert(0, str(repo_root))
         from football.minio_utils import ensure_bucket, get_minio_client
 
         client = get_minio_client()
@@ -95,9 +87,6 @@ def save_thumbnail(document_uuid: str, png_bytes: bytes) -> str:
 def open_file(storage_key: str) -> bytes:
     """Load file bytes from MinIO or local media."""
     if _minio_available():
-        repo_root = _repo_root()
-        if str(repo_root) not in sys.path:
-            sys.path.insert(0, str(repo_root))
         from football.minio_utils import get_bytes_object, get_minio_client
 
         return get_bytes_object(get_minio_client(), learning_bucket(), storage_key)
@@ -111,9 +100,6 @@ def open_file(storage_key: str) -> bytes:
 def delete_file(storage_key: str) -> None:
     """Remove file from MinIO or local media."""
     if _minio_available():
-        repo_root = _repo_root()
-        if str(repo_root) not in sys.path:
-            sys.path.insert(0, str(repo_root))
         from football.minio_utils import get_minio_client
 
         client = get_minio_client()
