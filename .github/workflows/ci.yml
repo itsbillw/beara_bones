@@ -29,7 +29,9 @@ jobs:
         run: SKIP=test-all uv run pre-commit run --all-files
 
       - name: Test
-        run: make test-all
+        run: |
+          cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run python manage.py test home data learning
+          uv run pytest tests/test_football.py -v
 
   dbt-soda:
     runs-on: ubuntu-latest
