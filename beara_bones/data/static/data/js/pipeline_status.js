@@ -165,6 +165,17 @@
     pollStatus(btn);
   }
 
+  function resetChipFromServer(btn) {
+    fetch(btn.dataset.statusUrl, { headers: { Accept: "application/json" } })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(renderChip)
+      .catch(function () {
+        renderChip({ running: false });
+      });
+  }
+
   function bindActivityToggle() {
     var toggle = document.getElementById("pipeline-activity-toggle");
     var body = document.getElementById("pipeline-activity-body");
@@ -204,7 +215,6 @@
 
     btn.addEventListener("click", function () {
       btn.disabled = true;
-      renderChip({ running: true, completed: 0, failed: 0, total_pairs: 0 });
 
       fetch(btn.dataset.url, {
         method: "POST",
@@ -231,6 +241,7 @@
             return;
           }
           btn.disabled = false;
+          resetChipFromServer(btn);
           if (window.Feedback) {
             Feedback.toast("Could not start refresh (HTTP " + r.status + ").", {
               variant: "error",
@@ -239,6 +250,7 @@
         })
         .catch(function () {
           btn.disabled = false;
+          resetChipFromServer(btn);
           if (window.Feedback) {
             Feedback.toast("Request failed.", { variant: "error" });
           }

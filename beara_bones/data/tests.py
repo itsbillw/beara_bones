@@ -1104,6 +1104,21 @@ class PipelineServiceTests(TestCase):
             "test",
         )
 
+    @patch.dict("os.environ", {"REDIS_URL": "redis://127.0.0.1:6379/0"})
+    @patch("data.pipeline_service.subprocess.Popen")
+    @patch("django_rq.get_queue")
+    def test_enqueue_falls_back_to_subprocess_when_rq_fails(
+        self,
+        mock_get_queue: unittest.mock.Mock,
+        mock_popen: unittest.mock.Mock,
+    ) -> None:
+        from data.pipeline_service import enqueue_pipeline_refresh
+
+        mock_get_queue.side_effect = ConnectionError("redis unavailable")
+        result = enqueue_pipeline_refresh(source="test")
+        self.assertEqual(result["status"], "started")
+        mock_popen.assert_called_once()
+
     @patch("django.core.management.call_command")
     def test_run_football_pipeline_task(self, mock_cmd: unittest.mock.Mock) -> None:
         from data.tasks import run_football_pipeline_task
