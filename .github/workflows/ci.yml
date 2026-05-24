@@ -31,9 +31,10 @@ jobs:
       - name: Test
         env:
           DJANGO_SETTINGS_MODULE: beara_bones.settings_dev
+          TZ: UTC
         run: |
-          uv run python beara_bones/manage.py test home data learning
-          uv run pytest tests/test_football.py -v
+          cd beara_bones && uv run python manage.py test home data learning
+          cd .. && uv run pytest tests/test_football.py -v
 
   dbt-soda:
     runs-on: ubuntu-latest
