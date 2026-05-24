@@ -21,6 +21,7 @@ def chart_layout_kwargs(*, xaxis_title: str, plotly_template: str) -> dict:
         "yaxis_title": "Points",
         "template": plotly_template,
         "height": CHART_HEIGHT,
+        "autosize": False,
         "hovermode": "closest",
         "margin": dict(CHART_MARGINS),
         "legend": dict(
@@ -252,8 +253,8 @@ def _standings_and_figure_from_team_games(
                     y=y_vals,
                     name=team,
                     mode="lines+markers",
-                    hovertext=hover_text,
-                    hoverinfo="text",
+                    text=hover_text,
+                    hovertemplate="%{text}<extra></extra>",
                 ),
             )
 

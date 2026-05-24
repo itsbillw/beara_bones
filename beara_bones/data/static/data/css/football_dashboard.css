@@ -2,6 +2,10 @@
   padding: 1rem;
 }
 
+.data-panel.football-dashboard {
+  overflow: visible;
+}
+
 .football-dashboard-controls {
   display: flex;
   flex-wrap: wrap;
@@ -31,12 +35,19 @@
 }
 
 .football-chart {
+  position: relative;
   margin-bottom: 2rem;
+  min-height: 620px;
 }
 
 .football-chart-plot {
   height: 620px;
   width: 100%;
+}
+
+.football-chart-plot .js-plotly-plot,
+.football-chart-plot .plotly {
+  height: 100% !important;
 }
 
 .football-table-heading {

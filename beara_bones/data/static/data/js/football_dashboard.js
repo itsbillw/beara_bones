@@ -32,13 +32,11 @@
     if (plotEl.classList.contains("js-plotly-plot")) {
       Plotly.purge(plotEl);
     }
-    Plotly.newPlot(plotEl, figure.data || [], figure.layout || {}, {
-      responsive: true,
+    var layout = figure.layout || {};
+    layout.autosize = false;
+    Plotly.newPlot(plotEl, figure.data || [], layout, {
+      responsive: false,
       displayModeBar: false,
-    }).then(function () {
-      requestAnimationFrame(function () {
-        Plotly.Plots.resize(plotEl);
-      });
     });
   }
 
@@ -62,9 +60,9 @@
   });
 
   document.addEventListener("themechange", function () {
-    var form = document.getElementById("football-dashboard-controls");
-    if (form && window.htmx) {
-      htmx.trigger(form, "change");
+    var leagueSelect = document.getElementById("football-league");
+    if (leagueSelect && window.htmx) {
+      htmx.trigger(leagueSelect, "change");
     }
   });
 
@@ -79,7 +77,8 @@
 
   function initFootballStandingsSort(tableId) {
     var table = document.getElementById(tableId);
-    if (!table) return;
+    if (!table || table.dataset.sortBound === "1") return;
+    table.dataset.sortBound = "1";
     var headers = table.querySelectorAll("thead th[data-sort]");
     headers.forEach(function (th, index) {
       if (th.getAttribute("data-sort") === "none") return;

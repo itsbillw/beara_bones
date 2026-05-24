@@ -154,6 +154,7 @@ class ChartFigureContractTests(TestCase):
         self.assertEqual(legend["orientation"], "v")
         self.assertGreater(legend["x"], 1)
         self.assertEqual(fig["layout"]["hovermode"], "closest")
+        self.assertFalse(fig["layout"].get("autosize", True))
 
     def test_traces_have_matching_hovertext(self) -> None:
         from data.dashboard_utils import SEASON_START_HOVER
@@ -162,8 +163,9 @@ class ChartFigureContractTests(TestCase):
         self.assertGreaterEqual(len(fig["data"]), 6)
         for trace in fig["data"]:
             self.assertEqual(len(trace["x"]), len(trace["y"]))
-            self.assertEqual(len(trace["x"]), len(trace["hovertext"]))
-            self.assertIn(SEASON_START_HOVER, trace["hovertext"][0])
+            self.assertEqual(len(trace["x"]), len(trace["text"]))
+            self.assertEqual(trace.get("hovertemplate"), "%{text}<extra></extra>")
+            self.assertIn(SEASON_START_HOVER, trace["text"][0])
 
     @patch("data.dashboard_service.load_fixtures_from_db")
     def test_dashboard_payload_figure_json_round_trip(
