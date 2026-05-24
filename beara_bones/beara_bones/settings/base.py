@@ -5,10 +5,11 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 # Project root (directory containing manage.py).
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = BASE_DIR.parent
+
+load_dotenv(REPO_ROOT / ".env")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -18,7 +19,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_htmx",
-    "django_rq",
     "home",
     "data",
     "learning",
@@ -103,6 +103,7 @@ FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600
 
 REDIS_URL = os.getenv("REDIS_URL", "").strip()
 if REDIS_URL:
+    INSTALLED_APPS.append("django_rq")
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",

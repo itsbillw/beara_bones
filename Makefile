@@ -89,3 +89,7 @@ deploy:  ## After git pull: uv sync, migrate, collectstatic, restart service (SY
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py migrate
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py collectstatic --noinput --clear
 	sudo systemctl restart $(SYSTEMCTL_SERVICE)
+
+.PHONY: rqworker
+rqworker:  ## Run django-rq worker (requires REDIS_URL in repo-root .env)
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py rqworker default
