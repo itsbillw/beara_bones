@@ -1,8 +1,13 @@
 (function () {
   "use strict";
 
-  function parseFigure(container) {
-    var dataEl = container.querySelector(".football-chart-data");
+  var CHART_WRAPPER_ID = "football-chart";
+  var PLOT_ID = "football-chart-plot";
+  var TABLE_ID = "football-standings-table";
+  var PANEL_ID = "football-dashboard-panel";
+
+  function parseFigure(wrapper) {
+    var dataEl = wrapper.querySelector(".football-chart-data");
     if (!dataEl) {
       return null;
     }
@@ -14,31 +19,46 @@
     }
   }
 
-  function renderFootballChart(containerId) {
-    var container = document.getElementById(containerId);
-    if (!container || typeof Plotly === "undefined") {
+  function renderFootballChart() {
+    var wrapper = document.getElementById(CHART_WRAPPER_ID);
+    var plotEl = document.getElementById(PLOT_ID);
+    if (!wrapper || !plotEl || typeof Plotly === "undefined") {
       return;
     }
-    var figure = parseFigure(container);
+    var figure = parseFigure(wrapper);
     if (!figure) {
       return;
     }
-    Plotly.newPlot(containerId, figure.data || [], figure.layout || {}, {
+    if (plotEl.classList.contains("js-plotly-plot")) {
+      Plotly.purge(plotEl);
+    }
+    Plotly.newPlot(plotEl, figure.data || [], figure.layout || {}, {
       responsive: true,
       displayModeBar: false,
+    }).then(function () {
+      requestAnimationFrame(function () {
+        Plotly.Plots.resize(plotEl);
+      });
     });
   }
 
   window.renderFootballChart = renderFootballChart;
 
+  function initDashboardPanel() {
+    renderFootballChart();
+    if (window.initFootballStandingsSort) {
+      window.initFootballStandingsSort(TABLE_ID);
+    }
+  }
+
   document.body.addEventListener("htmx:afterSwap", function (event) {
-    if (event.detail.target.id === "football-dashboard-panel") {
-      renderFootballChart("football-chart");
+    if (event.detail.target.id === PANEL_ID) {
+      initDashboardPanel();
     }
   });
 
   document.addEventListener("DOMContentLoaded", function () {
-    renderFootballChart("football-chart");
+    initDashboardPanel();
   });
 
   document.addEventListener("themechange", function () {

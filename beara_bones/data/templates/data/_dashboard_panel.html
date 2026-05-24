@@ -2,8 +2,9 @@
 <p class="football-dashboard-error" role="alert">{{ error }}</p>
 {% endif %}
 
-<div id="football-chart" class="football-chart">
+<div class="football-chart" id="football-chart">
   <script type="application/json" class="football-chart-data">{{ figure_json|safe }}</script>
+  <div id="football-chart-plot" class="football-chart-plot"></div>
 </div>
 
 <h3 class="football-table-heading">League table</h3>
@@ -56,12 +57,3 @@
     </tbody>
   </table>
 </div>
-
-<script>
-  if (window.renderFootballChart) {
-    window.renderFootballChart("football-chart");
-  }
-  if (window.initFootballStandingsSort) {
-    window.initFootballStandingsSort("football-standings-table");
-  }
-</script>

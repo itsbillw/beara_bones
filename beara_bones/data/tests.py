@@ -3,6 +3,7 @@
 import json
 import unittest
 from pathlib import Path
+from typing import Any, cast
 from unittest.mock import patch
 
 import pandas as pd
@@ -110,6 +111,83 @@ def _minimal_fixtures_df():
     )
 
 
+def _multi_team_fixtures_df() -> pd.DataFrame:
+    """Round-robin style fixtures across six teams for chart contract tests."""
+    teams = [f"Team{i}" for i in range(1, 7)]
+    rows = []
+    day = 0
+    for i in range(len(teams)):
+        for j in range(i + 1, len(teams)):
+            rows.append(
+                {
+                    "fixture_date": pd.Timestamp("2025-01-01") + pd.Timedelta(days=day),
+                    "home_team_name": teams[i],
+                    "away_team_name": teams[j],
+                    "goals_home": 1,
+                    "goals_away": 0,
+                    "result": "H",
+                },
+            )
+            day += 1
+    return pd.DataFrame(rows)
+
+
+class ChartFigureContractTests(TestCase):
+    """Plotly figure JSON invariants for layout, legend, and hover payloads."""
+
+    def _figure_json(self, df: pd.DataFrame) -> dict:
+        import plotly.io as pio
+
+        from data.dashboard_utils import build_standings_and_figure
+
+        _, fig, err = build_standings_and_figure(df)
+        self.assertIsNone(err)
+        assert fig is not None
+        return cast(dict[str, Any], json.loads(pio.to_json(fig)))
+
+    def test_layout_margins_and_vertical_legend(self) -> None:
+        fig = self._figure_json(_multi_team_fixtures_df())
+        margin = fig["layout"]["margin"]
+        self.assertGreaterEqual(margin["b"], 60)
+        self.assertGreaterEqual(margin["r"], 150)
+        legend = fig["layout"]["legend"]
+        self.assertEqual(legend["orientation"], "v")
+        self.assertGreater(legend["x"], 1)
+        self.assertEqual(fig["layout"]["hovermode"], "closest")
+
+    def test_traces_have_matching_hovertext(self) -> None:
+        from data.dashboard_utils import SEASON_START_HOVER
+
+        fig = self._figure_json(_multi_team_fixtures_df())
+        self.assertGreaterEqual(len(fig["data"]), 6)
+        for trace in fig["data"]:
+            self.assertEqual(len(trace["x"]), len(trace["y"]))
+            self.assertEqual(len(trace["x"]), len(trace["hovertext"]))
+            self.assertIn(SEASON_START_HOVER, trace["hovertext"][0])
+
+    @patch("data.dashboard_service.load_fixtures_from_db")
+    def test_dashboard_payload_figure_json_round_trip(
+        self,
+        mock_load: unittest.mock.Mock,
+    ) -> None:
+        from django.core.cache import cache
+
+        cache.clear()
+        League.objects.get_or_create(
+            id=39,
+            defaults={"name": "Premier League", "order": 0},
+        )
+        Season.objects.get_or_create(
+            api_year=2025,
+            defaults={"display": "2025/26", "order": 0},
+        )
+        mock_load.return_value = (_multi_team_fixtures_df(), None)
+        payload = build_dashboard_payload(league_id=39, season=2025)
+        fig = json.loads(payload["figure_json"])
+        self.assertGreaterEqual(len(fig["data"]), 6)
+        self.assertGreaterEqual(fig["layout"]["margin"]["b"], 60)
+
+
 class DataViewTests(TestCase):
     """Data page, fragment, and refresh endpoint behave correctly."""
 
@@ -127,7 +205,10 @@ class DataViewTests(TestCase):
     def test_dashboard_panel_returns_partial(self) -> None:
         response = self.client.get(reverse("data:dashboard_panel"))
         self.assertEqual(response.status_code, 200)
-        self.assertIn("football-standings-table", response.content.decode())
+        html = response.content.decode()
+        self.assertIn("football-standings-table", html)
+        self.assertIn('id="football-chart-plot"', html)
+        self.assertIn("football-chart-data", html)
 
     def test_data_refresh_post_returns_403_when_not_staff(self) -> None:
         """POST to refresh when not staff returns 403."""

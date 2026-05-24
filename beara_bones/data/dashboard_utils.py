@@ -9,6 +9,29 @@ import pandas as pd
 
 X_AXIS_OPTIONS = Literal["games_played", "fixture_date"]
 SEASON_START_HOVER = "Season start · 0 pts"
+CHART_HEIGHT = 620
+CHART_MARGINS = dict(l=60, r=200, t=40, b=90)
+
+
+def chart_layout_kwargs(*, xaxis_title: str, plotly_template: str) -> dict:
+    """Shared Plotly layout for the points-over-season chart."""
+    return {
+        "title": "",
+        "xaxis_title": xaxis_title,
+        "yaxis_title": "Points",
+        "template": plotly_template,
+        "height": CHART_HEIGHT,
+        "hovermode": "closest",
+        "margin": dict(CHART_MARGINS),
+        "legend": dict(
+            orientation="v",
+            x=1.02,
+            y=1,
+            xanchor="left",
+            yanchor="top",
+            font=dict(size=11),
+        ),
+    }
 
 
 def build_standings_and_figure(
@@ -212,7 +235,7 @@ def _standings_and_figure_from_team_games(
             y_vals = [0] + t["cumulative_pts"].astype(int).tolist()
             hover_list = t["hover"].tolist()
             start_hover = f"<b>{team}</b><br>{SEASON_START_HOVER}"
-            customdata = [start_hover] + hover_list
+            hover_text = [start_hover] + hover_list
 
             if x_axis == "games_played":
                 # x = 0, 1, 2, ... (games played)
@@ -229,21 +252,17 @@ def _standings_and_figure_from_team_games(
                     y=y_vals,
                     name=team,
                     mode="lines+markers",
-                    hovertemplate="%{customdata}<extra></extra>",
-                    customdata=customdata,
+                    hovertext=hover_text,
+                    hoverinfo="text",
                 ),
             )
 
         xaxis_title = "Games played" if x_axis == "games_played" else "Fixture (date)"
         fig_main.update_layout(
-            title="",
-            xaxis_title=xaxis_title,
-            yaxis_title="Points",
-            template=plotly_template,
-            height=620,
-            hovermode="closest",
-            margin=dict(r=220),
-            legend=dict(orientation="v", x=1.02, y=1, xanchor="left", yanchor="top"),
+            **chart_layout_kwargs(
+                xaxis_title=xaxis_title,
+                plotly_template=plotly_template,
+            ),
         )
         return standings, fig_main, None
     except ImportError:

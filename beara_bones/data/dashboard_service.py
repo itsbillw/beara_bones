@@ -11,7 +11,7 @@ from django.core.cache import cache
 from django.http import HttpRequest
 
 from .cache_utils import football_dashboard_cache_version
-from .dashboard_utils import build_standings_and_figure
+from .dashboard_utils import CHART_HEIGHT, CHART_MARGINS, build_standings_and_figure
 from .loaders import load_fixtures_from_db, load_team_games_from_view
 from .models import League, Season
 from .theme_utils import current_theme, plotly_template, surface_colors
@@ -35,7 +35,8 @@ def _empty_figure(message: str, theme: str) -> dict[str, Any]:
         "data": [],
         "layout": {
             "template": template,
-            "height": 620,
+            "height": CHART_HEIGHT,
+            "margin": dict(CHART_MARGINS),
             "paper_bgcolor": page_bg,
             "plot_bgcolor": plot_bg,
             "xaxis": {"visible": False},

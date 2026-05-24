@@ -31,8 +31,12 @@
 }
 
 .football-chart {
-  min-height: 620px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.football-chart-plot {
+  height: 620px;
+  width: 100%;
 }
 
 .football-table-heading {
