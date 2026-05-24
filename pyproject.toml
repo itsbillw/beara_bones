@@ -1,4 +1,8 @@
 # beara_bones: Django site (itsbillw). Production: DietPi + MariaDB; dev: SQLite.
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 requires-python = ">= 3.12"
 name = "beara_bones"
@@ -6,13 +10,8 @@ version = "0.1.0"
 description = "Django based playground"
 readme = "README.md"
 dependencies = [
-    "certbot-nginx>=2.11.0",
-    "certbot>=2.11.0",
-    "dash>=2.14.0",
-    "dash-ag-grid>=32.0.0",
     "dbt-duckdb>=1.9.0",
-    # dbt-mysql for MariaDB (optional; install separately if using: uv add dbt-mysql)
-    "django-plotly-dash>=2.1.0",
+    "django-htmx>=1.21.0",
     "django>=5.1.2",
     "duckdb>=1.0.0",
     "bleach>=6.2.0",
@@ -23,7 +22,7 @@ dependencies = [
     "minio>=7.2.0",
     "pandas>=2.2.0",
     "plotly>=5.24.0",
-    "PyMySQL>=1.1.0",  # MariaDB driver (no native build on Pi); see beara_bones/__init__.py
+    "PyMySQL>=1.1.0",
     "python-dotenv>=1.0.1",
     "pyarrow>=18.0.0",
     "requests>=2.32.0",
@@ -47,6 +46,7 @@ dev-dependencies = [
 ]
 
 [tool.setuptools.packages.find]
+where = ["."]
 include = ["beara_bones*", "football*"]
 
 [tool.coverage.run]
@@ -55,7 +55,7 @@ omit = ["*/migrations/*", "*/tests.py", "*/test_*.py", "manage.py"]
 
 [tool.coverage.report]
 exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
-fail_under = 0
+fail_under = 70
 
 [tool.bandit]
 skips = ["B101", "B404", "B603", "B607"]
@@ -66,10 +66,17 @@ warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
 
-
-[tool.black]
+[tool.ruff]
 line-length = 120
+target-version = "py312"
 
-[tool.isort]
-profile = "black"
-line_length = 120
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"beara_bones/*/management/commands/*.py" = ["B023", "B904", "E501"]
+"beara_bones/home/management/commands/*.py" = ["B904"]
+
+[tool.ruff.format]
+quote-style = "double"

@@ -1,0 +1,64 @@
+{% if error %}
+<p class="football-dashboard-error" role="alert">{{ error }}</p>
+{% endif %}
+
+<div id="football-chart" class="football-chart">
+  <script type="application/json" class="football-chart-data">{{ figure_json|safe }}</script>
+</div>
+
+<h3 class="football-table-heading">League table</h3>
+<div class="football-table-wrap">
+  <table class="football-standings-table">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Team</th>
+        <th scope="col">P</th>
+        <th scope="col">W</th>
+        <th scope="col">D</th>
+        <th scope="col">L</th>
+        <th scope="col">GF</th>
+        <th scope="col">GA</th>
+        <th scope="col">GD</th>
+        <th scope="col">Pts</th>
+        <th scope="col">Form</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in standings %}
+        <tr>
+          <td>{{ row.rank }}</td>
+          <td class="football-team-cell">
+            {% if row.crest_path %}
+              <img src="{{ row.crest_path }}" alt="" class="football-crest" width="28" height="28" loading="lazy">
+            {% endif %}
+            <span>{{ row.team }}</span>
+          </td>
+          <td>{{ row.P }}</td>
+          <td>{{ row.W }}</td>
+          <td>{{ row.D }}</td>
+          <td>{{ row.L }}</td>
+          <td>{{ row.GF }}</td>
+          <td>{{ row.GA }}</td>
+          <td>{{ row.GD }}</td>
+          <td>{{ row.Pts }}</td>
+          <td class="football-form-cell">
+            {% for letter in row.form %}
+              <span class="form-badge form-{{ letter|lower }}">{{ letter }}</span>
+            {% endfor %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="11" class="football-empty-row">No standings data.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  if (window.renderFootballChart) {
+    window.renderFootballChart("football-chart");
+  }
+</script>

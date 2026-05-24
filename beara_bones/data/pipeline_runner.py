@@ -42,9 +42,7 @@ def run_with_pipeline_run(
     )
     try:
         execute()
-    except (
-        Exception
-    ) as exc:  # pragma: no cover - behavior asserted via higher level tests
+    except Exception as exc:  # pragma: no cover - behavior asserted via higher level tests
         run.status = PipelineRun.Status.FAILED
         run.error_summary = str(exc)
         run.finished_at = timezone.now()

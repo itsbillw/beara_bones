@@ -9,11 +9,11 @@ import uuid
 from pathlib import Path
 from typing import Any, cast
 
+from django import forms
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
-from django import forms
 from django.db.models import Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,23 +23,25 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 
 from .forms import (
+    NOTE_TEMPLATES,
     CreateDirectoryForm,
     CreateNoteForm,
     DocumentMetadataForm,
     InviteSignupForm,
     LearningLoginForm,
-    NOTE_TEMPLATES,
+    MoveItemForm,
     RenameDirectoryForm,
     RenameDocumentForm,
-    MoveItemForm,
     validate_upload_file,
 )
 from .markdown_utils import (
     build_preview_index,
     cached_render_markdown,
-    find_backlinks_with_contents as find_backlinks,
     get_user_markdown_raw_contents,
     parse_frontmatter,
+)
+from .markdown_utils import (
+    find_backlinks_with_contents as find_backlinks,
 )
 from .models import (
     LearningActivity,
@@ -166,13 +168,9 @@ def _apply_filters(
 ) -> list[LearningDocument]:
     result = documents
     if content_filter == "pdf":
-        result = [
-            d for d in result if d.content_type == LearningDocument.ContentType.PDF
-        ]
+        result = [d for d in result if d.content_type == LearningDocument.ContentType.PDF]
     elif content_filter == "markdown":
-        result = [
-            d for d in result if d.content_type == LearningDocument.ContentType.MARKDOWN
-        ]
+        result = [d for d in result if d.content_type == LearningDocument.ContentType.MARKDOWN]
     if tag_slug:
         result = [d for d in result if any(t.slug == tag_slug for t in d.tags.all())]
     return result
@@ -274,9 +272,7 @@ def _save_uploaded_document(
             .first()
         )
         if duplicate:
-            duplicate_msg = (
-                f'"{uploaded.name}" looks like a duplicate of "{duplicate.title}".'
-            )
+            duplicate_msg = f'"{uploaded.name}" looks like a duplicate of "{duplicate.title}".'
 
     doc_id = uuid.uuid4()
     content_type = _content_type_from_filename(uploaded.name)
@@ -552,8 +548,8 @@ def create_note(request):
     filename = f"{filename}.md"
     content = body.encode("utf-8")
     buffer: io.BytesIO = io.BytesIO(content)
-    setattr(buffer, "name", filename)
-    setattr(buffer, "size", len(content))
+    buffer.name = filename
+    buffer.size = len(content)
 
     doc, _ = _save_uploaded_document(
         request.user,
@@ -668,11 +664,7 @@ def document_edit(request, doc_id: uuid.UUID):
 
     all_docs = _all_user_documents(request.user)
     note_titles = sorted(
-        {
-            d.title
-            for d in all_docs
-            if d.content_type == LearningDocument.ContentType.MARKDOWN
-        },
+        {d.title for d in all_docs if d.content_type == LearningDocument.ContentType.MARKDOWN},
     )
 
     ctx = _vault_context_with_breadcrumbs(

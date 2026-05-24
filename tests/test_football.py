@@ -151,10 +151,7 @@ class TestFlattenFixtures:
         df = flatten_fixtures(raw)
         assert len(df) == 1
         assert df["fixture_id"].iloc[0] == 2
-        assert (
-            pd.isna(df["home_team_name"].iloc[0])
-            or df["home_team_name"].iloc[0] is None
-        )
+        assert pd.isna(df["home_team_name"].iloc[0]) or df["home_team_name"].iloc[0] is None
 
 
 class TestClean:

@@ -7,7 +7,7 @@ Use {% url 'home:index' %}, etc., in templates.
 
 from django.urls import path
 
-from .views import index, about_me, poetry
+from .views import about_me, index, poetry
 
 app_name = "home"
 urlpatterns = [

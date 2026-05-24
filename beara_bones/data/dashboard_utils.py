@@ -63,11 +63,7 @@ def build_standings_and_figure(
     df = df.copy()
     df["fixture_date"] = pd.to_datetime(df["fixture_date"], errors="coerce")
 
-    if (
-        "result" not in df.columns
-        and "goals_home" in df.columns
-        and "goals_away" in df.columns
-    ):
+    if "result" not in df.columns and "goals_home" in df.columns and "goals_away" in df.columns:
         h, a = df["goals_home"], df["goals_away"]
         df["result"] = "D"
         df.loc[h > a, "result"] = "H"
@@ -198,9 +194,7 @@ def _standings_and_figure_from_team_games(
             lambda tid: f"/data/crest/{tid}/" if pd.notna(tid) else None,
         )
         agg["team_display_md"] = agg.apply(
-            lambda r: f"![{r['team']}]({r['crest_path']}) {r['team']}"
-            if r.get("crest_path")
-            else r["team"],
+            lambda r: f"![{r['team']}]({r['crest_path']}) {r['team']}" if r.get("crest_path") else r["team"],
             axis=1,
         )
     else:
@@ -213,11 +207,7 @@ def _standings_and_figure_from_team_games(
 
         fig_main = go.Figure()
         for team in team_order:
-            t = (
-                team_games[team_games["team"] == team]
-                .sort_values("date")
-                .reset_index(drop=True)
-            )
+            t = team_games[team_games["team"] == team].sort_values("date").reset_index(drop=True)
             # Prepend (0, 0) so every team starts at zero
             y_vals = [0] + t["cumulative_pts"].astype(int).tolist()
             hover_list = t["hover"].tolist()

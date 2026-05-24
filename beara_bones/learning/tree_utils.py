@@ -18,9 +18,7 @@ class DirectoryNode:
 
 def build_directory_tree(directories: list[LearningDirectory]) -> list[DirectoryNode]:
     """Build nested tree from flat directory queryset."""
-    by_id: dict[UUID, DirectoryNode] = {
-        d.id: DirectoryNode(directory=d) for d in directories
-    }
+    by_id: dict[UUID, DirectoryNode] = {d.id: DirectoryNode(directory=d) for d in directories}
     roots: list[DirectoryNode] = []
     for node in by_id.values():
         parent_id = node.directory.parent_id

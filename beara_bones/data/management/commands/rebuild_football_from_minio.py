@@ -13,12 +13,12 @@ _repo_root = Path(__file__).resolve().parents[4]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
+from data.pipeline_runner import run_with_pipeline_run  # noqa: E402
 from football.locking import (  # noqa: E402
     acquire_lock,
     get_pipeline_lock_file,
     pipeline_lock,
 )
-from data.pipeline_runner import run_with_pipeline_run  # noqa: E402
 
 LOCK_FILE = get_pipeline_lock_file()
 
@@ -38,13 +38,14 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         import os
-        from data.models import League, Season
+
         from data.loading import load_fixtures_dataframe
-        from football.transform import run_transform
+        from data.models import League, Season
         from football.processed import (
             load_processed_parquet_from_minio,
             upload_processed_parquet,
         )
+        from football.transform import run_transform
 
         raw_bucket = os.environ.get("MINIO_BUCKET", "football") or "football"
 
@@ -92,8 +93,7 @@ class Command(BaseCommand):
                         except Exception as exc:
                             self.stdout.write(
                                 self.style.ERROR(
-                                    f"Rebuild from processed failed for league={lid} "
-                                    f"season={say}: {exc}",
+                                    f"Rebuild from processed failed for league={lid} season={say}: {exc}",
                                 ),
                             )
                         continue
@@ -129,8 +129,7 @@ class Command(BaseCommand):
                     except Exception as exc:
                         self.stdout.write(
                             self.style.ERROR(
-                                f"Rebuild from raw failed for league={lid} "
-                                f"season={say}: {exc}",
+                                f"Rebuild from raw failed for league={lid} season={say}: {exc}",
                             ),
                         )
             self.stdout.write(self.style.SUCCESS("Rebuild completed."))

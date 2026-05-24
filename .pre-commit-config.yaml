@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -8,57 +8,42 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=500]
 
-    # Use ruff for linting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.8.1
+    rev: v0.15.1
     hooks:
-      # Run the linter.
       - id: ruff
         args: [--fix]
-      # Run the formatter.
       - id: ruff-format
 
-    # Detect secrets in code
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0 # Replace with the latest stable version
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         args: [--baseline .secrets.baseline]
 
-    # Prettier for formatting non-Python files
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.1.0 # Replace with the latest stable version
+    rev: v3.1.0
     hooks:
       - id: prettier
         files: "\\.(json|yaml|yml|md|html|css|js|jsx|tsx?)$"
 
-    # Check Python code for syntax errors, undefined names, etc.
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
       - id: python-use-type-annotations
 
-    # Bandit for security issues
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.0 # Replace with the latest stable version
+    rev: 1.8.3
     hooks:
       - id: bandit
         args: [--skip=B101, B404, B603, B607]
 
-    # MyPy for static type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0 # Replace with the latest stable version
+    rev: v1.19.1
     hooks:
       - id: mypy
         additional_dependencies: [types-PyMySQL, types-requests]
 
-  - repo: https://github.com/asottile/add-trailing-comma
-    rev: v3.1.0
-    hooks:
-      - id: add-trailing-comma
-
-  # Run tests before commit
   - repo: local
     hooks:
       - id: test-all

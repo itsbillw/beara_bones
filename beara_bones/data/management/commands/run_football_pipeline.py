@@ -12,12 +12,12 @@ _repo_root = Path(__file__).resolve().parents[4]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
+from data.pipeline_runner import run_with_pipeline_run  # noqa: E402
 from football.locking import (  # noqa: E402
     acquire_lock,
     get_pipeline_lock_file,
     pipeline_lock,
 )
-from data.pipeline_runner import run_with_pipeline_run  # noqa: E402
 
 LOCK_FILE = get_pipeline_lock_file()
 
@@ -26,11 +26,11 @@ class Command(BaseCommand):
     help = "Ingest (API → MinIO) → transform → load to MariaDB → upload processed Parquet for all League×Season"
 
     def handle(self, *args, **options):
-        from data.models import League, Season
         from data.loading import load_fixtures_dataframe
+        from data.models import League, Season
         from football.ingest import run_ingest
-        from football.transform import run_transform
         from football.processed import upload_processed_parquet
+        from football.transform import run_transform
 
         LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
         if not acquire_lock(LOCK_FILE, fail_if_exists=True):

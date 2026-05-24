@@ -1,0 +1,117 @@
+.football-dashboard {
+  padding: 1rem;
+}
+
+.football-dashboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.football-dashboard-controls label {
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.football-dashboard-controls select {
+  min-width: 8rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.football-dashboard-error {
+  color: var(--color-accent);
+  margin-bottom: 0.75rem;
+}
+
+.football-chart {
+  min-height: 620px;
+  margin-bottom: 1.5rem;
+}
+
+.football-table-heading {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--color-text);
+}
+
+.football-table-wrap {
+  overflow-x: auto;
+}
+
+.football-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.football-standings-table th,
+.football-standings-table td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.football-standings-table th:nth-child(2),
+.football-standings-table td:nth-child(2) {
+  text-align: left;
+}
+
+.football-standings-table thead th {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.football-team-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.football-crest {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.football-form-cell {
+  display: flex;
+  gap: 0.15rem;
+  justify-content: center;
+}
+
+.form-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.form-w {
+  background: #2ecc71;
+}
+
+.form-d {
+  background: #95a5a6;
+}
+
+.form-l {
+  background: #e74c3c;
+}
+
+.football-empty-row {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 1rem;
+}

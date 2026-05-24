@@ -7,9 +7,8 @@ import zipfile
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, BinaryIO
 
-from django.utils.text import slugify
-
 from django.core.exceptions import ValidationError
+from django.utils.text import slugify
 
 from .forms import ALLOWED_EXTENSIONS, validate_upload_file
 from .models import LearningDirectory
@@ -92,8 +91,8 @@ def extract_zip_to_directory(
 
             data = zf.read(info)
             buffer: io.BytesIO = io.BytesIO(data)
-            setattr(buffer, "name", filename)
-            setattr(buffer, "size", len(data))
+            buffer.name = filename
+            buffer.size = len(data)  # type: ignore[attr-defined]
             try:
                 validate_upload_file(buffer)
             except ValidationError as exc:

@@ -1,6 +1,6 @@
 # beara_bones
 
-Django-based personal site and playground. Production runs on a **Raspberry Pi 4** with **DietPi OS**, behind NGINX, using **MariaDB**. The site includes a **football data** section (Plotly Dash dashboard + ingest pipeline), and a **learning vault** (invite-only document library with PDF/markdown viewing).
+Django-based personal site and playground. Production runs on a **Raspberry Pi 4** with **DietPi OS**, behind NGINX, using **MariaDB**. The site includes a **football data** section (HTMX + Plotly.js dashboard + ingest pipeline), and a **learning vault** (invite-only document library with PDF/markdown viewing).
 
 ## Quick start (local dev)
 
@@ -72,14 +72,14 @@ Pipeline output under repo root `/data/football/` is gitignored.
 ```
 beara_bones/          Django project (run manage.py from beara_bones/)
   home/               Landing, about, base template, theme
-  data/               Football dashboard (/data), pipeline admin, Dash app
+  data/               Football dashboard (/data), pipeline admin
   learning/           Invite-only vault (/learning)
 football/             Standalone pipeline package (not a Django app)
 data_modelling/       dbt-duckdb project
 tests/                Pytest for football/
 ```
 
-**Request flow (production):** NGINX → Uvicorn/Gunicorn → Django. Static files via WhiteNoise. Football dashboard embeds a Plotly Dash app (`django-plotly-dash`) in an iframe. Learning documents live in MinIO (production) or `MEDIA_ROOT/learning/` (local dev without MinIO).
+**Request flow (production):** NGINX → Uvicorn/Gunicorn → Django. Static files via WhiteNoise. The football dashboard at `/data` uses Django templates, HTMX, and Plotly.js (no iframe). Learning documents live in MinIO (production) or `MEDIA_ROOT/learning/` (local dev without MinIO).
 
 ## Apps
 
@@ -89,7 +89,7 @@ Landing page, about, and static content. Provides the shared **base template** (
 
 ### Data (`/data`)
 
-- **Dashboard:** embedded Plotly Dash app — league/season dropdowns, cumulative points chart, AG Grid league table with team crests.
+- **Dashboard:** league/season dropdowns (HTMX), cumulative points chart (Plotly.js), HTML standings table with team crests.
 - **Refresh:** staff can POST to `/data/refresh` to start the pipeline in the background. A lock file prevents overlapping runs.
 - **Crests:** `/data/crest/<team_id>/` proxies PNG crests from MinIO.
 - **Admin:** pipeline control views for staff (`/data/admin/pipeline/`).
@@ -102,12 +102,12 @@ Invite-only vault: per-user directory trees, markdown notes with wikilinks/backl
 
 ## Theme system
 
-Light/dark theme is shared across Django pages and the embedded Dash dashboard.
+Light/dark theme is shared across Django pages and the football dashboard.
 
 1. **Inline script** in `home/base.html` runs before paint: reads `localStorage` key `itsbillw-theme`, falls back to `prefers-color-scheme`, sets `document.documentElement.dataset.theme`, and writes cookie `itsbillw-theme`.
 2. **`home/js/theme.js`** wires the navbar toggle: updates `localStorage`, cookie, and `data-theme` on `<html>`.
 3. **CSS** in `home/css/base_style.css` (and app-specific styles) use `[data-theme="light"]` / `[data-theme="dark"]` selectors.
-4. **Dash** reads the same cookie server-side (`dash_app._current_theme()`) to pick Plotly template (`plotly_white` / `plotly_dark`) and AG Grid theme class.
+4. **Dashboard** reads the same cookie server-side to pick Plotly template (`plotly_white` / `plotly_dark`) and re-fetches chart data on theme change via HTMX.
 
 Theme preference persists across visits via cookie + localStorage.
 
@@ -143,9 +143,9 @@ Coverage omits migrations, settings entrypoints, and test modules. Run from repo
 
 ## Production deploy (Raspberry Pi / DietPi / MariaDB)
 
-- Settings module: `beara_bones.settings` (default for `manage.py` on the server).
+- Settings module: `beara_bones.settings.prod` (WSGI/ASGI default; `make deploy` uses this).
 - PyMySQL driver — no native MySQL client build required on the Pi.
-- SSL terminated at NGINX (Certbot); Django sets secure cookies and HSTS.
+- SSL terminated at NGINX (Certbot installed via system packages); Django sets secure cookies and HSTS.
 
 After pulling changes on the server:
 
@@ -157,8 +157,8 @@ This runs `uv sync`, `migrate`, `collectstatic --noinput --clear`, and `sudo sys
 
 ## Project layout (detail)
 
-- **`beara_bones/beara_bones/`** — Django config (`settings`, `settings_dev`, `urls`, WSGI/ASGI)
-- **`beara_bones/data/`** — Football models, Dash app, views, management commands (`run_football_pipeline`, `rebuild_football_from_minio`, `ingest_football`)
+- **`beara_bones/beara_bones/`** — Django config (`settings/`, `settings_dev` shim, `urls`, WSGI/ASGI)
+- **`beara_bones/data/`** — Football models, HTMX dashboard, views, management commands
 - **`beara_bones/learning/`** — Vault models, storage abstraction, markdown/PDF views
 - **`football/`** — Ingest, transform, Soda contracts, DuckDB views, pipeline orchestration
 - **`data_modelling/`** — dbt sources, staging, marts

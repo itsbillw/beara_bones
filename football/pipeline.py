@@ -40,6 +40,7 @@ def _load_to_mariadb_and_minio(df, league: int, season: int) -> None:
 
     django.setup()
     from data.loading import load_fixtures_dataframe
+
     from football.processed import upload_processed_parquet
 
     load_fixtures_dataframe(df, league, season)

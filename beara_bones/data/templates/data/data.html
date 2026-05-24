@@ -1,17 +1,52 @@
 {% extends "home/base.html" %}
 {% load static %}
-{% load plotly_dash %}
 
 {% block header %}
 <title>itsbillw - Data</title>
+<link rel="stylesheet" href="{% static 'data/css/football_dashboard.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container main-container data-page-content">
   {% include "home/_page_header.html" with page_title="Football data" page_subtitle="League standings and points over the season" page_header_actions_template="home/_page_header_data_actions.html" %}
 
-  <div class="data-panel">
-    {% plotly_app name="FootballDashboard" ratio=1 %}
+  <div class="data-panel football-dashboard">
+    <form
+      id="football-dashboard-controls"
+      class="football-dashboard-controls"
+      hx-get="{% url 'data:dashboard_panel' %}"
+      hx-target="#football-dashboard-panel"
+      hx-trigger="change from:select, load"
+      hx-include="this"
+    >
+      <label for="football-league">League</label>
+      <select id="football-league" name="league">
+        {% for league in leagues %}
+          <option value="{{ league.id }}" {% if league.id == league_id %}selected{% endif %}>{{ league.name }}</option>
+        {% empty %}
+          <option value="">No leagues</option>
+        {% endfor %}
+      </select>
+
+      <label for="football-season">Season</label>
+      <select id="football-season" name="season">
+        {% for s in seasons %}
+          <option value="{{ s.api_year }}" {% if s.api_year == season %}selected{% endif %}>{{ s.display }}</option>
+        {% empty %}
+          <option value="">No seasons</option>
+        {% endfor %}
+      </select>
+
+      <label for="football-x-axis">Chart x-axis</label>
+      <select id="football-x-axis" name="x_axis">
+        <option value="games_played" {% if x_axis == "games_played" %}selected{% endif %}>Games played</option>
+        <option value="fixture_date" {% if x_axis == "fixture_date" %}selected{% endif %}>Fixture (date)</option>
+      </select>
+    </form>
+
+    <div id="football-dashboard-panel">
+      {% include "data/_dashboard_panel.html" %}
+    </div>
   </div>
 </div>
 
@@ -50,23 +85,9 @@
   })();
 </script>
 {% endif %}
+{% endblock %}
 
-<script>
-  (function () {
-    var key = "itsbillw-theme";
-    var current = document.documentElement.dataset.theme;
-
-    document.addEventListener("themechange", function (e) {
-      if (e.detail && e.detail.theme && e.detail.theme !== current) {
-        window.location.reload();
-      }
-    });
-
-    window.addEventListener("storage", function (e) {
-      if (e.key === key && e.newValue && e.newValue !== current) {
-        window.location.reload();
-      }
-    });
-  })();
-</script>
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.3/plotly.min.js" crossorigin="anonymous"></script>
+<script src="{% static 'data/js/football_dashboard.js' %}"></script>
 {% endblock %}

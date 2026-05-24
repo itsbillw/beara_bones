@@ -30,7 +30,7 @@ coverage:  ## Run all tests with combined coverage report
 	uv run coverage erase
 	(cd beara_bones && COVERAGE_FILE=$(CURDIR)/.coverage DJANGO_SETTINGS_MODULE=beara_bones.settings_dev uv run coverage run -m django test home data learning)
 	COVERAGE_FILE=$(CURDIR)/.coverage uv run coverage run -a -m pytest tests/ -q
-	uv run coverage report --omit='*/migrations/*,*/tests.py,*/test_*.py,manage.py,beara_bones/beara_bones/settings.py,beara_bones/beara_bones/asgi.py,beara_bones/beara_bones/wsgi.py'
+	uv run coverage report --omit='*/migrations/*,*/tests.py,*/test_*.py,manage.py,beara_bones/beara_bones/settings/*,beara_bones/beara_bones/asgi.py,beara_bones/beara_bones/wsgi.py'
 
 # --- Linting & pre-commit ---
 .PHONY: install-hooks
@@ -86,6 +86,6 @@ SYSTEMCTL_SERVICE ?= uvicorn
 .PHONY: deploy
 deploy:  ## After git pull: uv sync, migrate, collectstatic, restart service (SYSTEMCTL_SERVICE=uvicorn)
 	uv sync
-	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings uv run python manage.py migrate
-	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings uv run python manage.py collectstatic --noinput --clear
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py migrate
+	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py collectstatic --noinput --clear
 	sudo systemctl restart $(SYSTEMCTL_SERVICE)

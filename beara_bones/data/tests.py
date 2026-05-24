@@ -1,23 +1,27 @@
-"""Tests for data app: views, loading, admin, dashboard logic, dash callbacks."""
+"""Tests for data app: views, loading, admin, dashboard logic."""
 
+import json
 import unittest
 from unittest.mock import patch
 
 import pandas as pd
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
+from data.dashboard_service import build_dashboard_payload, league_season_defaults
 from data.dashboard_utils import build_standings_and_figure
 from data.loading import load_fixtures_dataframe
 from data.models import Fixture, League, Season
+from data.theme_utils import current_theme, plotly_template
 
 
-class DashAppCallbackTests(TestCase):
-    """Test Dash app callbacks with mocked dependencies."""
+class DashboardServiceTests(TestCase):
+    """Test dashboard_service with mocked dependencies."""
 
-    def test_set_dropdown_options_returns_league_and_season_options(self) -> None:
-        from data.dash_app import _set_dropdown_options
+    def setUp(self) -> None:
+        from django.core.cache import cache
 
+        cache.clear()
         League.objects.get_or_create(
             id=39,
             defaults={"name": "Premier League", "order": 0},
@@ -26,50 +30,67 @@ class DashAppCallbackTests(TestCase):
             api_year=2025,
             defaults={"display": "2025/26", "order": 0},
         )
-        league_opts, league_val, season_opts, season_val = _set_dropdown_options(0)
-        self.assertIsInstance(league_opts, list)
-        self.assertIsInstance(season_opts, list)
-        self.assertEqual(league_val, 39)
-        self.assertEqual(season_val, 2025)
 
-    def test_update_chart_and_grid_none_league_or_season_returns_empty(self) -> None:
-        from data.dash_app import _update_chart_and_grid
+    def test_league_season_defaults(self) -> None:
+        league_id, season = league_season_defaults()
+        self.assertEqual(league_id, 39)
+        self.assertEqual(season, 2025)
 
-        fig, rows, err = _update_chart_and_grid(None, 2025, "games_played")
-        self.assertEqual(err, "")
-        self.assertEqual(rows, [])
-        self.assertIn("Select league", fig["layout"]["annotations"][0]["text"])
+    def test_build_dashboard_payload_none_league_returns_empty(self) -> None:
+        payload = build_dashboard_payload(league_id=None, season=2025)
+        self.assertEqual(payload["standings"], [])
+        self.assertEqual(payload["error"], "")
+        figure = json.loads(payload["figure_json"])
+        self.assertIn("Select league", figure["layout"]["annotations"][0]["text"])
 
-        fig, rows, err = _update_chart_and_grid(39, None, "games_played")
-        self.assertEqual(rows, [])
-
-    @patch("data.dash_app._load_fixtures_from_db")
-    def test_update_chart_and_grid_with_data_returns_figure_and_standings(
+    @patch("data.dashboard_service.load_fixtures_from_db")
+    def test_build_dashboard_payload_with_data(
         self,
         mock_load: unittest.mock.Mock,
     ) -> None:
-        from data.dash_app import _update_chart_and_grid
-
         mock_load.return_value = (_minimal_fixtures_df(), None)
-        fig, rows, err = _update_chart_and_grid(39, 2025, "games_played")
-        self.assertEqual(err, "")
-        self.assertEqual(len(rows), 2)
-        self.assertEqual(rows[0]["rank"], 1)
-        self.assertIn("data", fig)
+        payload = build_dashboard_payload(league_id=39, season=2025)
+        self.assertEqual(payload["error"], "")
+        self.assertEqual(len(payload["standings"]), 2)
+        self.assertEqual(payload["standings"][0]["rank"], 1)
         mock_load.assert_called_once_with(39, 2025)
 
-    @patch("data.dash_app._load_fixtures_from_db")
-    def test_update_chart_and_grid_load_error_returns_empty_figure_and_message(
+    @patch("data.dashboard_service.load_fixtures_from_db")
+    def test_build_dashboard_payload_load_error(
         self,
         mock_load: unittest.mock.Mock,
     ) -> None:
-        from data.dash_app import _update_chart_and_grid
-
         mock_load.return_value = (None, "No fixtures for this league/season.")
-        fig, rows, err = _update_chart_and_grid(39, 2025, "games_played")
-        self.assertEqual(rows, [])
-        self.assertIn("No fixtures", err)
-        self.assertIn("annotations", fig.get("layout", {}))
+        payload = build_dashboard_payload(league_id=39, season=2025)
+        self.assertIn("No fixtures", payload["error"])
+
+    @patch("data.dashboard_service.load_fixtures_from_db")
+    @patch("data.dashboard_service.load_team_games_from_view")
+    def test_build_dashboard_prefers_team_games_view(
+        self,
+        mock_view: unittest.mock.Mock,
+        mock_db: unittest.mock.Mock,
+    ) -> None:
+        mock_view.return_value = (_team_games_df(), None)
+        build_dashboard_payload(league_id=39, season=2025)
+        mock_view.assert_called_once_with(39, 2025)
+        mock_db.assert_not_called()
+
+
+class ThemeUtilsTests(TestCase):
+    def test_current_theme_defaults_to_dark(self) -> None:
+        self.assertEqual(current_theme(None), "dark")
+
+    def test_current_theme_reads_cookie(self) -> None:
+        request = RequestFactory().get("/")
+        request.COOKIES["itsbillw-theme"] = "light"
+        self.assertEqual(current_theme(request), "light")
+        self.assertEqual(plotly_template("light"), "plotly_white")
+
+    def test_current_theme_invalid_cookie_falls_back(self) -> None:
+        request = RequestFactory().get("/")
+        request.COOKIES["itsbillw-theme"] = "neon"
+        self.assertEqual(current_theme(request), "dark")
 
 
 def _minimal_fixtures_df():
@@ -95,12 +116,17 @@ class DataViewTests(TestCase):
         response = self.client.get(reverse("data:data"))
         self.assertEqual(response.status_code, 200)
 
-    def test_data_page_renders_dash_embed(self) -> None:
-        """Data page returns 200 and contains the Dash app embed (FootballDashboard)."""
+    def test_data_page_renders_football_dashboard(self) -> None:
         response = self.client.get(reverse("data:data"))
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        self.assertIn("FootballDashboard", html, msg="Page should embed the Dash app")
+        self.assertIn("football-dashboard", html)
+        self.assertIn("football-chart", html)
+
+    def test_dashboard_panel_returns_partial(self) -> None:
+        response = self.client.get(reverse("data:dashboard_panel"))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("football-standings-table", response.content.decode())
 
     def test_data_refresh_post_returns_403_when_not_staff(self) -> None:
         """POST to refresh when not staff returns 403."""
@@ -163,7 +189,7 @@ class DataViewTests(TestCase):
         mock_resp = unittest.mock.MagicMock()
         mock_resp.read.return_value = fake_png
         mock_resp.close = unittest.mock.Mock()
-        with patch("football.ingest.get_client") as mock_get_client:
+        with patch("data.views.get_client") as mock_get_client:
             mock_client = unittest.mock.MagicMock()
             mock_client.get_object.return_value = mock_resp
             mock_get_client.return_value = mock_client
@@ -249,7 +275,7 @@ class RunFootballPipelineCommandTests(TestCase):
     def test_handle_exits_when_lock_exists(self) -> None:
         from io import StringIO
 
-        from data.management.commands.run_football_pipeline import Command, LOCK_FILE
+        from data.management.commands.run_football_pipeline import LOCK_FILE, Command
 
         LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -353,6 +379,7 @@ class RebuildFootballFromMinioCommandTests(TestCase):
 
     def test_handle_no_leagues_or_seasons_returns_early(self) -> None:
         from io import StringIO
+
         from data.management.commands.rebuild_football_from_minio import (
             LOCK_FILE,
             Command,
@@ -413,8 +440,9 @@ class IngestFootballCommandTests(TestCase):
         mock_run_home: unittest.mock.Mock,
         mock_run_data: unittest.mock.Mock,
     ) -> None:
-        from django.core.management import call_command
         from io import StringIO
+
+        from django.core.management import call_command
 
         mock_run_data.return_value = "raw/league_39_season_2025.json"
         mock_run_home.return_value = "raw/league_39_season_2025.json"
@@ -427,6 +455,7 @@ class IngestFootballCommandTests(TestCase):
     def test_data_command_handle_success(self, mock_run: unittest.mock.Mock) -> None:
         """Run data app's ingest_football handle directly to cover its code path."""
         from io import StringIO
+
         from data.management.commands.ingest_football import Command
 
         mock_run.return_value = "raw/league_40_season_2024.json"
@@ -439,6 +468,7 @@ class IngestFootballCommandTests(TestCase):
 
     def test_data_command_add_arguments(self) -> None:
         from argparse import ArgumentParser
+
         from data.management.commands.ingest_football import Command
 
         parser = ArgumentParser()
@@ -458,8 +488,9 @@ class IngestFootballCommandTests(TestCase):
         mock_run_home: unittest.mock.Mock,
         mock_run_data: unittest.mock.Mock,
     ) -> None:
-        from django.core.management import call_command
         from io import StringIO
+
+        from django.core.management import call_command
 
         mock_run_data.side_effect = ValueError("RAPIDAPI_KEY not set")
         mock_run_home.side_effect = ValueError("RAPIDAPI_KEY not set")
@@ -634,117 +665,8 @@ class AdminViewsTests(TestCase):
         self.assertIn(b"Rebuild failed", next_page.content)
 
 
-class DashThemeTests(TestCase):
-    """Dash app theme helpers read itsbillw-theme cookie (set by base template)."""
-
-    def test_current_theme_defaults_to_dark_without_request(self) -> None:
-        from data.dash_app import _current_theme
-        from data.theme_context import set_django_request
-
-        set_django_request(None)
-        self.assertEqual(_current_theme(), "dark")
-
-    def test_current_theme_reads_light_from_django_request(self) -> None:
-        from django.test import RequestFactory
-
-        from data.dash_app import (
-            _current_theme,
-            _error_style,
-            _grid_theme_class,
-            _plotly_template,
-        )
-        from data.theme_context import set_django_request
-
-        request = RequestFactory().get("/")
-        request.COOKIES["itsbillw-theme"] = "light"
-        set_django_request(request)
-        try:
-            self.assertEqual(_current_theme(), "light")
-            self.assertEqual(_plotly_template(), "plotly_white")
-            self.assertEqual(_grid_theme_class(), "ag-theme-alpine")
-            self.assertEqual(_error_style()["color"], "#245052")
-        finally:
-            set_django_request(None)
-
-    @patch("flask.has_request_context", return_value=True)
-    def test_current_theme_reads_light_flask_cookie(
-        self,
-        _mock_ctx: unittest.mock.Mock,
-    ) -> None:
-        from data.dash_app import (
-            _current_theme,
-            _error_style,
-            _grid_theme_class,
-            _plotly_template,
-        )
-        from data.theme_context import set_django_request
-
-        set_django_request(None)
-        mock_request = unittest.mock.MagicMock()
-        mock_request.cookies.get.return_value = "light"
-        with patch("flask.request", mock_request, create=True):
-            self.assertEqual(_current_theme(), "light")
-            self.assertEqual(_plotly_template(), "plotly_white")
-            self.assertEqual(_grid_theme_class(), "ag-theme-alpine")
-            self.assertEqual(_error_style()["color"], "#245052")
-
-    def test_current_theme_invalid_cookie_falls_back_to_dark(self) -> None:
-        from django.test import RequestFactory
-
-        from data.dash_app import _current_theme, _plotly_template
-        from data.theme_context import set_django_request
-
-        request = RequestFactory().get("/")
-        request.COOKIES["itsbillw-theme"] = "neon"
-        set_django_request(request)
-        try:
-            self.assertEqual(_current_theme(), "dark")
-            self.assertEqual(_plotly_template(), "plotly_dark")
-        finally:
-            set_django_request(None)
-
-    def test_layout_uses_light_theme_classes(self) -> None:
-        from django.test import RequestFactory
-
-        from data.dash_app import layout_with_dropdowns
-        from data.theme_context import set_django_request
-
-        request = RequestFactory().get("/")
-        request.COOKIES["itsbillw-theme"] = "light"
-        set_django_request(request)
-        try:
-            layout = layout_with_dropdowns()
-        finally:
-            set_django_request(None)
-        self.assertIn("football-dash-theme-light", layout.className)
-
-    def test_grid_dash_options_use_legacy_theme(self) -> None:
-        from data.dash_app import _grid_dash_options
-
-        self.assertEqual(_grid_dash_options()["theme"], "legacy")
-
-    def test_apply_plotly_theme_updates_figure_object(self) -> None:
-        import plotly.graph_objects as go
-
-        from data.dash_app import _apply_plotly_theme
-
-        fig = go.Figure()
-        updated = _apply_plotly_theme(fig, "plotly_white")
-        self.assertIsNotNone(updated.layout.template)
-
-    def test_options_from_model_handles_query_errors(self) -> None:
-        from data.dash_app import _options_from_model
-
-        with patch.object(
-            League.objects,
-            "all",
-            side_effect=RuntimeError("db down"),
-        ):
-            self.assertEqual(_options_from_model(League, "id", "name"), [])
-
-
-class DashCallbackExtendedTests(TestCase):
-    """Additional Dash callback paths: cache, team_games view, build errors."""
+class DashboardServiceCacheTests(TestCase):
+    """Dashboard payload caching."""
 
     def setUp(self) -> None:
         from django.core.cache import cache
@@ -759,55 +681,35 @@ class DashCallbackExtendedTests(TestCase):
             defaults={"display": "2025/26", "order": 0},
         )
 
-    @patch("data.dash_app._load_fixtures_from_db")
-    def test_update_chart_uses_cache_on_second_call(
+    @patch("data.dashboard_service.load_fixtures_from_db")
+    def test_build_dashboard_uses_cache_on_second_call(
         self,
         mock_load: unittest.mock.Mock,
     ) -> None:
         from django.core.cache import cache
-
-        from data.dash_app import _update_chart_and_grid
 
         cache.clear()
         mock_load.return_value = (_minimal_fixtures_df(), None)
-        first = _update_chart_and_grid(39, 2025, "games_played")
-        second = _update_chart_and_grid(39, 2025, "games_played")
-        self.assertEqual(first[1], second[1])
+        first = build_dashboard_payload(league_id=39, season=2025)
+        second = build_dashboard_payload(league_id=39, season=2025)
+        self.assertEqual(first["standings"], second["standings"])
         mock_load.assert_called_once()
 
-    @patch("data.dash_app._load_fixtures_from_db")
-    def test_update_chart_build_error_returns_empty_figure(
+    @patch("data.dashboard_service.load_fixtures_from_db")
+    def test_build_dashboard_build_error(
         self,
         mock_load: unittest.mock.Mock,
     ) -> None:
         from django.core.cache import cache
-
-        from data.dash_app import _update_chart_and_grid
 
         cache.clear()
         mock_load.return_value = (_minimal_fixtures_df(), None)
         with patch(
-            "data.dash_app.build_standings_and_figure",
+            "data.dashboard_service.build_standings_and_figure",
             return_value=([], None, "Chart failed"),
         ):
-            fig, rows, err = _update_chart_and_grid(39, 2025, "games_played")
-        self.assertEqual(rows, [])
-        self.assertEqual(err, "Chart failed")
-        self.assertIn("annotations", fig.get("layout", {}))
-
-    @patch("data.dash_app._load_fixtures_from_db")
-    @patch("data.dash_app._load_team_games_from_view")
-    def test_update_chart_prefers_team_games_view(
-        self,
-        mock_view: unittest.mock.Mock,
-        mock_db: unittest.mock.Mock,
-    ) -> None:
-        from data.dash_app import _update_chart_and_grid
-
-        mock_view.return_value = (_team_games_df(), None)
-        _update_chart_and_grid(39, 2025, "games_played")
-        mock_view.assert_called_once_with(39, 2025)
-        mock_db.assert_not_called()
+            payload = build_dashboard_payload(league_id=39, season=2025)
+        self.assertEqual(payload["error"], "Chart failed")
 
 
 def _team_games_df():
@@ -948,34 +850,34 @@ class DataViewsExtendedTests(TestCase):
         )
 
     def test_load_fixtures_from_db_returns_dataframe(self) -> None:
-        from data.views import _load_fixtures_from_db
+        from data.loaders import load_fixtures_from_db
 
-        df, err = _load_fixtures_from_db(39, 2025)
+        df, err = load_fixtures_from_db(39, 2025)
         self.assertIsNone(err)
         assert df is not None
         self.assertEqual(len(df), 1)
         self.assertEqual(df.iloc[0]["home_team_name"], "TeamA")
 
     def test_load_fixtures_from_db_empty_returns_error(self) -> None:
-        from data.views import _load_fixtures_from_db
+        from data.loaders import load_fixtures_from_db
 
-        df, err = _load_fixtures_from_db(99, 2099)
+        df, err = load_fixtures_from_db(99, 2099)
         self.assertIsNone(df)
         self.assertIn("No fixtures", err or "")
 
     def test_load_team_games_from_view_returns_dataframe(self) -> None:
-        from data.views import _load_team_games_from_view
+        from data.loaders import load_team_games_from_view
 
-        df, err = _load_team_games_from_view(39, 2025)
+        df, err = load_team_games_from_view(39, 2025)
         self.assertIsNone(err)
         assert df is not None
         self.assertIn("team", df.columns)
         self.assertEqual(len(df), 2)
 
     def test_load_team_games_from_view_empty_league_returns_none(self) -> None:
-        from data.views import _load_team_games_from_view
+        from data.loaders import load_team_games_from_view
 
-        df, err = _load_team_games_from_view(99, 2099)
+        df, err = load_team_games_from_view(99, 2099)
         self.assertIsNone(df)
         self.assertIsNone(err)
 

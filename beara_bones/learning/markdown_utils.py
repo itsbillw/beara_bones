@@ -104,8 +104,7 @@ def resolve_wikilinks(
             safe_preview = html.escape(preview, quote=True) if preview else ""
             title_attr = f' title="{safe_preview}"' if safe_preview else ""
             popover = (
-                f' data-bs-toggle="popover" data-bs-trigger="hover" '
-                f'data-bs-content="{safe_preview}"'
+                f' data-bs-toggle="popover" data-bs-trigger="hover" data-bs-content="{safe_preview}"'
                 if safe_preview
                 else ""
             )

@@ -1,10 +1,4 @@
-"""
-Production Django settings for beara_bones.
-
-Used on the server (e.g. Raspberry Pi / DietPi). Requires .env with
-DJANGO_SECRET_KEY, ALLOWED_HOSTS, and DB_* (MariaDB). For local development
-use settings_dev.py and set DJANGO_SETTINGS_MODULE=beara_bones.settings_dev.
-"""
+"""Shared Django settings for beara_bones."""
 
 import os
 from pathlib import Path
@@ -14,23 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Project root (directory containing manage.py).
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# --- Security & environment (required in production) ---
-_SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
-if not _SECRET_KEY:
-    raise ValueError("DJANGO_SECRET_KEY environment variable must be set in production")
-SECRET_KEY = _SECRET_KEY
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-_allowed = os.getenv("ALLOWED_HOSTS", "").strip()
-ALLOWED_HOSTS = [h.strip() for h in _allowed.split(",") if h.strip()]
-if not ALLOWED_HOSTS:
-    raise ValueError("ALLOWED_HOSTS must contain at least one host (e.g. itsbillw.eu)")
-
-# --- Apps & middleware ---
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -39,7 +17,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_plotly_dash.apps.DjangoPlotlyDashConfig",
+    "django_htmx",
     "home",
     "data",
     "learning",
@@ -54,8 +32,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "django_plotly_dash.middleware.BaseMiddleware",
-    "data.middleware.ThemeRequestMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 ROOT_URLCONF = "beara_bones.urls"
@@ -78,19 +55,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "beara_bones.wsgi.application"
 
-# --- Database (MariaDB; credentials from .env) ---
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": os.getenv("DB_NAME"),
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
-    },
-}
-
-# --- Password validation ---
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -106,51 +70,26 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-# --- Internationalization ---
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "Europe/Madrid"
-
 USE_I18N = True
-
 USE_TZ = True
 
-# --- Static & media (collectstatic writes to STATIC_ROOT) ---
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "static"
 MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
 
-# Dash app assets (e.g. data/assets/dashAgGridComponentFunctions.js) for AG Grid form column
 STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    "django_plotly_dash.finders.DashAssetFinder",
-    "django_plotly_dash.finders.DashComponentFinder",
-    "django_plotly_dash.finders.DashAppDirectoryFinder",
 ]
 
-# Use CDN for Dash assets (plotly, dash_ag_grid, etc.). Avoids 404s from local static.
-PLOTLY_DASH = {"serve_locally": False}
-
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# Allow embedding Dash apps in same-origin frames
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
-# --- HTTPS (site is behind NGINX/Certbot; Django trusts X-Forwarded-Proto) ---
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 3600
-SECURE_HSTS_PRELOAD = True
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# Ensure Django knows it's behind a proxy
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-# Hashed filenames for cache busting; use collectstatic --clear if static files don’t update.
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# Cache for football dashboard (avoids recomputing Plotly charts on every request)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
@@ -159,12 +98,10 @@ CACHES = {
         "TIMEOUT": 600,
     },
 }
-FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600  # seconds
+FOOTBALL_DASHBOARD_CACHE_TIMEOUT = 600
 
-# --- Learning vault ---
 LOGIN_URL = "/learning/login/"
 LOGIN_REDIRECT_URL = "/learning/"
 LOGOUT_REDIRECT_URL = "/learning/"
 LEARNING_MAX_UPLOAD_MB = int(os.getenv("LEARNING_MAX_UPLOAD_MB", "25"))
 LEARNING_INVITE_EXPIRY_DAYS = int(os.getenv("LEARNING_INVITE_EXPIRY_DAYS", "7"))
-MEDIA_URL = "/media/"

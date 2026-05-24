@@ -1,134 +1,89 @@
 """
-Data app views: football dashboard (Dash embed), refresh endpoint, crest image proxy. Refresh is admin-only.
+Data app views: football dashboard, refresh endpoint, crest image proxy.
 """
 
-import os
+from __future__ import annotations
 
-import pandas as pd
+import subprocess  # nosec B404
+from pathlib import Path
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseNotFound, JsonResponse
 from django.template.response import TemplateResponse
 from django.views.decorators.http import require_http_methods
 
+from football.crests import CREST_KEY_TEMPLATE
+from football.ingest import get_client
 
-def _load_fixtures_from_db(league_id: int, season: int):
-    """Load fixture data from MariaDB for the given league/season. Returns (df, error)."""
-    from .models import Fixture
-
-    qs = Fixture.objects.filter(league_id=league_id, league_season=season).order_by(
-        "date",
-    )
-    if not qs.exists():
-        return None, "No fixtures for this league/season. Run the pipeline from Admin."
-    rows = list(
-        qs.values(
-            "fixture_id",
-            "date",
-            "timestamp",
-            "venue_id",
-            "venue_name",
-            "status_short",
-            "status_long",
-            "league_id",
-            "league_name",
-            "league_season",
-            "league_round",
-            "home_team_id",
-            "home_team_name",
-            "away_team_id",
-            "away_team_name",
-            "goals_home",
-            "goals_away",
-        ),
-    )
-    df = pd.DataFrame(rows)
-    return df, None
+from .dashboard_service import build_dashboard_payload, league_season_defaults
+from .models import League, Season
 
 
-def _load_team_games_from_view(league_id: int, season: int):
-    """
-    Load team-games from data_team_game view for the given league/season.
-    Returns (DataFrame with same shape as dashboard_utils team_games, error).
-    Falls back to (None, error_msg) if the view is unavailable or empty.
-    """
-    from django.db import connection
-
+def _parse_dashboard_params(request) -> tuple[int | None, int | None, str]:
+    default_league, default_season = league_season_defaults()
+    league_raw = request.GET.get("league", default_league)
+    season_raw = request.GET.get("season", default_season)
+    x_axis = request.GET.get("x_axis", "games_played")
+    if x_axis not in ("games_played", "fixture_date"):
+        x_axis = "games_played"
     try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    team_name,
-                    team_id,
-                    fixture_date,
-                    opponent_name,
-                    venue,
-                    goals_for,
-                    goals_against,
-                    pts,
-                    result_letter,
-                    game_number,
-                    cumulative_pts
-                FROM data_team_game
-                WHERE league_id = %s AND league_season = %s
-                ORDER BY team_name, fixture_date
-                """,
-                [league_id, season],
-            )
-            columns = [col[0] for col in cursor.description]
-            rows = cursor.fetchall()
-    except Exception as e:
-        return None, str(e)
-    if not rows:
-        return None, None  # No data for this league/season
-    df = pd.DataFrame(rows, columns=columns)
-    df = df.rename(
-        columns={
-            "team_name": "team",
-            "fixture_date": "date",
-            "opponent_name": "opponent",
-            "goals_for": "gf",
-            "goals_against": "ga",
-        },
-    )
-    df["score_display"] = df["gf"].astype(str) + "-" + df["ga"].astype(str)
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df["hover"] = (
-        "<b>" + df["team"] + "</b><br>"
-        "Gameday: "
-        + df["game_number"].astype(str)
-        + "<br>"
-        + df["date"].dt.strftime("%d %b %Y")
-        + "<br>"
-        + df["venue"]
-        + " vs "
-        + df["opponent"]
-        + ": "
-        + df["score_display"]
-        + " ("
-        + df["result_letter"]
-        + ")<br>"
-        "Season Points: " + df["cumulative_pts"].astype(str)
-    )
-    return df, None
+        league_id = int(league_raw) if league_raw is not None else None
+    except (TypeError, ValueError):
+        league_id = default_league
+    try:
+        season = int(season_raw) if season_raw is not None else None
+    except (TypeError, ValueError):
+        season = default_season
+    return league_id, season, x_axis
 
 
 def data_page(request):
-    """Data page: embeds Plotly Dash FootballDashboard (chart + AG Grid league table)."""
-    return TemplateResponse(request, "data/data.html")
+    """Football dashboard page with HTMX-driven chart and standings table."""
+    league_id, season, x_axis = _parse_dashboard_params(request)
+    payload = build_dashboard_payload(
+        league_id=league_id,
+        season=season,
+        x_axis=x_axis,
+        request=request,
+    )
+    return TemplateResponse(
+        request,
+        "data/data.html",
+        {
+            "leagues": League.objects.all(),
+            "seasons": Season.objects.all(),
+            "league_id": league_id,
+            "season": season,
+            "x_axis": x_axis,
+            **payload,
+        },
+    )
+
+
+def dashboard_panel(request):
+    """HTMX partial: chart JSON + standings table for selected league/season."""
+    league_id, season, x_axis = _parse_dashboard_params(request)
+    payload = build_dashboard_payload(
+        league_id=league_id,
+        season=season,
+        x_axis=x_axis,
+        request=request,
+    )
+    return TemplateResponse(
+        request,
+        "data/_dashboard_panel.html",
+        {
+            "league_id": league_id,
+            "season": season,
+            "x_axis": x_axis,
+            **payload,
+        },
+    )
 
 
 def crest_serve(request, team_id: int):
     """Serve team crest image from MinIO. GET /data/crest/<team_id>/"""
-    import sys
-    from pathlib import Path
-
-    repo_root = Path(settings.BASE_DIR).parent
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-    from football.crests import CREST_KEY_TEMPLATE
-    from football.ingest import get_client
+    import os
 
     bucket = os.environ.get("MINIO_BUCKET", "football") or "football"
     key = CREST_KEY_TEMPLATE.format(team_id=team_id)
@@ -147,8 +102,6 @@ def data_refresh(request):
     """POST /data/refresh: start pipeline (staff only). Returns 403 for non-staff."""
     if not request.user.is_authenticated or not request.user.is_staff:
         return JsonResponse({"error": "Forbidden"}, status=403)
-    from pathlib import Path
-    import subprocess  # nosec B404
 
     repo_root = Path(settings.BASE_DIR).parent
     lock_file = repo_root / "data" / "football" / ".refresh.lock"

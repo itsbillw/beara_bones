@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -61,10 +61,10 @@ def is_stale_lock(path: Path, max_age: timedelta) -> bool:
     if not path.exists():
         return False
     try:
-        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
     except OSError:
         return False
-    return datetime.now(tz=timezone.utc) - mtime > max_age
+    return datetime.now(tz=UTC) - mtime > max_age
 
 
 @contextmanager

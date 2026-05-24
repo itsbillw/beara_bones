@@ -1,19 +1,14 @@
-"""
-URL routing for the data app.
-
-Included from project urls.py at '' so paths are at site root.
-Use {% url 'data:data' %}, {% url 'data:data_refresh' %} in templates.
-"""
+"""URL routing for the data app."""
 
 from django.urls import path
 
 from . import admin_views
-from . import dash_app  # noqa: F401 - register FootballDashboard with django-plotly-dash
-from .views import crest_serve, data_page, data_refresh
+from .views import crest_serve, dashboard_panel, data_page, data_refresh
 
 app_name = "data"
 urlpatterns = [
     path("data", data_page, name="data"),
+    path("data/panel", dashboard_panel, name="dashboard_panel"),
     path("data/crest/<int:team_id>/", crest_serve, name="crest"),
     path("data/refresh", data_refresh, name="data_refresh"),
     path("admin/data/pipeline/", admin_views.pipeline_control, name="admin_pipeline"),
