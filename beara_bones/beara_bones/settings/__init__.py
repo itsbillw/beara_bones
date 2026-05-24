@@ -1,3 +1,1 @@
-"""Default settings module (production). Prefer settings.dev or settings.prod explicitly."""
-
-from .prod import *  # noqa: F403
+"""Django settings package. Use ``beara_bones.settings.dev`` or ``beara_bones.settings.prod``."""

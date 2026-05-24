@@ -30,7 +30,7 @@ jobs:
 
       - name: Django tests
         env:
-          DJANGO_SETTINGS_MODULE: beara_bones.settings_dev
+          DJANGO_SETTINGS_MODULE: beara_bones.settings.dev
           TZ: UTC
         run: uv run python beara_bones/manage.py test home data learning
 
