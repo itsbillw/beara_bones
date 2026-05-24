@@ -5,6 +5,8 @@
   var PLOT_ID = "football-chart-plot";
   var TABLE_ID = "football-standings-table";
   var PANEL_ID = "football-dashboard-panel";
+  var CHART_HEIGHT = 620;
+  var resizeTimer;
 
   function parseFigure(wrapper) {
     var dataEl = wrapper.querySelector(".football-chart-data");
@@ -17,6 +19,20 @@
       console.error("Invalid chart JSON", err);
       return null;
     }
+  }
+
+  function chartContainerWidth(wrapper, plotEl) {
+    return plotEl.clientWidth || wrapper.clientWidth || plotEl.offsetWidth;
+  }
+
+  function buildLayout(figureLayout, width) {
+    var layout = Object.assign({}, figureLayout || {});
+    layout.autosize = false;
+    layout.height = layout.height || CHART_HEIGHT;
+    if (width > 0) {
+      layout.width = width;
+    }
+    return layout;
   }
 
   function renderFootballChart() {
@@ -32,12 +48,28 @@
     if (plotEl.classList.contains("js-plotly-plot")) {
       Plotly.purge(plotEl);
     }
-    var layout = figure.layout || {};
-    layout.autosize = false;
-    Plotly.newPlot(plotEl, figure.data || [], layout, {
-      responsive: false,
-      displayModeBar: false,
-    });
+    var width = chartContainerWidth(wrapper, plotEl);
+    Plotly.newPlot(
+      plotEl,
+      figure.data || [],
+      buildLayout(figure.layout, width),
+      {
+        responsive: false,
+        displayModeBar: false,
+      },
+    );
+  }
+
+  function resizeFootballChart() {
+    var wrapper = document.getElementById(CHART_WRAPPER_ID);
+    var plotEl = document.getElementById(PLOT_ID);
+    if (!wrapper || !plotEl || !plotEl.classList.contains("js-plotly-plot")) {
+      return;
+    }
+    var width = chartContainerWidth(wrapper, plotEl);
+    if (width > 0) {
+      Plotly.relayout(plotEl, { width: width });
+    }
   }
 
   window.renderFootballChart = renderFootballChart;
@@ -57,6 +89,11 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     initDashboardPanel();
+  });
+
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resizeFootballChart, 150);
   });
 
   document.addEventListener("themechange", function () {

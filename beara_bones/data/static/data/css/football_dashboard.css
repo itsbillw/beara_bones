@@ -36,6 +36,7 @@
 
 .football-chart {
   position: relative;
+  width: 100%;
   margin-bottom: 2rem;
   min-height: 620px;
 }
@@ -43,10 +44,14 @@
 .football-chart-plot {
   height: 620px;
   width: 100%;
+  max-width: 100%;
 }
 
 .football-chart-plot .js-plotly-plot,
-.football-chart-plot .plotly {
+.football-chart-plot .plotly,
+.football-chart-plot .plot-container {
+  width: 100% !important;
+  max-width: 100%;
   height: 100% !important;
 }
 
