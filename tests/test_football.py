@@ -247,12 +247,15 @@ class TestIngest:
         data = adapter.fetch_fixtures(39, 2025)
         assert data["response"][0]["fixture"]["id"] == 99
 
-    def test_get_ingest_adapter_resolves_sources(self) -> None:
+    @patch("football.ingest_adapters.get_minio_client")
+    def test_get_ingest_adapter_resolves_sources(self, mock_get_client: MagicMock) -> None:
         from football.ingest_adapters import (
             ManualUploadIngest,
             RapidAPIIngest,
             get_ingest_adapter,
         )
+
+        mock_get_client.return_value = MagicMock()
 
         with patch.dict(
             "os.environ",
