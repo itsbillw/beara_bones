@@ -18,6 +18,8 @@ PLOTLY_JS_CDN = "https://cdn.plot.ly/plotly-2.27.0.min.js"
 # Crest images in grid scaled to row height (served from Django static)
 CREST_GRID_CSS = "/static/data/css/crest_grid.css"
 DASH_THEME_CSS = "/static/data/css/dash_theme.css"
+AG_GRID_VERSION = "33.3.2"
+AG_GRID_CDN = f"https://cdn.jsdelivr.net/npm/ag-grid-community@{AG_GRID_VERSION}/styles"
 # Form column cell renderer (must load in iframe where the grid runs)
 FORM_RENDERER_JS = "/static/data/js/dashAgGridComponentFunctions.js"
 app = DjangoDash(
@@ -31,15 +33,15 @@ app = DjangoDash(
         {"href": CREST_GRID_CSS, "rel": "stylesheet"},
         {"href": DASH_THEME_CSS, "rel": "stylesheet"},
         {
-            "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css",
+            "href": f"{AG_GRID_CDN}/ag-grid.css",
             "rel": "stylesheet",
         },
         {
-            "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine.css",
+            "href": f"{AG_GRID_CDN}/ag-theme-alpine.css",
             "rel": "stylesheet",
         },
         {
-            "href": "https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-alpine-dark.css",
+            "href": f"{AG_GRID_CDN}/ag-theme-alpine-dark.css",
             "rel": "stylesheet",
         },
     ],
@@ -97,6 +99,22 @@ def _plotly_template() -> str:
 
 def _grid_theme_class() -> str:
     return "ag-theme-alpine" if _current_theme() == "light" else "ag-theme-alpine-dark"
+
+
+def _grid_dash_options() -> dict:
+    """AG Grid v33+ defaults to Quartz; opt into legacy CSS themes via className."""
+    return {
+        "animateRows": True,
+        "rowHeight": STANDINGS_ROW_HEIGHT_PX,
+        "theme": "legacy",
+    }
+
+
+def _dropdown_style(min_width: str) -> dict:
+    return {
+        "minWidth": min_width,
+        "display": "inline-block",
+    }
 
 
 def _error_style() -> dict:
@@ -228,7 +246,8 @@ def layout_with_dropdowns():
                         options=[],
                         value=None,
                         clearable=False,
-                        style={"minWidth": "200px", "display": "inline-block"},
+                        className="football-dash-dropdown",
+                        style=_dropdown_style("200px"),
                     ),
                     html.Label(
                         "Season",
@@ -240,7 +259,8 @@ def layout_with_dropdowns():
                         options=[],
                         value=None,
                         clearable=False,
-                        style={"minWidth": "120px", "display": "inline-block"},
+                        className="football-dash-dropdown",
+                        style=_dropdown_style("120px"),
                     ),
                     html.Label(
                         "Chart x-axis",
@@ -255,7 +275,8 @@ def layout_with_dropdowns():
                         ],
                         value="games_played",
                         clearable=False,
-                        style={"minWidth": "140px", "display": "inline-block"},
+                        className="football-dash-dropdown",
+                        style=_dropdown_style("140px"),
                     ),
                 ],
                 style={"marginBottom": "16px"},
@@ -276,10 +297,7 @@ def layout_with_dropdowns():
                         defaultColDef={"sortable": True, "filter": True},
                         columnSize="sizeToFit",
                         className=_grid_theme_class(),
-                        dashGridOptions={
-                            "animateRows": True,
-                            "rowHeight": STANDINGS_ROW_HEIGHT_PX,
-                        },
+                        dashGridOptions=_grid_dash_options(),
                         style={"height": "480px", "width": "100%"},
                     ),
                 ],

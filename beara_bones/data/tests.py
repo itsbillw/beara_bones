@@ -718,6 +718,11 @@ class DashThemeTests(TestCase):
             set_django_request(None)
         self.assertIn("football-dash-theme-light", layout.className)
 
+    def test_grid_dash_options_use_legacy_theme(self) -> None:
+        from data.dash_app import _grid_dash_options
+
+        self.assertEqual(_grid_dash_options()["theme"], "legacy")
+
     def test_apply_plotly_theme_updates_figure_object(self) -> None:
         import plotly.graph_objects as go
 

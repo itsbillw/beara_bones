@@ -29,6 +29,7 @@
   color: var(--dash-text);
 }
 
+/* React-select v1/v2 (legacy Dash) */
 .football-dash-root .Select-control,
 .football-dash-root .dash-dropdown .Select-control {
   background-color: var(--dash-surface) !important;
@@ -37,7 +38,8 @@
 }
 
 .football-dash-root .Select-value-label,
-.football-dash-root .Select-placeholder {
+.football-dash-root .Select-placeholder,
+.football-dash-root .Select-input > input {
   color: var(--dash-text) !important;
 }
 
@@ -58,4 +60,60 @@
     var(--dash-surface)
   );
   color: var(--dash-accent);
+}
+
+/* React-select v5 (Dash 3+) — hashed class names */
+.football-dash-root .football-dash-dropdown [class*="-control"],
+.football-dash-root [id^="football-dash-"] [class*="-control"] {
+  background-color: var(--dash-surface) !important;
+  border-color: var(--dash-border) !important;
+  color: var(--dash-text) !important;
+  box-shadow: none !important;
+}
+
+.football-dash-root .football-dash-dropdown [class*="-singleValue"],
+.football-dash-root .football-dash-dropdown [class*="-placeholder"],
+.football-dash-root .football-dash-dropdown [class*="-input"] input,
+.football-dash-root [id^="football-dash-"] [class*="-singleValue"],
+.football-dash-root [id^="football-dash-"] [class*="-placeholder"],
+.football-dash-root [id^="football-dash-"] [class*="-input"] input {
+  color: var(--dash-text) !important;
+}
+
+.football-dash-root .football-dash-dropdown [class*="-indicatorSeparator"],
+.football-dash-root [id^="football-dash-"] [class*="-indicatorSeparator"] {
+  background-color: var(--dash-border) !important;
+}
+
+.football-dash-root .football-dash-dropdown [class*="-indicatorContainer"],
+.football-dash-root [id^="football-dash-"] [class*="-indicatorContainer"] {
+  color: var(--dash-text-muted) !important;
+}
+
+.football-dash-root .football-dash-dropdown [class*="-menu"],
+.football-dash-root [id^="football-dash-"] [class*="-menu"] {
+  background-color: var(--dash-surface) !important;
+  border: 1px solid var(--dash-border) !important;
+}
+
+.football-dash-root .football-dash-dropdown [class*="-option"],
+.football-dash-root [id^="football-dash-"] [class*="-option"] {
+  background-color: var(--dash-surface) !important;
+  color: var(--dash-text) !important;
+}
+
+.football-dash-root .football-dash-dropdown [class*="-option"]:hover,
+.football-dash-root
+  .football-dash-dropdown
+  [class*="-option"][aria-selected="true"],
+.football-dash-root [id^="football-dash-"] [class*="-option"]:hover,
+.football-dash-root
+  [id^="football-dash-"]
+  [class*="-option"][aria-selected="true"] {
+  background-color: color-mix(
+    in srgb,
+    var(--dash-accent) 12%,
+    var(--dash-surface)
+  ) !important;
+  color: var(--dash-accent) !important;
 }
