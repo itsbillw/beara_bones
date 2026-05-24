@@ -5,6 +5,9 @@ on:
     branches: [main, "modernization/**"]
   pull_request:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -12,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
@@ -22,8 +25,11 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Lint and test
-        run: make check
+      - name: Lint
+        run: SKIP=test-all uv run pre-commit run --all-files
+
+      - name: Test
+        run: make test-all
 
   dbt-soda:
     runs-on: ubuntu-latest
@@ -31,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
 
@@ -42,31 +48,7 @@ jobs:
         run: uv sync
 
       - name: Prepare fixture DuckDB
-        run: |
-          mkdir -p data/football
-          uv run python - <<'PY'
-          import duckdb
-          from pathlib import Path
-          db = Path("data/football/football.duckdb")
-          con = duckdb.connect(str(db))
-          con.execute(
-              """
-              CREATE TABLE IF NOT EXISTS fixtures (
-                  fixture_id BIGINT,
-                  league_id INTEGER,
-                  league_season INTEGER,
-                  home_team_name VARCHAR,
-                  away_team_name VARCHAR,
-                  goals_home INTEGER,
-                  goals_away INTEGER
-              )
-              """
-          )
-          con.execute(
-              "INSERT INTO fixtures VALUES (1, 39, 2025, 'TeamA', 'TeamB', 2, 1)"
-          )
-          con.close()
-          PY
+        run: uv run python scripts/ci_seed_football_duckdb.py
 
       - name: dbt build
         run: cd data_modelling && uv run dbt build
@@ -75,4 +57,4 @@ jobs:
         run: |
           uv run soda contract verify \
             --data-source football/soda/ds_config.yml \
-            --contract football/soda/contracts/fixtures.yaml || true
+            --contract football/soda/contracts/fixtures.yaml
