@@ -20,6 +20,8 @@ def drop_fulltext_index(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
+    atomic = False  # MariaDB/MySQL cannot roll back DDL (CREATE INDEX); run without transaction
+
     dependencies = [
         ("learning", "0002_learningdocument_author_and_more"),
     ]
