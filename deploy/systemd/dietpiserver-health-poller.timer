@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Pi health poller every 30 seconds
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=30s
+AccuracySec=5s
+Unit=dietpiserver-health-poller.service
+
+[Install]
+WantedBy=timers.target

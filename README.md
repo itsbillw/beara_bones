@@ -42,16 +42,18 @@ Django-based personal site and playground. Production runs on a **Raspberry Pi 4
 
 Run `make help` for the full list. Common targets:
 
-| Command              | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `make run-dev`       | Dev server (SQLite, `settings_dev`)            |
-| `make test`          | Django tests (home, data, learning)            |
-| `make test-football` | Pytest for the `football` package              |
-| `make test-all`      | Django + football tests                        |
-| `make coverage`      | Combined coverage report                       |
-| `make lint`          | Pre-commit checks (ruff, mypy, bandit, etc.)   |
-| `make check`         | Lint + all tests (run before push)             |
-| `make deploy`        | Production deploy after `git pull` (see below) |
+| Command                      | Description                                    |
+| ---------------------------- | ---------------------------------------------- |
+| `make run-dev`               | Dev server (SQLite, `settings_dev`)            |
+| `make test`                  | Django tests (home, data, learning)            |
+| `make test-football`         | Pytest for the `football` package              |
+| `make test-all`              | Django + football tests                        |
+| `make coverage`              | Combined coverage report                       |
+| `make lint`                  | Pre-commit checks (ruff, mypy, bandit, etc.)   |
+| `make check`                 | Lint + all tests (run before push)             |
+| `make deploy`                | Production deploy after `git pull` (see below) |
+| `make health-poller`         | Run one Pi health poller cycle                 |
+| `make install-health-poller` | Install systemd timer on DietPiServer (once)   |
 
 ### Football pipeline
 
@@ -75,6 +77,9 @@ beara_bones/          Django project (run manage.py from beara_bones/)
   data/               Football dashboard (/data), pipeline admin
   learning/           Invite-only vault (/learning)
 football/             Standalone pipeline package (not a Django app)
+pi_health/            Pi health collector (agent + poller)
+docs/                 Operator docs (e.g. health-dashboard.md)
+deploy/systemd/       systemd units for health poller and MediaPi agent
 data_modelling/       dbt-duckdb project
 tests/                Pytest for football/
 ```
@@ -99,6 +104,13 @@ Dashboard figures are cached in Django’s file cache (`FOOTBALL_DASHBOARD_CACHE
 ### Learning (`/learning`)
 
 Invite-only vault: per-user directory trees, markdown notes with wikilinks/backlinks, PDF viewing with progress, zip import/export, search and filters. Requires a valid `LearningInvite` to sign up.
+
+### Health (`/health`)
+
+- **Dashboard:** staff-only Pi health page for DietPiServer and MediaPi (CPU, memory, temperature, disk usage).
+- **Collector:** `pi_health/` package (poller on DietPiServer, optional agent on MediaPi). See [`docs/health-dashboard.md`](docs/health-dashboard.md).
+- **Resilience:** page works when MediaPi is offline; missing host shows empty cards/charts, not errors.
+- **UI:** HTMX live cards (30s) + on-demand Plotly history (1h–30d). Netdata remains the live deep-dive tool.
 
 ## Theme system
 
@@ -127,6 +139,8 @@ See `.env.example` for the full list. Summary:
 | `MINIO_SECURE`                                            | `true`/`false` for HTTPS to MinIO          |
 | `LEARNING_MAX_UPLOAD_MB`                                  | Upload size limit (default 25)             |
 | `LEARNING_INVITE_EXPIRY_DAYS`                             | Invite TTL (default 7)                     |
+| `HEALTH_SQLITE_PATH`                                      | Pi health SQLite DB (production poller)    |
+| `HEALTH_HOSTS`                                            | Comma-separated host labels for dashboard  |
 
 ## Testing
 

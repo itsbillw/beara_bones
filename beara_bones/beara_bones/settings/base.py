@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "home",
     "data",
+    "health",
     "learning",
 ]
 
@@ -124,3 +125,5 @@ LOGIN_REDIRECT_URL = "/learning/"
 LOGOUT_REDIRECT_URL = "/learning/"
 LEARNING_MAX_UPLOAD_MB = int(os.getenv("LEARNING_MAX_UPLOAD_MB", "25"))
 LEARNING_INVITE_EXPIRY_DAYS = int(os.getenv("LEARNING_INVITE_EXPIRY_DAYS", "7"))
+HEALTH_SQLITE_PATH = os.getenv("HEALTH_SQLITE_PATH", str(REPO_ROOT / "data" / "health.sqlite"))
+HEALTH_HOSTS = os.getenv("HEALTH_HOSTS", "DietPiServer,MediaPi")

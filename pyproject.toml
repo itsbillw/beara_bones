@@ -52,10 +52,10 @@ dev-dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["beara_bones*", "football*"]
+include = ["beara_bones*", "football*", "pi_health*"]
 
 [tool.coverage.run]
-source = ["beara_bones", "football"]
+source = ["beara_bones", "football", "pi_health"]
 omit = ["*/migrations/*", "*/tests.py", "*/test_*.py", "manage.py"]
 
 [tool.coverage.report]

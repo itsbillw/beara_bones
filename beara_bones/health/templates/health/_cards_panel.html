@@ -1,0 +1,49 @@
+<div class="health-cards-grid">
+  {% for card in cards %}
+    <article class="health-card{% if card.missing %} health-card--missing{% endif %}">
+      <header class="health-card-header">
+        <h2>{{ card.host }}</h2>
+        {% if card.ts %}
+          <time datetime="{{ card.ts }}">{{ card.ts }}</time>
+        {% else %}
+          <span class="health-card-missing-label">Offline — no recent data</span>
+        {% endif %}
+      </header>
+      {% if not card.missing %}
+        <dl class="health-metrics">
+          <div>
+            <dt>CPU</dt>
+            <dd>{{ card.cpu_pct|default:"—" }}%</dd>
+          </div>
+          <div>
+            <dt>Memory</dt>
+            <dd>{{ card.mem_pct|default:"—" }}%</dd>
+          </div>
+          <div>
+            <dt>Temp</dt>
+            <dd>{% if card.temp_c is not None %}{{ card.temp_c }}°C{% else %}—{% endif %}</dd>
+          </div>
+        </dl>
+        <div class="health-storage-list">
+          {% for fs in card.filesystems %}
+            <div class="health-storage-item">
+              <div class="health-storage-label">
+                <span>{{ fs.mount }}</span>
+                <span>{{ fs.used_label }} / {{ fs.total_label }}</span>
+              </div>
+              {% if fs.pct is not None %}
+                <div class="health-storage-bar" role="progressbar" aria-valuenow="{{ fs.pct }}" aria-valuemin="0" aria-valuemax="100">
+                  <span style="width: {{ fs.pct }}%"></span>
+                </div>
+              {% endif %}
+            </div>
+          {% empty %}
+            <p class="health-storage-empty">No disk mounts configured.</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p class="health-empty-state">No health snapshots yet. Deploy the poller on DietPiServer.</p>
+  {% endfor %}
+</div>

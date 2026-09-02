@@ -25,6 +25,13 @@
         <span class="name">Football data</span>
         <span class="tagline">Charts & standings</span>
       </a>
+      {% if user.is_staff %}
+      <a href="{% url 'health:health' %}" class="service-tile">
+        <span class="icon-wrap"><i class="bi bi-cpu-fill"></i></span>
+        <span class="name">Pi health</span>
+        <span class="tagline">CPU, disks & temp</span>
+      </a>
+      {% endif %}
     </div>
   </section>
 

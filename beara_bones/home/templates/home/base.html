@@ -75,6 +75,15 @@
                 >Data</a
               >
             </li>
+            {% if user.is_staff %}
+            <li class="nav-item">
+              <a
+                class="nav-link{% if request.path|slice:':7' == '/health' %} active{% endif %}"
+                href="{% url 'health:health' %}"
+                >Health</a
+              >
+            </li>
+            {% endif %}
             <li class="nav-item">
               <a
                 class="nav-link{% if request.path|slice:':10' == '/learning/' %} active{% endif %}"

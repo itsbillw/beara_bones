@@ -1,0 +1,22 @@
+{% if error %}
+<p class="health-dashboard-error" role="alert">{{ error }}</p>
+{% endif %}
+
+<div class="health-charts-grid">
+  <div class="health-chart" id="health-chart-cpu">
+    <script type="application/json" class="health-chart-data">{{ cpu_figure_json|safe }}</script>
+    <div id="health-chart-cpu-plot" class="health-chart-plot"></div>
+  </div>
+  <div class="health-chart" id="health-chart-memory">
+    <script type="application/json" class="health-chart-data">{{ memory_figure_json|safe }}</script>
+    <div id="health-chart-memory-plot" class="health-chart-plot"></div>
+  </div>
+  <div class="health-chart" id="health-chart-temperature">
+    <script type="application/json" class="health-chart-data">{{ temperature_figure_json|safe }}</script>
+    <div id="health-chart-temperature-plot" class="health-chart-plot"></div>
+  </div>
+  <div class="health-chart" id="health-chart-storage">
+    <script type="application/json" class="health-chart-data">{{ storage_figure_json|safe }}</script>
+    <div id="health-chart-storage-plot" class="health-chart-plot"></div>
+  </div>
+</div>

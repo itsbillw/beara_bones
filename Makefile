@@ -22,8 +22,12 @@ test:  ## Run Django tests (home + data + learning apps)
 test-football:  ## Run football package unit tests (from repo root)
 	uv run pytest tests/test_football.py -v
 
+.PHONY: test-pi-health
+test-pi-health:  ## Run pi_health collector unit tests
+	uv run pytest tests/test_pi_health.py -v
+
 .PHONY: test-all
-test-all: test test-football  ## Run Django and football tests
+test-all: test test-football test-pi-health  ## Run Django and football tests
 
 .PHONY: coverage
 coverage:  ## Run all tests with combined coverage report
@@ -89,6 +93,17 @@ deploy:  ## After git pull: uv sync, migrate, collectstatic, restart service (SY
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py migrate
 	cd beara_bones && DJANGO_SETTINGS_MODULE=beara_bones.settings.prod uv run python manage.py collectstatic --noinput --clear
 	sudo systemctl restart $(SYSTEMCTL_SERVICE)
+
+.PHONY: health-poller
+health-poller:  ## Run one Pi health poller cycle (reads .env)
+	uv run python -m pi_health.poller
+
+.PHONY: install-health-poller
+install-health-poller:  ## Install systemd timer for health poller (DietPiServer, run once)
+	sudo cp deploy/systemd/dietpiserver-health-poller.service /etc/systemd/system/
+	sudo cp deploy/systemd/dietpiserver-health-poller.timer /etc/systemd/system/
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now dietpiserver-health-poller.timer
 
 .PHONY: rqworker
 rqworker:  ## Run django-rq worker (requires REDIS_URL in repo-root .env)

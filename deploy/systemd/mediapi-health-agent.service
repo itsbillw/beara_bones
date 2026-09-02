@@ -1,0 +1,20 @@
+[Unit]
+Description=MediaPi health metrics agent (LAN only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=bill
+Group=bill
+WorkingDirectory=/opt/health-monitor
+Environment=PYTHONPATH=/opt/health-monitor
+Environment=HEALTH_AGENT_BIND=0.0.0.0:9105
+Environment=HEALTH_HOSTNAME=MediaPi
+Environment=HEALTH_MOUNT_PATHS=/,/mnt/SeaGate
+ExecStart=/usr/bin/python3 -m pi_health.agent
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

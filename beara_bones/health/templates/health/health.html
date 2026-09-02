@@ -1,0 +1,65 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block header %}
+<title>itsbillw - Pi health</title>
+<link rel="stylesheet" href="{% static 'health/css/health_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container main-container health-page-content">
+  {% include "home/_page_header.html" with page_title="Pi health" page_subtitle="DietPiServer and MediaPi — storage, CPU, memory, temperature" %}
+
+  <div
+    id="health-cards-panel"
+    hx-get="{% url 'health:cards' %}"
+    hx-trigger="every 30s"
+    hx-swap="innerHTML"
+  >
+    {% include "health/_cards_panel.html" %}
+  </div>
+
+  <div class="health-panel">
+    <form
+      id="health-chart-controls"
+      class="health-chart-controls"
+      hx-get="{% url 'health:charts' %}"
+      hx-target="#health-charts-panel"
+      hx-trigger="change from:select"
+      hx-include="this"
+      hx-indicator="#health-charts-loading"
+    >
+      <label for="health-host">Host</label>
+      <select id="health-host" name="host">
+        {% for host in hosts %}
+          <option value="{{ host }}" {% if host == selected_host %}selected{% endif %}>{{ host }}</option>
+        {% empty %}
+          <option value="">No hosts configured</option>
+        {% endfor %}
+      </select>
+
+      <label for="health-range">History</label>
+      <select id="health-range" name="range">
+        {% for option in range_options %}
+          <option value="{{ option }}" {% if option == range_key %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <div class="health-charts-wrap">
+      <div id="health-charts-loading" class="health-charts-loading htmx-indicator">
+        <span class="pipeline-chip-spinner" aria-hidden="true"></span>
+        Loading charts…
+      </div>
+      <div id="health-charts-panel">
+        {% include "health/_charts_panel.html" %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'data/js/plotly.min.js' %}"></script>
+<script src="{% static 'health/js/health_dashboard.js' %}"></script>
+{% endblock %}

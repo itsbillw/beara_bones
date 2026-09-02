@@ -1,0 +1,144 @@
+.health-page-content {
+  padding-bottom: 2rem;
+}
+
+.health-cards-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+.health-card {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+}
+
+.health-card--missing {
+  opacity: 0.75;
+}
+
+.health-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.health-card-header h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.health-card-header time,
+.health-card-missing-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.health-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.health-metrics dt {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.health-metrics dd {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.health-storage-item + .health-storage-item {
+  margin-top: 0.75rem;
+}
+
+.health-storage-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.health-storage-bar {
+  background: var(--border-subtle);
+  border-radius: 999px;
+  height: 0.55rem;
+  overflow: hidden;
+}
+
+.health-storage-bar span {
+  background: var(--accent);
+  display: block;
+  height: 100%;
+}
+
+.health-panel {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.health-chart-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.health-chart-controls label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-right: 0.35rem;
+}
+
+.health-chart-controls select {
+  min-width: 8rem;
+}
+
+.health-charts-wrap {
+  position: relative;
+}
+
+.health-charts-loading {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  min-height: 2rem;
+}
+
+.health-charts-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.health-chart-plot {
+  min-height: 280px;
+  width: 100%;
+}
+
+.health-dashboard-error,
+.health-empty-state,
+.health-storage-empty {
+  color: var(--text-muted);
+}
+
+@media (min-width: 992px) {
+  .health-charts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

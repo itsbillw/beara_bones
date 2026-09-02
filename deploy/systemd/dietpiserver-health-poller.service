@@ -1,0 +1,12 @@
+[Unit]
+Description=Collect Pi health snapshots into SQLite
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=bill
+Group=bill
+WorkingDirectory=/website/beara_bones
+EnvironmentFile=/website/beara_bones/.env
+ExecStart=/website/beara_bones/.venv/bin/python -m pi_health.poller
